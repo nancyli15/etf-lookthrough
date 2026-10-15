@@ -1,60 +1,29 @@
-// Fetches the raw SnapTrade data for the signed-in user: accounts, then each
-// account's positions, balances and activities. Statuses are kept per call so
-// we can see exactly what the API returns (Step 0: look at the raw data).
-// Add ?download=1 to save the result as a JSON file.
-import { NextResponse, type NextRequest } from "next/server";
-import { API_BASE } from "@/lib/config";
-import { NotSignedInError, createClient, type ApiResult } from "@/lib/snaptrade";
+// Step 1 of sign-in: create fresh state, nonce and PKCE values, then send the
+// browser to SnapTrade's consent screen.
+import { NextResponse } from "next/server";
+import { SCOPES, requireEnv, redirectUri } from "@/lib/config";
+import { codeChallenge, getMetadata, randomToken } from "@/lib/oauth";
+import { setLoginState } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
 
-type AccountDump = {
-  account: unknown;
-  positions: ApiResult;
-  balances: ApiResult;
-  activities: ApiResult;
-};
+export async function GET() {
+  const metadata = await getMetadata();
 
-export async function GET(req: NextRequest) {
-  try {
-    const client = await createClient();
-    const accounts = await client.get("/accounts");
+  const state = randomToken(32);
+  const nonce = randomToken(32);
+  const codeVerifier = randomToken(64);
+  await setLoginState({ state, nonce, codeVerifier });
 
-    const list = Array.isArray(accounts.data) ? accounts.data : [];
-    const perAccount: AccountDump[] = [];
-    // Sequential on purpose: simple, and avoids hammering the API.
-    for (const account of list) {
-      const id = (account as { id?: string }).id;
-      if (!id) continue;
-      const base = `/accounts/${encodeURIComponent(id)}`;
-      perAccount.push({
-        account,
-        // /positions is deprecated (410 for new customers); /positions/all is the unified endpoint.
-        positions: await client.get(`${base}/positions/all`),
-        balances: await client.get(`${base}/balances`),
-        activities: await client.get(`${base}/activities`),
-      });
-    }
+  const url = new URL(metadata.authorization_endpoint);
+  url.searchParams.set("response_type", "code");
+  url.searchParams.set("client_id", requireEnv("SNAPTRADE_CLIENT_ID"));
+  url.searchParams.set("redirect_uri", redirectUri());
+  url.searchParams.set("scope", SCOPES);
+  url.searchParams.set("state", state);
+  url.searchParams.set("nonce", nonce);
+  url.searchParams.set("code_challenge", codeChallenge(codeVerifier));
+  url.searchParams.set("code_challenge_method", "S256");
 
-    const body = {
-      fetchedAt: new Date().toISOString(),
-      apiBase: API_BASE,
-      accountsCall: { path: accounts.path, status: accounts.status, ok: accounts.ok },
-      accounts: perAccount,
-      accountsRaw: accounts.ok ? undefined : accounts.data,
-    };
-
-    const download = req.nextUrl.searchParams.get("download") === "1";
-    return NextResponse.json(body, {
-      headers: download
-        ? { "Content-Disposition": `attachment; filename="raw-data-${Date.now()}.json"` }
-        : {},
-    });
-  } catch (err) {
-    if (err instanceof NotSignedInError) {
-      return NextResponse.json({ error: "not_signed_in" }, { status: 401 });
-    }
-    console.error("Raw data fetch failed:", err instanceof Error ? err.message : "unknown");
-    return NextResponse.json({ error: "fetch_failed" }, { status: 502 });
-  }
+  return NextResponse.redirect(url);
 }
