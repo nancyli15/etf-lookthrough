@@ -1,8 +1,10 @@
 "use client";
-// Step-0 dashboard: shows each account and its positions, plus the raw JSON.
-// The look-through view gets built on top of this once we've seen real data.
-import { useEffect, useState } from "react";
+// Loads the signed-in user's data, then shows the look-through. The per-account
+// tables and raw JSON stay available in a Developer view.
+import { useEffect, useMemo, useState } from "react";
 import { positionsOf, toNumber } from "@/lib/holdings";
+import { buildReport } from "@/lib/report";
+import LookThrough from "./LookThrough";
 
 type ApiResult = { path: string; status: number; ok: boolean; data: unknown };
 type AccountDump = { account: any; positions: ApiResult; balances: ApiResult; activities: ApiResult };
@@ -55,15 +57,16 @@ export default function Dashboard({ email }: { email?: string }) {
       .catch((e) => setError(e instanceof Error ? e.message : "Something went wrong"));
   }, []);
 
+  const report = useMemo(() => (data?.accountsCall.ok ? buildReport(data.accounts) : null), [data]);
+
   return (
     <>
       <div className="row" style={{ justifyContent: "space-between" }}>
         <div>
-          <h1>Your holdings</h1>
+          <h1>What you actually own</h1>
           {email && <p className="muted">Signed in as {email}</p>}
         </div>
         <div className="row">
-          <a className="button secondary" href="/api/raw?download=1">Download raw data</a>
           <form action="/api/disconnect" method="post">
             <button className="button secondary" type="submit">Disconnect</button>
           </form>
@@ -89,51 +92,60 @@ export default function Dashboard({ email }: { email?: string }) {
         </div>
       )}
 
-      {data?.accounts.map((a, i) => {
-        const positions = positionsOf(a.positions.data);
-        return (
-          <div className="card" key={a.account?.id ?? i}>
-            <h2>
-              {a.account?.name ?? "Account"}{" "}
-              <span className="muted">{a.account?.institution_name ?? ""}</span>
-            </h2>
-            {!a.positions.ok ? (
-              <p className="error">Positions request returned status {a.positions.status}.</p>
-            ) : positions.length === 0 ? (
-              <p className="muted">No positions in this account.</p>
-            ) : (
-              <table>
-                <thead>
-                  <tr>
-                    <th>Symbol</th>
-                    <th>Type</th>
-                    <th className="num">Units</th>
-                    <th className="num">Price</th>
-                    <th>Currency</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {positions.map((p, j) => (
-                    <tr key={j}>
-                      <td>{symbolOf(p)}</td>
-                      <td>{kindOf(p)}</td>
-                      <td className="num">{num(p?.units ?? p?.fractional_units)}</td>
-                      <td className="num">{num(p?.price)}</td>
-                      <td>{currencyOf(p)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
-            <details style={{ marginTop: 12 }}>
-              <summary className="muted">Raw JSON for this account</summary>
-              <pre>{JSON.stringify(a, null, 2)}</pre>
-            </details>
-          </div>
-        );
-      })}
+      {report && data && data.accounts.length > 0 && <LookThrough report={report} />}
 
-      {data && <p className="muted">Fetched {new Date(data.fetchedAt).toLocaleString()}</p>}
+      {data && (
+        <details className="developer">
+          <summary className="muted">Developer view</summary>
+          <p className="spaced">
+            <a className="button secondary" href="/api/raw?download=1">Download raw data</a>
+          </p>
+          {data.accounts.map((a, i) => {
+            const positions = positionsOf(a.positions.data);
+            return (
+              <div className="card" key={a.account?.id ?? i}>
+                <h2>
+                  {a.account?.name ?? "Account"}{" "}
+                  <span className="muted">{a.account?.institution_name ?? ""}</span>
+                </h2>
+                {!a.positions.ok ? (
+                  <p className="error">Positions request returned status {a.positions.status}.</p>
+                ) : positions.length === 0 ? (
+                  <p className="muted">No positions in this account.</p>
+                ) : (
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Symbol</th>
+                        <th>Type</th>
+                        <th className="num">Units</th>
+                        <th className="num">Price</th>
+                        <th>Currency</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {positions.map((p, j) => (
+                        <tr key={j}>
+                          <td>{symbolOf(p)}</td>
+                          <td>{kindOf(p)}</td>
+                          <td className="num">{num(p?.units ?? p?.fractional_units)}</td>
+                          <td className="num">{num(p?.price)}</td>
+                          <td>{currencyOf(p)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+                <details style={{ marginTop: 12 }}>
+                  <summary className="muted">Raw JSON for this account</summary>
+                  <pre>{JSON.stringify(a, null, 2)}</pre>
+                </details>
+              </div>
+            );
+          })}
+          <p className="muted">Fetched {new Date(data.fetchedAt).toLocaleString()}</p>
+        </details>
+      )}
     </>
   );
 }

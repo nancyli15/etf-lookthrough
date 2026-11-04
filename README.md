@@ -4,7 +4,7 @@ Your brokerage app shows a few ETF tickers. This app shows the companies inside 
 
 Built on [SnapTrade OAuth](https://docs.snaptrade.com/docs/oauth-apps): you sign in with SnapTrade, approve read-only access, and the app reads your holdings across connected brokerages.
 
-> **Status:** Step 0, sign-in plus raw data. The look-through view comes next.
+> **Status:** the look-through view is built on top of sign-in and holdings. Hardening comes next.
 
 ## Run it locally
 
@@ -54,6 +54,8 @@ Requires Node.js 20 or newer.
 | Mixed portfolios report in CAD, at a dated Bank of Canada rate | One rate is simple to check and explain. Other currencies are listed, not guessed | Daily rates and more currencies |
 | Percentages exclude cash balances | Holdings come from `/positions/all`, and cash comes from a separate call | Add `/balances` to the total |
 | Fund overlap adds the smaller weight of each shared company, from top holdings only | A standard measure that's easy to check by hand, but it's a minimum | Use every holding, for the true figure |
+| Calculate the look-through in the browser from `/api/raw` | No new endpoint, and the fund snapshot is small | Move it to the server if the fund data grows to every holding |
+| Show what the numbers can't see, on the main screen | A confident total that's missing money is worse than an honest gap | Close the gaps with more fund files |
 | FXAIX uses SPY's holdings list | Both track the S&P 500, so the weights should be very close, and the UI can say it's a stand-in | Add Fidelity's own file |
 
 ## Known limitations
