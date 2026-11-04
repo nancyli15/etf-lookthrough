@@ -50,6 +50,10 @@ Requires Node.js 20 or newer.
 | Merge a security across accounts only within one currency | Adding CAD and USD values together would give a wrong total | Convert with a dated FX rate first, then merge |
 | Skip positions with unusable numbers and list them | Counting a blank price as $0 would quietly understate the portfolio | Show the reason per position, and report it to error tracking |
 | Dated snapshot of each fund's top 25 holdings, plus an "other" share | Simple to build and check for v1, and the largest holdings carry the story | Refresh the files on a schedule and keep every holding |
+| Identify a company by ticker plus market | The same ticker can be two companies: ROP is Roche in Switzerland and Roper in the US | Match on FIGI through OpenFIGI |
+| Mixed portfolios report in CAD, at a dated Bank of Canada rate | One rate is simple to check and explain. Other currencies are listed, not guessed | Daily rates and more currencies |
+| Percentages exclude cash balances | Holdings come from `/positions/all`, and cash comes from a separate call | Add `/balances` to the total |
+| Fund overlap adds the smaller weight of each shared company, from top holdings only | A standard measure that's easy to check by hand, but it's a minimum | Use every holding, for the true figure |
 | FXAIX uses SPY's holdings list | Both track the S&P 500, so the weights should be very close, and the UI can say it's a stand-in | Add Fidelity's own file |
 
 ## Known limitations

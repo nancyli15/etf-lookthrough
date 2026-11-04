@@ -14,6 +14,10 @@ export const FUNDS: Record<string, Fund> = {
   },
 };
 
+// Funds that appear inside other funds but have no file yet. Listing them keeps
+// them from being counted as companies. A fund with data in FUNDS takes priority.
+export const FUNDS_WITHOUT_DATA = new Set(["ITOT", "IEFA", "IEMG"]);
+
 // Two share classes of one company, so the look-through should show one row.
 export const COMPANY_BY_SYMBOL: Record<string, string> = {
   GOOGL: "Alphabet",
