@@ -46,6 +46,19 @@ describe("LookThrough screen", () => {
     expect(html).toContain("nothing to look through");
     expect(html).not.toContain("<table");
     expect(html).not.toContain("NaN");
+    expect(html).not.toContain("in total");
+  });
+
+  it("doesn't present $0 as a real total when every account failed", () => {
+    const html = render([{ account: { name: "IRA" }, positions: { ok: false, status: 500, data: null } }]);
+    expect(html).toContain("load IRA");
+    expect(html).not.toContain("in total");
+  });
+
+  it("says an unknown ETF isn't available yet, without crashing", () => {
+    const html = render([ok([position("ZZZZ", "etf", 500)])]);
+    expect(html).toContain("ZZZZ");
+    expect(html).toContain("contents yet");
   });
 
   it("shows the FX date when it converts, and shows XEQT's unopened gap", () => {

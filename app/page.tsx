@@ -6,6 +6,7 @@ const MESSAGES: Record<string, string> = {
   session_expired: "Your session expired. Please sign in again.",
   state_mismatch: "Sign-in expired or was started in another tab. Please try again.",
   sign_in_failed: "Something went wrong finishing sign-in. Please try again.",
+  sign_in_unavailable: "We couldn't reach SnapTrade to start sign-in. Please try again in a moment.",
   incomplete_token_response: "SnapTrade didn't return everything we need. Please try again.",
   revoke_failed: "You're signed out here, but SnapTrade didn't confirm the disconnect. You can remove access in your SnapTrade Dashboard.",
 };

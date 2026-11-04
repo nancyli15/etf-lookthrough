@@ -79,6 +79,11 @@ describe("toHoldings", () => {
     expect(reasons.FXAIX).toBeUndefined();
   });
 
+  it("reads kind in any capitalization", () => {
+    const { holdings } = toHoldings([{ results: [position("SPY", "ETF", "1", "100", "USD", "F2")] }]);
+    expect(holdings[0]).toMatchObject({ kind: "etf", notLookedThrough: undefined });
+  });
+
   it("skips and reports a position with a blank price instead of valuing it at $0", () => {
     const result = toHoldings([{ results: [position("AAPL", "stock", "5", "")] }]);
     expect(result.holdings).toEqual([]);
