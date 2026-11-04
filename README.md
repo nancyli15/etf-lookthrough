@@ -47,6 +47,8 @@ Requires Node.js 20 or newer.
 | API calls only in Route Handlers | Server Components can't set cookies, so rotated refresh tokens would be lost | — |
 | Email kept only if `email_verified` | Per SnapTrade guidance | — |
 | Raw-data download | Look at real API responses before designing the UI | Remove or hide behind a debug flag |
+| Merge a security across accounts only within one currency | Adding CAD and USD values together would give a wrong total | Convert with a dated FX rate first, then merge |
+| Skip positions with unusable numbers and list them | Counting a blank price as $0 would quietly understate the portfolio | Show the reason per position, and report it to error tracking |
 
 ## Known limitations
 
@@ -57,3 +59,7 @@ Requires Node.js 20 or newer.
 Notes for SnapTrade, written as I hit them:
 
 - Connecting Wealthsimple: the "Verifying your identity… Almost there!" screen stayed up with no hint to check the Wealthsimple app or email for an approval, and no timeout or next step.
+- Retired positions endpoint: `/accounts/{id}/positions` returns `410 Gone` ("no longer available for your account") for new customers. The 410 is clear, but the message would be more useful if it named the replacement.
+- Replacement endpoint: `/accounts/{id}/positions/all` works, and returns `{ results: [...], data_freshness: { as_of } }` rather than a bare list, so moving to it changes the parsing as well as the URL.
+- Numbers as strings: `/positions/all` returns values like `"units": "5"` and `"price": "180.5"`, where the old endpoint used numbers. In JavaScript, `+` on two strings joins them instead of adding, so every value has to be converted first. A note in the API reference would help.
+- Base URL: the OAuth docs use `https://api.snaptrade.com/...`, not `/api/v1`. My code's default had `/api/v1`, so I changed it to match.

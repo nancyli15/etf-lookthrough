@@ -2,6 +2,7 @@
 // Step-0 dashboard: shows each account and its positions, plus the raw JSON.
 // The look-through view gets built on top of this once we've seen real data.
 import { useEffect, useState } from "react";
+import { positionsOf, toNumber } from "@/lib/holdings";
 
 type ApiResult = { path: string; status: number; ok: boolean; data: unknown };
 type AccountDump = { account: any; positions: ApiResult; balances: ApiResult; activities: ApiResult };
@@ -15,11 +16,6 @@ type RawData = {
 // /positions/all returns { results: [...] }; each item has an `instrument`
 // (kind, symbol, raw_symbol, currency, ...). Older shapes nest under `symbol`.
 // Read defensively and fall back to "?".
-function positionsOf(data: unknown): any[] {
-  if (Array.isArray(data)) return data;
-  const results = (data as { results?: unknown })?.results;
-  return Array.isArray(results) ? results : [];
-}
 function symbolOf(p: any): string {
   if (typeof p?.instrument?.symbol === "string") return p.instrument.symbol;
   const s = p?.symbol;
@@ -36,11 +32,6 @@ function currencyOf(p: any): string {
   const c = p?.currency ?? p?.instrument?.currency ?? p?.symbol?.symbol?.currency;
   if (typeof c === "string") return c;
   return c?.code ?? "";
-}
-// /positions/all returns units and price as strings ("5", "180.5"), so convert first.
-function toNumber(v: unknown): number | null {
-  const n = typeof v === "string" ? Number(v) : v;
-  return typeof n === "number" && Number.isFinite(n) ? n : null;
 }
 function num(v: unknown): string {
   const n = toNumber(v);

@@ -11,7 +11,7 @@ export const ISSUER = "https://api.snaptrade.com";
 
 // Base URL for SnapTrade's data API. Overridable so we can adjust without code changes.
 export const API_BASE =
-  process.env.SNAPTRADE_API_BASE ?? "https://api.snaptrade.com/api/v1";
+  process.env.SNAPTRADE_API_BASE ?? "https://api.snaptrade.com";
 
 // Only what the app actually uses: sign-in (openid), email, and read-only data.
 // No `trade` (we never place orders) and no `webhook` (data refreshes on page load).
