@@ -16,13 +16,13 @@ export function seal(data: unknown): string {
     cipher.final(),
   ]);
   const tag = cipher.getAuthTag();
-  return [iv, tag, ciphertext].map((b) => b.toString("base64url")).join(".");
+  return [iv, tag, ciphertext].map((part) => part.toString("base64url")).join(".");
 }
 
 export function unseal<T>(value: string | undefined): T | null {
   if (!value) return null;
   try {
-    const [iv, tag, ciphertext] = value.split(".").map((s) => Buffer.from(s, "base64url"));
+    const [iv, tag, ciphertext] = value.split(".").map((part) => Buffer.from(part, "base64url"));
     const decipher = crypto.createDecipheriv("aes-256-gcm", key(), iv);
     decipher.setAuthTag(tag);
     const plaintext = Buffer.concat([decipher.update(ciphertext), decipher.final()]);

@@ -25,11 +25,11 @@ export default function LookThrough({ report }: { report: Report }) {
   }
 
   const companies = showAll ? result.companies : result.companies.slice(0, TOP_COMPANIES);
-  const named = result.companies.reduce((sum, c) => sum + c.total, 0);
-  const excluded = result.notLookedThrough.reduce((sum, n) => sum + n.value, 0);
-  const unopened = result.insideUnopenedFunds.reduce((sum, u) => sum + u.value, 0);
+  const named = result.companies.reduce((sum, company) => sum + company.total, 0);
+  const excluded = result.notLookedThrough.reduce((sum, holding) => sum + holding.value, 0);
+  const unopened = result.insideUnopenedFunds.reduce((sum, fund) => sum + fund.value, 0);
   const share = (value: number) => percentText(result.total ? value / result.total : 0);
-  const fundDates = [...new Set(result.funds.map((f) => f.asOf))].map(formatDate).join(", ");
+  const fundDates = [...new Set(result.funds.map((fund) => fund.asOf))].map(formatDate).join(", ");
 
   return (
     <>
@@ -46,7 +46,7 @@ export default function LookThrough({ report }: { report: Report }) {
       {result.unconverted.length > 0 && (
         <div className="card error">
           Left out because we have no exchange rate:{" "}
-          {result.unconverted.map((u) => `${u.symbol} (${money(u.value, u.currency)})`).join(", ")}.
+          {result.unconverted.map((holding) => `${holding.symbol} (${money(holding.value, holding.currency)})`).join(", ")}.
         </div>
       )}
 
@@ -63,7 +63,7 @@ export default function LookThrough({ report }: { report: Report }) {
         {hasLargeGap(result) && (
           <p className="error">
             {share(unopened)} of your portfolio sits inside funds we can't open yet (
-            {result.insideUnopenedFunds.map((u) => u.symbol).join(", ")}), so company totals are likely understated.
+            {result.insideUnopenedFunds.map((fund) => fund.symbol).join(", ")}), so company totals are likely understated.
           </p>
         )}
       </div>
@@ -82,16 +82,16 @@ export default function LookThrough({ report }: { report: Report }) {
               </tr>
             </thead>
             <tbody>
-              {companies.map((c) => (
-                <tr key={c.key}>
+              {companies.map((company) => (
+                <tr key={company.key}>
                   <td>
-                    {displayName(c.name)} <span className="muted">{c.symbol}</span>
-                    {c.viaFunds.length > 0 && <div className="muted small">via {c.viaFunds.join(", ")}</div>}
+                    {displayName(company.name)} <span className="muted">{company.symbol}</span>
+                    {company.viaFunds.length > 0 && <div className="muted small">via {company.viaFunds.join(", ")}</div>}
                   </td>
-                  <td className="num">{c.direct > 0 ? money(c.direct) : "–"}</td>
-                  <td className="num">{c.throughFunds > 0 ? money(c.throughFunds) : "–"}</td>
-                  <td className="num">{money(c.total)}</td>
-                  <td className="num">{percentText(c.percent)}</td>
+                  <td className="num">{company.direct > 0 ? money(company.direct) : "–"}</td>
+                  <td className="num">{company.throughFunds > 0 ? money(company.throughFunds) : "–"}</td>
+                  <td className="num">{money(company.total)}</td>
+                  <td className="num">{percentText(company.percent)}</td>
                 </tr>
               ))}
             </tbody>
@@ -109,21 +109,21 @@ export default function LookThrough({ report }: { report: Report }) {
           <h2>Where your funds overlap</h2>
           <table>
             <tbody>
-              {result.overlaps.map((o) => (
-                <tr key={`${o.a}-${o.b}`}>
+              {result.overlaps.map((overlap) => (
+                <tr key={`${overlap.fundA}-${overlap.fundB}`}>
                   <td>
-                    {o.a} and {o.b}
+                    {overlap.fundA} and {overlap.fundB}
                     <div className="muted small">
-                      {o.basis === "same-list"
+                      {overlap.basis === "same-list"
                         ? "Both track the same index."
-                        : o.sharedCompanies.length > 0
-                          ? `Mostly ${o.sharedCompanies.slice(0, 3).map(displayName).join(", ")}.`
+                        : overlap.sharedCompanies.length > 0
+                          ? `Mostly ${overlap.sharedCompanies.slice(0, 3).map(displayName).join(", ")}.`
                           : "No shared companies among their largest holdings."}
-                      {o.incomplete && " One of these holds a fund we can't open yet, so the real overlap is likely higher."}
+                      {overlap.incomplete && " One of these holds a fund we can't open yet, so the real overlap is likely higher."}
                     </div>
                   </td>
                   <td className="num">
-                    {o.basis === "same-list" ? "About 100%" : `At least ${percentText(o.sharedWeight)}`}
+                    {overlap.basis === "same-list" ? "About 100%" : `At least ${percentText(overlap.sharedWeight)}`}
                   </td>
                 </tr>
               ))}
@@ -144,16 +144,16 @@ export default function LookThrough({ report }: { report: Report }) {
               </tr>
             </thead>
             <tbody>
-              {result.funds.map((f) => (
-                <tr key={f.symbol}>
+              {result.funds.map((fund) => (
+                <tr key={fund.symbol}>
                   <td>
-                    {f.symbol} <span className="muted">{f.name}</span>
-                    {f.approximatedBy && (
-                      <div className="muted small">Uses {f.approximatedBy}'s holdings, because both track the same index.</div>
+                    {fund.symbol} <span className="muted">{fund.name}</span>
+                    {fund.approximatedBy && (
+                      <div className="muted small">Uses {fund.approximatedBy}'s holdings, because both track the same index.</div>
                     )}
                   </td>
-                  <td className="num">{money(f.value)}</td>
-                  <td className="num">{percentText(1 - f.otherWeight - f.unopenedWeight)}</td>
+                  <td className="num">{money(fund.value)}</td>
+                  <td className="num">{percentText(1 - fund.otherWeight - fund.unopenedWeight)}</td>
                 </tr>
               ))}
             </tbody>
@@ -166,22 +166,22 @@ export default function LookThrough({ report }: { report: Report }) {
           <h2>Not looked through</h2>
           <table>
             <tbody>
-              {result.notLookedThrough.map((n, i) => (
-                <tr key={`${n.symbol}-${i}`}>
+              {result.notLookedThrough.map((holding, holdingIndex) => (
+                <tr key={`${holding.symbol}-${holdingIndex}`}>
                   <td>
-                    {n.symbol} <span className="muted">{displayName(n.name)}</span>
-                    <div className="muted small">{n.reason}</div>
+                    {holding.symbol} <span className="muted">{displayName(holding.name)}</span>
+                    <div className="muted small">{holding.reason}</div>
                   </td>
-                  <td className="num">{money(n.value)}</td>
+                  <td className="num">{money(holding.value)}</td>
                 </tr>
               ))}
-              {result.insideUnopenedFunds.map((u) => (
-                <tr key={u.symbol}>
+              {result.insideUnopenedFunds.map((fund) => (
+                <tr key={fund.symbol}>
                   <td>
-                    {u.symbol} <span className="muted">{displayName(u.name)}</span>
+                    {fund.symbol} <span className="muted">{displayName(fund.name)}</span>
                     <div className="muted small">Held inside one of your funds. We don't have its contents yet.</div>
                   </td>
-                  <td className="num">{money(u.value)}</td>
+                  <td className="num">{money(fund.value)}</td>
                 </tr>
               ))}
             </tbody>

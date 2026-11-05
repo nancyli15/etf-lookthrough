@@ -26,10 +26,10 @@ const LOOK_THROUGH_KINDS = new Set(["stock", "etf", "mutualfund"]);
 
 // /positions/all returns units and price as strings ("5", "180.5"), so convert first.
 // Number("") is 0 in JavaScript, so blanks are caught here: a missing price is not $0.
-export function toNumber(v: unknown): number | null {
-  if (typeof v === "string" && v.trim() === "") return null;
-  const n = typeof v === "string" ? Number(v) : v;
-  return typeof n === "number" && Number.isFinite(n) ? n : null;
+export function toNumber(value: unknown): number | null {
+  if (typeof value === "string" && value.trim() === "") return null;
+  const numericValue = typeof value === "string" ? Number(value) : value;
+  return typeof numericValue === "number" && Number.isFinite(numericValue) ? numericValue : null;
 }
 
 // /positions/all returns { results: [...] }. Read defensively: this is outside data.
@@ -39,8 +39,8 @@ export function positionsOf(data: unknown): any[] {
   return Array.isArray(results) ? results : [];
 }
 
-function stringOrUndefined(v: unknown): string | undefined {
-  return typeof v === "string" && v ? v : undefined;
+function stringOrUndefined(value: unknown): string | undefined {
+  return typeof value === "string" && value ? value : undefined;
 }
 
 export function toHoldings(responses: unknown[]): HoldingsResult {
@@ -48,18 +48,18 @@ export function toHoldings(responses: unknown[]): HoldingsResult {
   const skipped: string[] = [];
 
   for (const response of responses) {
-    for (const p of positionsOf(response)) {
-      const symbol = p?.instrument?.symbol;
-      const currency = p?.currency ?? p?.instrument?.currency;
-      const units = toNumber(p?.units);
-      const price = toNumber(p?.price);
+    for (const position of positionsOf(response)) {
+      const symbol = position?.instrument?.symbol;
+      const currency = position?.currency ?? position?.instrument?.currency;
+      const units = toNumber(position?.units);
+      const price = toNumber(position?.price);
 
       if (!symbol || !currency || units === null || price === null) {
         skipped.push(symbol ?? "Unknown position");
         continue;
       }
 
-      const figi: string | undefined = p.instrument.figi_instrument?.figi_code ?? undefined;
+      const figi: string | undefined = position.instrument.figi_instrument?.figi_code ?? undefined;
       // FIGI is the stable ID, but crypto has none, so fall back to the symbol.
       // Currency is part of the key because CAD and USD values can't be added yet.
       const key = `${figi ?? symbol}|${currency}`;
@@ -73,14 +73,14 @@ export function toHoldings(responses: unknown[]): HoldingsResult {
       }
 
       // Lowercased so "ETF" and "etf" aren't treated as different things.
-      const kind = String(p.instrument.kind ?? "").toLowerCase();
+      const kind = String(position.instrument.kind ?? "").toLowerCase();
       merged.set(key, {
         symbol,
-        rawSymbol: stringOrUndefined(p.instrument.raw_symbol),
-        name: p.instrument.description ?? symbol,
+        rawSymbol: stringOrUndefined(position.instrument.raw_symbol),
+        name: position.instrument.description ?? symbol,
         kind,
         figi,
-        exchange: stringOrUndefined(p.instrument.exchange),
+        exchange: stringOrUndefined(position.instrument.exchange),
         units,
         price,
         currency,

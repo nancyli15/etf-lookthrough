@@ -11,20 +11,20 @@ export type ApiResult = { path: string; status: number; ok: boolean; data: unkno
 
 async function refreshSession(session: Session): Promise<Session> {
   try {
-    const t = await tokenRequest({
+    const tokens = await tokenRequest({
       grant_type: "refresh_token",
       refresh_token: session.refreshToken,
     });
-    const next: Session = {
+    const updatedSession: Session = {
       ...session,
-      accessToken: t.access_token,
+      accessToken: tokens.access_token,
       // Refresh tokens rotate: the old one is now invalid, so always store the new one.
-      refreshToken: t.refresh_token ?? session.refreshToken,
-      expiresAt: Date.now() + t.expires_in * 1000,
-      scope: t.scope ?? session.scope,
+      refreshToken: tokens.refresh_token ?? session.refreshToken,
+      expiresAt: Date.now() + tokens.expires_in * 1000,
+      scope: tokens.scope ?? session.scope,
     };
-    await saveSession(next);
-    return next;
+    await saveSession(updatedSession);
+    return updatedSession;
   } catch {
     // Refresh failed (revoked, expired, already used): sign out and ask to authorize again.
     await clearSession();
@@ -41,37 +41,37 @@ export async function createClient() {
     session = await refreshSession(session);
   }
 
-  let refreshed: Promise<Session> | null = null;
+  let refreshInProgress: Promise<Session> | null = null;
 
   async function get(path: string, query: Record<string, string> = {}): Promise<ApiResult> {
     const url = new URL(API_BASE + path);
-    for (const [k, v] of Object.entries(query)) url.searchParams.set(k, v);
+    for (const [name, value] of Object.entries(query)) url.searchParams.set(name, value);
 
-    const call = (s: Session) =>
+    const callApi = (currentSession: Session) =>
       fetch(url, {
-        headers: { Authorization: `Bearer ${s.accessToken}`, Accept: "application/json" },
+        headers: { Authorization: `Bearer ${currentSession.accessToken}`, Accept: "application/json" },
         cache: "no-store",
       });
 
-    let res = await call(session!);
-    if (res.status === 401) {
+    let response = await callApi(session!);
+    if (response.status === 401) {
       // Shared promise: concurrent 401s trigger only one refresh.
-      refreshed ??= refreshSession(session!).then((s) => (session = s));
-      await refreshed;
-      res = await call(session!);
-      if (res.status === 401) {
+      refreshInProgress ??= refreshSession(session!).then((newSession) => (session = newSession));
+      await refreshInProgress;
+      response = await callApi(session!);
+      if (response.status === 401) {
         // The OAuth guide's rule: refresh once, retry once, then ask the user to authorize again.
         await clearSession();
         throw new NotSignedInError("Still unauthorized after refreshing");
       }
     }
 
-    const text = await res.text();
+    const text = await response.text();
     let data: unknown = text;
     try {
       data = JSON.parse(text);
     } catch {}
-    return { path, status: res.status, ok: res.ok, data };
+    return { path, status: response.status, ok: response.ok, data };
   }
 
   return { get, getSession: () => session! };
