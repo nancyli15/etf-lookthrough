@@ -24,13 +24,50 @@ describe("LookThrough screen", () => {
       ok([position("AAPL", "stock", 500), position("SPY", "etf", 1000), position("BTC", "crypto", 100)]),
       ok([position("FXAIX", "mutualfund", 1000), position("SPAXX", "mutualfund", 200)]),
     ]);
-    expect(html).toContain("directly and through 2 funds");
-    expect(html).toContain("Your largest companies");
+    expect(html).toContain("is your biggest company");
+    expect(html).toContain("Stocks you bought directly");
+    expect(html).toContain("Companies inside your funds");
+    expect(html).toContain("Both combined, by company");
     expect(html).toContain("SPY and FXAIX");
     expect(html).toContain("About 100%");
     expect(html).toContain("BTC");
     expect(html).toContain("We don&#x27;t have this fund&#x27;s contents yet");
-    expect(html).toContain("Cash balances aren&#x27;t included");
+    expect(html).toContain("don&#x27;t include cash");
+  });
+
+  it("opens with a net worth summary, then the biggest company, then the details", () => {
+    const html = render([
+      {
+        positions: {
+          ok: true,
+          status: 200,
+          data: { results: [position("AAPL", "stock", 500), position("SPY", "etf", 1000), position("BTC", "crypto", 100)] },
+        },
+        balances: { ok: true, data: [{ currency: { code: "USD" }, cash: 250 }] },
+      },
+    ]);
+    expect(html).toContain("Total bought directly");
+    expect(html).toContain("Total in your funds");
+    expect(html).toContain("$1,850.00"); // 500 + 1000 + 100 + 250 cash.
+    const summary = html.indexOf("Total net worth");
+    const finding = html.indexOf("is your biggest company");
+    const details = html.indexOf("The details");
+    expect(summary).toBeGreaterThan(-1);
+    expect(finding).toBeGreaterThan(summary);
+    expect(details).toBeGreaterThan(finding);
+    expect(html).not.toContain("This total is incomplete");
+  });
+
+  it("says net worth is incomplete when cash didn't load", () => {
+    const html = render([
+      {
+        account: { name: "IRA" },
+        positions: { ok: true, status: 200, data: { results: [position("AAPL", "stock", 500)] } },
+        balances: { ok: false, data: null },
+      },
+    ]);
+    expect(html).toContain("This total is incomplete");
+    expect(html).toContain("Cash didn&#x27;t load for IRA");
   });
 
   it("warns about a failed account instead of quietly showing smaller totals", () => {

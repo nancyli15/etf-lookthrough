@@ -17,6 +17,14 @@ export type CompanyExposure = {
   viaFunds: string[]; // The funds you hold that contain it, not the funds nested inside them.
 };
 
+// A stock you bought yourself. Value is in the report's currency.
+export type DirectHolding = {
+  symbol: string;
+  name: string;
+  units: number;
+  value: number;
+};
+
 export type FundSummary = {
   symbol: string;
   name: string;
@@ -40,6 +48,7 @@ export type LookThroughResult = {
   currency: string;
   total: number;
   companies: CompanyExposure[]; // Largest first.
+  directHoldings: DirectHolding[]; // Largest first.
   funds: FundSummary[];
   overlaps: FundOverlap[]; // Largest first.
   otherInFunds: number; // Smaller holdings and cash inside funds, beyond each fund's top list.
@@ -118,6 +127,14 @@ function flatten(root: Fund, funds: Record<string, Fund>, withoutData: Set<strin
   return flattened;
 }
 
+// Returns null when we have no rate, so callers can show the amount instead of guessing.
+export function convertCurrency(value: number, from: string, to: string, fx: typeof FX = FX): number | null {
+  if (from === to) return value;
+  const usdPer: Record<string, number> = { USD: 1, CAD: 1 / fx.cadPerUsd };
+  if (!usdPer[from] || !usdPer[to]) return null;
+  return (value * usdPer[from]) / usdPer[to];
+}
+
 function chooseCurrency(holdings: Holding[]): string {
   const currencies = new Set(holdings.map((holding) => holding.currency));
   if (currencies.size === 1) return holdings[0].currency;
@@ -168,12 +185,12 @@ export function lookThrough(holdings: Holding[], options: Options = {}): LookThr
   const fx = options.fx ?? FX;
 
   const currency = chooseCurrency(holdings);
-  const usdPer: Record<string, number> = { USD: 1, CAD: 1 / fx.cadPerUsd };
 
   const result: LookThroughResult = {
     currency: holdings.length ? currency : "USD",
     total: 0,
     companies: [],
+    directHoldings: [],
     funds: [],
     overlaps: [],
     otherInFunds: 0,
@@ -206,20 +223,17 @@ export function lookThrough(holdings: Holding[], options: Options = {}): LookThr
   }
 
   for (const holding of holdings) {
-    let value = holding.value;
-    if (holding.currency !== currency) {
-      if (!usdPer[holding.currency] || !usdPer[currency]) {
-        result.unconverted.push({
-          symbol: holding.symbol,
-          name: holding.name,
-          value: holding.value,
-          currency: holding.currency,
-        });
-        continue;
-      }
-      value = (holding.value * usdPer[holding.currency]) / usdPer[currency];
-      result.fxAsOf = fx.asOf;
+    const value = convertCurrency(holding.value, holding.currency, currency, fx);
+    if (value === null) {
+      result.unconverted.push({
+        symbol: holding.symbol,
+        name: holding.name,
+        value: holding.value,
+        currency: holding.currency,
+      });
+      continue;
     }
+    if (holding.currency !== currency) result.fxAsOf = fx.asOf;
     result.total += value;
 
     if (holding.notLookedThrough) {
@@ -235,6 +249,7 @@ export function lookThrough(holdings: Holding[], options: Options = {}): LookThr
     const ticker = cleanTicker(holding);
     if (!FUND_KINDS.has(holding.kind)) {
       addToCompany(companyKey(ticker, holding.exchange, holding.currency), ticker, holding.name, value, 0);
+      result.directHoldings.push({ symbol: ticker, name: holding.name, units: holding.units, value });
       continue;
     }
 
@@ -279,6 +294,7 @@ export function lookThrough(holdings: Holding[], options: Options = {}): LookThr
   result.companies = [...companies.values()]
     .map((company) => ({ ...company, percent: result.total ? company.total / result.total : 0 }))
     .sort((first, second) => second.total - first.total);
+  result.directHoldings.sort((first, second) => second.value - first.value);
   result.funds = [...summaries.values()].sort((first, second) => second.value - first.value);
   result.insideUnopenedFunds = [...unopened.values()].sort((first, second) => second.value - first.value);
 

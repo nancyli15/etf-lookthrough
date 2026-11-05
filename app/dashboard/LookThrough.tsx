@@ -4,7 +4,15 @@ import { useState } from "react";
 import { FX } from "../../data/fx";
 import { displayName, hasLargeGap, percentText, type Report } from "../../lib/report";
 
-const TOP_COMPANIES = 15;
+const TOP_ROWS = 15;
+
+function formatUnits(units: number): string {
+  return units.toLocaleString(undefined, { maximumFractionDigits: 4 });
+}
+
+function sumOf<T>(rows: T[], valueOf: (row: T) => number): number {
+  return rows.reduce((sum, row) => sum + valueOf(row), 0);
+}
 
 function formatDate(iso: string): string {
   // Date-only strings are midnight UTC, which can display as the day before locally.
@@ -12,8 +20,9 @@ function formatDate(iso: string): string {
 }
 
 export default function LookThrough({ report }: { report: Report }) {
+  const [showAllFundCompanies, setShowAllFundCompanies] = useState(false);
   const [showAll, setShowAll] = useState(false);
-  const { result, headline, skipped, failedAccounts, holdingsAsOf } = report;
+  const { result, headline, skipped, failedAccounts, holdingsAsOf, cash, cashNotLoaded, cashUnconverted } = report;
 
   function money(value: number, currency = result.currency): string {
     try {
@@ -24,10 +33,21 @@ export default function LookThrough({ report }: { report: Report }) {
     }
   }
 
-  const companies = showAll ? result.companies : result.companies.slice(0, TOP_COMPANIES);
-  const named = result.companies.reduce((sum, company) => sum + company.total, 0);
-  const excluded = result.notLookedThrough.reduce((sum, holding) => sum + holding.value, 0);
-  const unopened = result.insideUnopenedFunds.reduce((sum, fund) => sum + fund.value, 0);
+  const companies = showAll ? result.companies : result.companies.slice(0, TOP_ROWS);
+  const fundCompanies = result.companies
+    .filter((company) => company.throughFunds > 0)
+    .sort((first, second) => second.throughFunds - first.throughFunds);
+  const visibleFundCompanies = showAllFundCompanies ? fundCompanies : fundCompanies.slice(0, TOP_ROWS);
+
+  // Totals always cover every row, including rows hidden behind "Show all".
+  const directTotal = sumOf(result.directHoldings, (holding) => holding.value);
+  const directUnits = sumOf(result.directHoldings, (holding) => holding.units);
+  const namedInFunds = sumOf(fundCompanies, (company) => company.throughFunds);
+  const namedTotal = sumOf(result.companies, (company) => company.total);
+  const fundsTotal = sumOf(result.funds, (fund) => fund.value);
+  const excluded = sumOf(result.notLookedThrough, (holding) => holding.value);
+  const unopened = sumOf(result.insideUnopenedFunds, (fund) => fund.value);
+  const netWorth = result.total + cash;
   const share = (value: number) => percentText(result.total ? value / result.total : 0);
   const fundDates = [...new Set(result.funds.map((fund) => fund.asOf))].map(formatDate).join(", ");
 
@@ -50,16 +70,58 @@ export default function LookThrough({ report }: { report: Report }) {
         </div>
       )}
 
+      {netWorth !== 0 && (
+        <div className="card net-worth">
+          <h2>Your summary</h2>
+          <p className="muted small">Total net worth</p>
+          <p className="net-worth-value">{money(netWorth)}</p>
+          <p className="muted small">Across your connected brokerage accounts only.</p>
+          <table>
+            <tbody>
+              {directTotal !== 0 && (
+                <tr>
+                  <td>Stocks you bought directly</td>
+                  <td className="num">{money(directTotal)}</td>
+                </tr>
+              )}
+              {fundsTotal !== 0 && (
+                <tr>
+                  <td>Funds</td>
+                  <td className="num">{money(fundsTotal)}</td>
+                </tr>
+              )}
+              {excluded !== 0 && (
+                <tr>
+                  <td>Not looked through</td>
+                  <td className="num">{money(excluded)}</td>
+                </tr>
+              )}
+              <tr>
+                <td>Cash</td>
+                <td className="num">{money(cash)}</td>
+              </tr>
+            </tbody>
+          </table>
+          {(failedAccounts.length > 0 ||
+            cashNotLoaded.length > 0 ||
+            cashUnconverted.length > 0 ||
+            result.unconverted.length > 0 ||
+            skipped.length > 0) && (
+            <p className="error small spaced">
+              This total is incomplete.
+              {failedAccounts.length > 0 && <> Holdings didn't load for {failedAccounts.join(", ")}.</>}
+              {cashNotLoaded.length > 0 && <> Cash didn't load for {cashNotLoaded.join(", ")}.</>}
+              {cashUnconverted.length > 0 && <> No exchange rate for cash in {cashUnconverted.join(", ")}.</>}
+              {result.unconverted.length > 0 && <> Some holdings have no exchange rate.</>}
+              {skipped.length > 0 && <> Some positions couldn't be valued.</>}
+            </p>
+          )}
+        </div>
+      )}
+
       <div className="card">
-        <p className="headline">{headline ?? "There's nothing to look through in these accounts yet."}</p>
-        {result.total !== 0 && (
-          <p className="muted">
-            {money(result.total)} in total: {share(named)} traced to named companies, {share(result.otherInFunds)} in
-            funds' smaller holdings and cash
-            {unopened > 0 && <>, {share(unopened)} inside funds we can't open yet</>}
-            {excluded > 0 && <>, {share(excluded)} not looked through</>}.
-          </p>
-        )}
+        <p className="headline">{headline?.title ?? "There's nothing to look through in these accounts yet."}</p>
+        {headline && <p className="muted">{headline.detail}</p>}
         {hasLargeGap(result) && (
           <p className="error">
             {share(unopened)} of your portfolio sits inside funds we can't open yet (
@@ -68,9 +130,108 @@ export default function LookThrough({ report }: { report: Report }) {
         )}
       </div>
 
+      {result.total !== 0 && <h2 className="section-title">The details</h2>}
+
+      {result.directHoldings.length > 0 && (
+        <div className="card">
+          <h2>Stocks you bought directly</h2>
+          <table>
+            <thead>
+              <tr>
+                <th>Company</th>
+                <th className="num">Shares</th>
+                <th className="num">Value</th>
+                <th className="num">% of holdings</th>
+              </tr>
+            </thead>
+            <tbody>
+              {result.directHoldings.map((holding, holdingIndex) => (
+                <tr key={`${holding.symbol}-${holdingIndex}`}>
+                  <td>
+                    {displayName(holding.name)} <span className="muted">{holding.symbol}</span>
+                  </td>
+                  <td className="num">{formatUnits(holding.units)}</td>
+                  <td className="num">{money(holding.value)}</td>
+                  <td className="num">{share(holding.value)}</td>
+                </tr>
+              ))}
+            </tbody>
+            <tfoot>
+              <tr>
+                <td>Total bought directly</td>
+                <td className="num">{formatUnits(directUnits)}</td>
+                <td className="num">{money(directTotal)}</td>
+                <td className="num">{share(directTotal)}</td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      )}
+
+      {result.funds.length > 0 && (
+        <div className="card">
+          <h2>Companies inside your funds</h2>
+          <p className="muted small">What your ETFs and mutual funds hold, shown as the dollars of each company you own through them.</p>
+          <table>
+            <thead>
+              <tr>
+                <th>Company</th>
+                <th className="num">Value</th>
+                <th className="num">% of holdings</th>
+              </tr>
+            </thead>
+            <tbody>
+              {visibleFundCompanies.map((company) => (
+                <tr key={company.key}>
+                  <td>
+                    {displayName(company.name)} <span className="muted">{company.symbol}</span>
+                    <div className="muted small">via {company.viaFunds.join(", ")}</div>
+                  </td>
+                  <td className="num">{money(company.throughFunds)}</td>
+                  <td className="num">{share(company.throughFunds)}</td>
+                </tr>
+              ))}
+            </tbody>
+            <tfoot>
+              <tr className="subtotal">
+                <td>Named companies</td>
+                <td className="num">{money(namedInFunds)}</td>
+                <td className="num">{share(namedInFunds)}</td>
+              </tr>
+              <tr className="subtotal">
+                <td>Smaller holdings and cash inside funds</td>
+                <td className="num">{money(result.otherInFunds)}</td>
+                <td className="num">{share(result.otherInFunds)}</td>
+              </tr>
+              {unopened > 0 && (
+                <tr className="subtotal">
+                  <td>Inside funds we can't open yet</td>
+                  <td className="num">{money(unopened)}</td>
+                  <td className="num">{share(unopened)}</td>
+                </tr>
+              )}
+              <tr>
+                <td>Total in your funds</td>
+                <td className="num">{money(fundsTotal)}</td>
+                <td className="num">{share(fundsTotal)}</td>
+              </tr>
+            </tfoot>
+          </table>
+          {fundCompanies.length > TOP_ROWS && (
+            <button
+              className="button secondary spaced"
+              type="button"
+              onClick={() => setShowAllFundCompanies(!showAllFundCompanies)}
+            >
+              {showAllFundCompanies ? "Show fewer" : `Show all ${fundCompanies.length}`}
+            </button>
+          )}
+        </div>
+      )}
+
       {result.companies.length > 0 && (
         <div className="card">
-          <h2>Your largest companies</h2>
+          <h2>Both combined, by company</h2>
           <table>
             <thead>
               <tr>
@@ -78,7 +239,7 @@ export default function LookThrough({ report }: { report: Report }) {
                 <th className="num">Direct</th>
                 <th className="num">Through funds</th>
                 <th className="num">Total</th>
-                <th className="num">% of portfolio</th>
+                <th className="num">% of holdings</th>
               </tr>
             </thead>
             <tbody>
@@ -95,8 +256,17 @@ export default function LookThrough({ report }: { report: Report }) {
                 </tr>
               ))}
             </tbody>
+            <tfoot>
+              <tr>
+                <td>Total in named companies</td>
+                <td className="num">{money(directTotal)}</td>
+                <td className="num">{money(namedInFunds)}</td>
+                <td className="num">{money(namedTotal)}</td>
+                <td className="num">{share(namedTotal)}</td>
+              </tr>
+            </tfoot>
           </table>
-          {result.companies.length > TOP_COMPANIES && (
+          {result.companies.length > TOP_ROWS && (
             <button className="button secondary spaced" type="button" onClick={() => setShowAll(!showAll)}>
               {showAll ? "Show fewer" : `Show all ${result.companies.length}`}
             </button>
@@ -193,7 +363,7 @@ export default function LookThrough({ report }: { report: Report }) {
         {holdingsAsOf && <>Holdings as of {formatDate(holdingsAsOf)}. </>}
         {fundDates && <>Fund data as of {fundDates}, largest holdings only. </>}
         {result.fxAsOf && <>Converted at {FX.cadPerUsd} CAD per USD ({FX.source}, {formatDate(result.fxAsOf)}). </>}
-        Cash balances aren't included.
+        Percentages are of your holdings, so they don't include cash.
       </p>
     </>
   );
