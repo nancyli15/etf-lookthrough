@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { CompanyExposure } from "./lookthrough";
-import { buildReport, displayName, headlineFor, shortName } from "./report";
+import { displayName, shortName } from "./names";
+import { buildReport, headlineFor } from "./report";
 
 function company(name: string, direct: number, viaFunds: string[], percent: number): CompanyExposure {
   return { key: name, symbol: name, name, direct, throughFunds: 0, total: 0, percent, viaFunds };
@@ -25,8 +26,8 @@ const spy = {
 
 describe("headlineFor", () => {
   it("names the largest company overall, even when it's held only through funds", () => {
-    const companies = [company("Nvidia", 0, ["SPY"], 0.09), company("Apple", 100, ["SPY", "FXAIX"], 0.08)];
-    expect(headlineFor(companies)?.title).toBe("Nvidia is your biggest company, at 9.0% of your holdings.");
+    const companies = [company("Tesla", 0, ["SPY"], 0.09), company("Apple", 100, ["SPY", "FXAIX"], 0.08)];
+    expect(headlineFor(companies)?.title).toBe("Tesla is your biggest company, at 9.0% of your holdings.");
     expect(headlineFor(companies)?.detail).toBe("You own it only through SPY, so it doesn't appear on your brokerage's list.");
   });
 
@@ -59,8 +60,94 @@ describe("shortName", () => {
     ["Alphabet", "Alphabet"],
     ["Coca-Cola Co", "Coca-Cola"],
     ["Inc", "Inc"],
+    ["NVIDIA Corporation", "NVIDIA"],
+    ["NVIDIA CORP", "NVIDIA"],
+    ["JPMORGAN CHASE + CO", "JPMorgan Chase"],
+    ["EXXONMOBIL HOLDINGS CORP", "ExxonMobil"],
+    ["MASTERCARD INC   A", "Mastercard"],
+    ["PALANTIR TECHNOLOGIES INC A", "Palantir Technologies"],
+    ["PROCTER + GAMBLE CO/THE", "Procter & Gamble"],
+    ["Alphabet Inc. Class A Common Stock", "Alphabet"],
+    ["ROYAL BANK OF CANADA", "Royal Bank of Canada"],
+    ["ROLLS-ROYCE HOLDINGS PLC", "Rolls-Royce"],
+    ["ASTRAZENECA PLC", "AstraZeneca"],
+    ["ISHARES S&P/TSX CAPPED COMPOSITE", "iShares S&P/TSX Capped Composite"],
+    ["INDUSTRIAL AND COMMERCIAL BANK OF", "Industrial and Commercial Bank of China"],
   ])("%s becomes %s", (name, expected) => {
     expect(shortName(name)).toBe(expected);
+  });
+});
+
+describe("net worth", () => {
+  // The real Sandbox numbers that exposed the bug. SnapTrade's account totals leave
+  // SPAXX's $3,500 out of positions, because it's already inside the IRA's cash.
+  const position = (symbol: string, kind: string, units: string, price: string, cashEquivalent?: boolean) => ({
+    instrument: { kind, symbol, description: symbol, currency: "USD" },
+    units,
+    price,
+    currency: "USD",
+    ...(cashEquivalent === undefined ? {} : { cash_equivalent: cashEquivalent }),
+  });
+  const account = (name: string, total: number, cash: number, results: unknown[]) => ({
+    account: { name, balance: { total: { amount: total, currency: "USD" } } },
+    positions: positions(results),
+    balances: { ok: true, data: [{ currency: { code: "USD" }, cash }] },
+  });
+  const sandbox = [
+    account("Individual", 68851.25, 25000, [
+      position("AAPL", "stock", "5", "180.5"),
+      position("MSFT", "stock", "10", "410"),
+      position("TSLA", "stock", "8", "240"),
+      position("SPY", "etf", "15", "558.25"),
+      position("BTC", "crypto", "0.25", "59000"),
+      position("ETH", "crypto", "2.5", "2650"),
+      position("SOL", "crypto", "40", "142"),
+      position("USDC", "crypto", "1500", "1"),
+    ]),
+    account("IRA", 36774.60064, 12500, [
+      position("NVDA", "stock", "12", "120"),
+      position("GOOGL", "stock", "3", "170"),
+      position("FXAIX", "mutualfund", "120.5432", "185.2", false),
+      position("SPAXX", "mutualfund", "3500", "1", true),
+    ]),
+  ];
+
+  it("doesn't count a money market fund twice, and matches SnapTrade's total", () => {
+    const report = buildReport(sandbox);
+    expect(report.netWorth).toBeCloseTo(105625.85, 2);
+    expect(report.brokerageTotal).toBeCloseTo(105625.85, 2);
+    expect(report.differsFromBrokerage).toBe(false);
+    expect(report.cash).toBe(37500);
+    expect(report.result.cashEquivalents).toMatchObject([{ symbol: "SPAXX", value: 3500 }]);
+    expect(report.result.notLookedThrough.map((holding) => holding.symbol)).toEqual(["BTC", "ETH", "SOL", "USDC"]);
+    expect(report.result.total).toBeCloseTo(68125.85, 2);
+  });
+
+  it("flags a total that disagrees with SnapTrade by more than 1%", () => {
+    const report = buildReport([account("IRA", 1000, 0, [position("AAPL", "stock", "1", "1100")])]);
+    expect(report.differsFromBrokerage).toBe(true);
+  });
+
+  it("allows small differences, since prices can move between calls", () => {
+    const report = buildReport([account("IRA", 1000, 0, [position("AAPL", "stock", "1", "1005")])]);
+    expect(report.differsFromBrokerage).toBe(false);
+  });
+
+  it("skips the check unless every account reports a total", () => {
+    const report = buildReport([
+      account("IRA", 1000, 0, [position("AAPL", "stock", "1", "1000")]),
+      { positions: positions([position("TSLA", "stock", "1", "5000")]) },
+    ]);
+    expect(report.brokerageTotal).toBeUndefined();
+    expect(report.differsFromBrokerage).toBe(false);
+  });
+
+  it("doesn't add a second warning when data is already missing", () => {
+    const report = buildReport([
+      { ...account("IRA", 5000, 0, [position("AAPL", "stock", "1", "1000")]), balances: { ok: false, data: null } },
+    ]);
+    expect(report.cashNotLoaded).toEqual(["IRA"]);
+    expect(report.differsFromBrokerage).toBe(false);
   });
 });
 
@@ -72,7 +159,7 @@ describe("displayName", () => {
 
   it("fixes SPDR's + for & and capitalizes after an ampersand", () => {
     expect(displayName("ELI LILLY + CO")).toBe("Eli Lilly & Co");
-    expect(displayName("ISHARES CORE S&P")).toBe("Ishares Core S&P");
+    expect(displayName("ISHARES CORE S&P")).toBe("iShares Core S&P");
   });
 });
 

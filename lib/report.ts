@@ -3,9 +3,10 @@
 import { FX } from "../data/fx";
 import { toHoldings, toNumber } from "./holdings";
 import { convertCurrency, lookThrough, type CompanyExposure, type LookThroughResult } from "./lookthrough";
+import { shortName } from "./names";
 
 export type AccountData = {
-  account?: { name?: string };
+  account?: { name?: string; balance?: { total?: { amount?: unknown; currency?: unknown } } };
   positions: { ok: boolean; status: number; data: unknown };
   balances?: { ok: boolean; data: unknown };
 };
@@ -24,21 +25,17 @@ export type Report = {
   cash: number; // In the report's currency.
   cashNotLoaded: string[]; // Accounts whose balances didn't load, so net worth is short.
   cashUnconverted: string[]; // Currencies of cash we have no exchange rate for.
+  netWorth: number;
+  brokerageTotal?: number; // SnapTrade's own account totals, when every account reports one.
+  differsFromBrokerage: boolean; // Our total and SnapTrade's disagree by more than timing could explain.
 };
-
-// Fund files shout: "APPLE INC" reads better as "Apple Inc". Names already in
-// mixed case, from SnapTrade or our own groups, are left as they are.
-export function displayName(name: string): string {
-  if (name !== name.toUpperCase()) return name;
-  return name
-    .toLowerCase()
-    .replace(/ \+ /g, " & ") // SPDR's file writes "ELI LILLY + CO".
-    .replace(/(^|[ &])([a-z])/g, (_, before, letter) => before + letter.toUpperCase());
-}
 
 // Below this share, an unopened fund barely moves the numbers. Above it, a company's
 // total could be noticeably understated, so the screen says so up front.
 const UNOPENED_WARNING_ABOVE = 0.05;
+
+// Prices can move between API calls, so a small difference isn't a real disagreement.
+const TOTAL_MISMATCH_ABOVE = 0.01;
 
 export function hasLargeGap(result: LookThroughResult): boolean {
   const unopened = result.insideUnopenedFunds.reduce((sum, unopenedFund) => sum + unopenedFund.value, 0);
@@ -47,20 +44,6 @@ export function hasLargeGap(result: LookThroughResult): boolean {
 
 export function percentText(fraction: number): string {
   return `${(fraction * 100).toFixed(1)}%`;
-}
-
-// Legal endings make a sentence hard to read: "Microsoft Corporation Common Stock" is just Microsoft.
-const NAME_ENDINGS =
-  /[\s,]+(common stock|ordinary shares|class [a-z]( shares)?|cl [a-z]|corporation|incorporated|corp\.?|inc\.?|holdings|limited|ltd\.?|plc|& co\.?|co\.?)$/i;
-
-export function shortName(name: string): string {
-  let short = displayName(name).trim();
-  let previous;
-  do {
-    previous = short;
-    short = short.replace(NAME_ENDINGS, "");
-  } while (short !== previous && short);
-  return short || name;
 }
 
 function listOf(names: string[]): string {
@@ -128,6 +111,23 @@ function readCash(accounts: AccountData[], reportCurrency: string) {
   return { cash, converted, cashNotLoaded, cashUnconverted: [...cashUnconverted] };
 }
 
+// Partial totals can't be compared with our total, so one missing account means no comparison.
+function readBrokerageTotal(accounts: AccountData[], reportCurrency: string): number | undefined {
+  if (accounts.length === 0) return undefined;
+  let total = 0;
+  for (const accountData of accounts) {
+    const accountTotal = accountData.account?.balance?.total;
+    const amount = toNumber(accountTotal?.amount);
+    const currency = accountTotal?.currency;
+    if (amount === null || typeof currency !== "string") return undefined;
+
+    const value = convertCurrency(amount, currency, reportCurrency);
+    if (value === null) return undefined;
+    total += value;
+  }
+  return total;
+}
+
 export function buildReport(accounts: AccountData[]): Report {
   const loaded = accounts.filter((accountData) => accountData.positions.ok);
   const responses = loaded.map((accountData) => accountData.positions.data);
@@ -136,16 +136,33 @@ export function buildReport(accounts: AccountData[]): Report {
   const { cash, converted, cashNotLoaded, cashUnconverted } = readCash(accounts, result.currency);
   if (converted) result.fxAsOf = FX.asOf;
 
+  const failedAccounts = accounts
+    .filter((accountData) => !accountData.positions.ok)
+    .map((accountData) => accountData.account?.name ?? "An account");
+  const netWorth = result.total + cash;
+  const brokerageTotal = readBrokerageTotal(accounts, result.currency);
+  // Missing data already has its own warning, and would make the totals differ anyway.
+  const isComplete =
+    failedAccounts.length === 0 &&
+    skipped.length === 0 &&
+    cashNotLoaded.length === 0 &&
+    cashUnconverted.length === 0 &&
+    result.unconverted.length === 0;
+
   return {
     result,
     headline: headlineFor(result.companies),
     skipped,
-    failedAccounts: accounts
-      .filter((accountData) => !accountData.positions.ok)
-      .map((accountData) => accountData.account?.name ?? "An account"),
+    failedAccounts,
     holdingsAsOf: oldestAsOf(responses),
     cash,
     cashNotLoaded,
     cashUnconverted,
+    netWorth,
+    brokerageTotal,
+    differsFromBrokerage:
+      isComplete &&
+      brokerageTotal !== undefined &&
+      Math.abs(netWorth - brokerageTotal) > Math.abs(brokerageTotal) * TOTAL_MISMATCH_ABOVE,
   };
 }

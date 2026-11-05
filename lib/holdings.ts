@@ -13,6 +13,7 @@ export type Holding = {
   currency: string;
   value: number; // units × price per account, added up across accounts.
   notLookedThrough?: string; // Why this holding stays out of the look-through, if it does.
+  cashEquivalent?: boolean; // A money market fund that /balances already counts as cash.
 };
 
 export type HoldingsResult = {
@@ -41,6 +42,11 @@ export function positionsOf(data: unknown): any[] {
 
 function stringOrUndefined(value: unknown): string | undefined {
   return typeof value === "string" && value ? value : undefined;
+}
+
+function notLookedThroughReason(kind: string): string {
+  if (kind === "crypto") return "Crypto has no companies inside";
+  return `${kind || "Unknown type"}: no companies to look through`;
 }
 
 export function toHoldings(responses: unknown[]): HoldingsResult {
@@ -85,9 +91,8 @@ export function toHoldings(responses: unknown[]): HoldingsResult {
         price,
         currency,
         value,
-        notLookedThrough: LOOK_THROUGH_KINDS.has(kind)
-          ? undefined
-          : `${kind || "Unknown type"}: no companies to look through`,
+        notLookedThrough: LOOK_THROUGH_KINDS.has(kind) ? undefined : notLookedThroughReason(kind),
+        cashEquivalent: position.cash_equivalent === true,
       });
     }
   }
