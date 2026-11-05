@@ -72,7 +72,8 @@ export function toHoldings(responses: unknown[]): HoldingsResult {
         continue;
       }
 
-      const kind: string = p.instrument.kind ?? "";
+      // Lowercased so "ETF" and "etf" aren't treated as different things.
+      const kind = String(p.instrument.kind ?? "").toLowerCase();
       merged.set(key, {
         symbol,
         rawSymbol: stringOrUndefined(p.instrument.raw_symbol),

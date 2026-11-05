@@ -52,12 +52,14 @@ export default function LookThrough({ report }: { report: Report }) {
 
       <div className="card">
         <p className="headline">{headline ?? "There's nothing to look through in these accounts yet."}</p>
-        <p className="muted">
-          {money(result.total)} in total: {share(named)} traced to named companies, {share(result.otherInFunds)} in
-          funds' smaller holdings and cash
-          {unopened > 0 && <>, {share(unopened)} inside funds we can't open yet</>}
-          {excluded > 0 && <>, {share(excluded)} not looked through</>}.
-        </p>
+        {result.total !== 0 && (
+          <p className="muted">
+            {money(result.total)} in total: {share(named)} traced to named companies, {share(result.otherInFunds)} in
+            funds' smaller holdings and cash
+            {unopened > 0 && <>, {share(unopened)} inside funds we can't open yet</>}
+            {excluded > 0 && <>, {share(excluded)} not looked through</>}.
+          </p>
+        )}
         {hasLargeGap(result) && (
           <p className="error">
             {share(unopened)} of your portfolio sits inside funds we can't open yet (

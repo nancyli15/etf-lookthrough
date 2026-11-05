@@ -78,8 +78,7 @@ export default function Dashboard({ email }: { email?: string }) {
 
       {data && !data.accountsCall.ok && (
         <div className="card error">
-          SnapTrade returned status {data.accountsCall.status} for your accounts.
-          <pre>{JSON.stringify(data.accountsRaw, null, 2)}</pre>
+          SnapTrade couldn't load your accounts right now (status {data.accountsCall.status}). Try refreshing.
         </div>
       )}
 
@@ -100,6 +99,7 @@ export default function Dashboard({ email }: { email?: string }) {
           <p className="spaced">
             <a className="button secondary" href="/api/raw?download=1">Download raw data</a>
           </p>
+          {!data.accountsCall.ok && <pre>{JSON.stringify(data.accountsRaw, null, 2)}</pre>}
           {data.accounts.map((a, i) => {
             const positions = positionsOf(a.positions.data);
             return (

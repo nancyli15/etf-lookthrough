@@ -56,11 +56,16 @@ Requires Node.js 20 or newer.
 | Fund overlap adds the smaller weight of each shared company, from top holdings only | A standard measure that's easy to check by hand, but it's a minimum | Use every holding, for the true figure |
 | Calculate the look-through in the browser from `/api/raw` | No new endpoint, and the fund snapshot is small | Move it to the server if the fund data grows to every holding |
 | Show what the numbers can't see, on the main screen | A confident total that's missing money is worse than an honest gap | Close the gaps with more fund files |
+| Turn off Next's request log | It prints full URLs, and the OAuth callback's URL holds the authorization code. Testing with a fake code caught this | Keep it off, and add structured logs that leave out query strings |
+| Override PostCSS instead of moving to Next 16 | Next 15 pins a version with known flaws. The override clears the audit, and the build passes, without a major upgrade | Upgrade Next and remove the override |
 | FXAIX uses SPY's holdings list | Both track the S&P 500, so the weights should be very close, and the UI can say it's a stand-in | Add Fidelity's own file |
 
 ## Known limitations
 
 - Fund contents (what's inside each ETF) come from the fund providers, not SnapTrade. The look-through will support a fixed list of popular ETFs, with a dated snapshot.
+- Two tabs refreshing at the same moment can sign you out, because refresh tokens rotate and each tab holds its own copy of the cookie. Sign in again to recover.
+- Any failed refresh signs you out, including a brief network problem, because it's safer than keeping a token that may be invalid.
+- Short positions aren't handled specially: they'd count as negative values.
 
 ## API and docs feedback log
 
@@ -71,3 +76,5 @@ Notes for SnapTrade, written as I hit them:
 - Replacement endpoint: `/accounts/{id}/positions/all` works, and returns `{ results: [...], data_freshness: { as_of } }` rather than a bare list, so moving to it changes the parsing as well as the URL.
 - Numbers as strings: `/positions/all` returns values like `"units": "5"` and `"price": "180.5"`, where the old endpoint used numbers. In JavaScript, `+` on two strings joins them instead of adding, so every value has to be converted first. A note in the API reference would help.
 - Base URL: the OAuth docs use `https://api.snaptrade.com/...`, not `/api/v1`. My code's default had `/api/v1`, so I changed it to match.
+- OAuth guide: it says to test an expired code and refresh-token rotation, but doesn't document what the server returns for an expired code, a reused refresh token or a revoke. In testing, an invalid code returned `400 invalid_grant`. Documenting these errors would let apps handle them on purpose.
+- OAuth guide's sample code: it puts the token endpoint's whole response body into a thrown error. The guide also says never to log tokens, so a note about not logging that error would help.

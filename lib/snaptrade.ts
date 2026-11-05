@@ -54,14 +54,16 @@ export async function createClient() {
       });
 
     let res = await call(session!);
-    if (res.status === 401 && !refreshed) {
+    if (res.status === 401) {
       // Shared promise: concurrent 401s trigger only one refresh.
-      refreshed = refreshSession(session!).then((s) => (session = s));
+      refreshed ??= refreshSession(session!).then((s) => (session = s));
       await refreshed;
       res = await call(session!);
-    } else if (res.status === 401 && refreshed) {
-      await refreshed;
-      res = await call(session!);
+      if (res.status === 401) {
+        // The OAuth guide's rule: refresh once, retry once, then ask the user to authorize again.
+        await clearSession();
+        throw new NotSignedInError("Still unauthorized after refreshing");
+      }
     }
 
     const text = await res.text();

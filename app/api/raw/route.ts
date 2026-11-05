@@ -51,6 +51,10 @@ export async function GET(req: NextRequest) {
     });
   } catch (err) {
     if (err instanceof NotSignedInError) {
+      // The download link is opened directly, so a person sees this response: send them to sign in.
+      if (req.nextUrl.searchParams.get("download") === "1") {
+        return NextResponse.redirect(new URL("/?error=session_expired", req.url));
+      }
       return NextResponse.json({ error: "not_signed_in" }, { status: 401 });
     }
     console.error("Raw data fetch failed:", err instanceof Error ? err.message : "unknown");
