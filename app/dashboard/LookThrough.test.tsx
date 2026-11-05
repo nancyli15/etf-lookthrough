@@ -58,6 +58,78 @@ describe("LookThrough screen", () => {
     expect(html).not.toContain("This total is incomplete");
   });
 
+  it("shows a money market fund inside cash, and splits crypto from other holdings", () => {
+    const html = render([
+      {
+        positions: {
+          ok: true,
+          status: 200,
+          data: {
+            results: [
+              position("BTC", "crypto", 100),
+              position("ZZZZ", "etf", 50),
+              { ...position("SPAXX", "mutualfund", 200), cash_equivalent: true },
+            ],
+          },
+        },
+        balances: { ok: true, data: [{ currency: { code: "USD" }, cash: 300 }] },
+      },
+    ]);
+    expect(html).toContain("Includes $200.00 in SPAXX");
+    expect(html).toContain("Crypto");
+    expect(html).toContain("Other holdings");
+    expect(html).toContain("$450.00"); // 100 + 50 + 300, with SPAXX inside the cash.
+    expect(html).not.toContain("Not looked through</td>");
+    expect(html).not.toContain("<td>SPAXX");
+  });
+
+  it("warns when the total disagrees with SnapTrade's", () => {
+    const html = render([
+      {
+        account: { name: "IRA", balance: { total: { amount: 1000, currency: "USD" } } },
+        positions: { ok: true, status: 200, data: { results: [position("AAPL", "stock", 1500)] } },
+        balances: { ok: true, data: [] },
+      },
+    ]);
+    expect(html).toContain("SnapTrade reports $1,000.00");
+    expect(html).toContain("may be off by $500.00");
+  });
+
+  it("uses one short name per company and doesn't total shares", () => {
+    const html = render([
+      {
+        positions: {
+          ok: true,
+          status: 200,
+          data: {
+            results: [
+              { ...position("NVDA", "stock", 100), instrument: { kind: "stock", symbol: "NVDA", description: "NVIDIA Corporation", currency: "USD" } },
+              position("SPY", "etf", 1000),
+            ],
+          },
+        },
+      },
+    ]);
+    expect(html).toContain("NVIDIA <span");
+    expect(html).not.toContain("Nvidia");
+    expect(html).not.toContain("NVIDIA Corporation");
+    expect(html).toContain("<td></td>");
+  });
+
+  it("doesn't repeat a name that's the same as its symbol", () => {
+    const html = render([
+      {
+        positions: {
+          ok: true,
+          status: 200,
+          data: { results: [{ ...position("USDC", "crypto", 100), instrument: { kind: "crypto", symbol: "USDC", description: "USDC", currency: "USD" } }] },
+        },
+      },
+    ]);
+    expect(html).not.toContain("Usdc");
+    expect(html).toContain("Crypto has no companies inside");
+  });
+
   it("says net worth is incomplete when cash didn't load", () => {
     const html = render([
       {

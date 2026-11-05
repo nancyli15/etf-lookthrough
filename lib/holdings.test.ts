@@ -73,7 +73,7 @@ describe("toHoldings", () => {
       },
     ]);
     const reasons = Object.fromEntries(holdings.map((h) => [h.symbol, h.notLookedThrough]));
-    expect(reasons.BTC).toContain("crypto");
+    expect(reasons.BTC).toContain("Crypto");
     expect(reasons.AAPL).toBeUndefined();
     expect(reasons.SPY).toBeUndefined();
     expect(reasons.FXAIX).toBeUndefined();

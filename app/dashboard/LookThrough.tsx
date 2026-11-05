@@ -2,7 +2,8 @@
 // live in lib/ where they're tested.
 import { useState } from "react";
 import { FX } from "../../data/fx";
-import { displayName, hasLargeGap, percentText, type Report } from "../../lib/report";
+import { displayName, shortName } from "../../lib/names";
+import { hasLargeGap, percentText, type Report } from "../../lib/report";
 
 const TOP_ROWS = 15;
 
@@ -22,7 +23,19 @@ function formatDate(iso: string): string {
 export default function LookThrough({ report }: { report: Report }) {
   const [showAllFundCompanies, setShowAllFundCompanies] = useState(false);
   const [showAll, setShowAll] = useState(false);
-  const { result, headline, skipped, failedAccounts, holdingsAsOf, cash, cashNotLoaded, cashUnconverted } = report;
+  const {
+    result,
+    headline,
+    skipped,
+    failedAccounts,
+    holdingsAsOf,
+    cash,
+    cashNotLoaded,
+    cashUnconverted,
+    netWorth,
+    brokerageTotal,
+    differsFromBrokerage,
+  } = report;
 
   function money(value: number, currency = result.currency): string {
     try {
@@ -41,13 +54,21 @@ export default function LookThrough({ report }: { report: Report }) {
 
   // Totals always cover every row, including rows hidden behind "Show all".
   const directTotal = sumOf(result.directHoldings, (holding) => holding.value);
-  const directUnits = sumOf(result.directHoldings, (holding) => holding.units);
   const namedInFunds = sumOf(fundCompanies, (company) => company.throughFunds);
   const namedTotal = sumOf(result.companies, (company) => company.total);
   const fundsTotal = sumOf(result.funds, (fund) => fund.value);
-  const excluded = sumOf(result.notLookedThrough, (holding) => holding.value);
+  const crypto = sumOf(
+    result.notLookedThrough.filter((holding) => holding.kind === "crypto"),
+    (holding) => holding.value,
+  );
+  const otherHoldings = sumOf(
+    result.notLookedThrough.filter((holding) => holding.kind !== "crypto"),
+    (holding) => holding.value,
+  );
   const unopened = sumOf(result.insideUnopenedFunds, (fund) => fund.value);
-  const netWorth = result.total + cash;
+  const cashEquivalentsText = result.cashEquivalents
+    .map((holding) => `${money(holding.value)} in ${holding.symbol}`)
+    .join(", ");
   const share = (value: number) => percentText(result.total ? value / result.total : 0);
   const fundDates = [...new Set(result.funds.map((fund) => fund.asOf))].map(formatDate).join(", ");
 
@@ -90,14 +111,25 @@ export default function LookThrough({ report }: { report: Report }) {
                   <td className="num">{money(fundsTotal)}</td>
                 </tr>
               )}
-              {excluded !== 0 && (
+              {crypto !== 0 && (
                 <tr>
-                  <td>Not looked through</td>
-                  <td className="num">{money(excluded)}</td>
+                  <td>Crypto</td>
+                  <td className="num">{money(crypto)}</td>
+                </tr>
+              )}
+              {otherHoldings !== 0 && (
+                <tr>
+                  <td>Other holdings</td>
+                  <td className="num">{money(otherHoldings)}</td>
                 </tr>
               )}
               <tr>
-                <td>Cash</td>
+                <td>
+                  Cash
+                  {cashEquivalentsText && cashNotLoaded.length === 0 && (
+                    <div className="muted small">Includes {cashEquivalentsText}, a money market fund</div>
+                  )}
+                </td>
                 <td className="num">{money(cash)}</td>
               </tr>
             </tbody>
@@ -114,6 +146,12 @@ export default function LookThrough({ report }: { report: Report }) {
               {cashUnconverted.length > 0 && <> No exchange rate for cash in {cashUnconverted.join(", ")}.</>}
               {result.unconverted.length > 0 && <> Some holdings have no exchange rate.</>}
               {skipped.length > 0 && <> Some positions couldn't be valued.</>}
+            </p>
+          )}
+          {differsFromBrokerage && brokerageTotal !== undefined && (
+            <p className="error small spaced">
+              SnapTrade reports {money(brokerageTotal)} for these accounts, so this total may be off by{" "}
+              {money(Math.abs(netWorth - brokerageTotal))}.
             </p>
           )}
         </div>
@@ -148,7 +186,7 @@ export default function LookThrough({ report }: { report: Report }) {
               {result.directHoldings.map((holding, holdingIndex) => (
                 <tr key={`${holding.symbol}-${holdingIndex}`}>
                   <td>
-                    {displayName(holding.name)} <span className="muted">{holding.symbol}</span>
+                    {shortName(holding.name)} <span className="muted">{holding.symbol}</span>
                   </td>
                   <td className="num">{formatUnits(holding.units)}</td>
                   <td className="num">{money(holding.value)}</td>
@@ -159,7 +197,7 @@ export default function LookThrough({ report }: { report: Report }) {
             <tfoot>
               <tr>
                 <td>Total bought directly</td>
-                <td className="num">{formatUnits(directUnits)}</td>
+                <td />
                 <td className="num">{money(directTotal)}</td>
                 <td className="num">{share(directTotal)}</td>
               </tr>
@@ -184,7 +222,7 @@ export default function LookThrough({ report }: { report: Report }) {
               {visibleFundCompanies.map((company) => (
                 <tr key={company.key}>
                   <td>
-                    {displayName(company.name)} <span className="muted">{company.symbol}</span>
+                    {shortName(company.name)} <span className="muted">{company.symbol}</span>
                     <div className="muted small">via {company.viaFunds.join(", ")}</div>
                   </td>
                   <td className="num">{money(company.throughFunds)}</td>
@@ -246,7 +284,7 @@ export default function LookThrough({ report }: { report: Report }) {
               {companies.map((company) => (
                 <tr key={company.key}>
                   <td>
-                    {displayName(company.name)} <span className="muted">{company.symbol}</span>
+                    {shortName(company.name)} <span className="muted">{company.symbol}</span>
                     {company.viaFunds.length > 0 && <div className="muted small">via {company.viaFunds.join(", ")}</div>}
                   </td>
                   <td className="num">{company.direct > 0 ? money(company.direct) : "–"}</td>
@@ -287,7 +325,7 @@ export default function LookThrough({ report }: { report: Report }) {
                       {overlap.basis === "same-list"
                         ? "Both track the same index."
                         : overlap.sharedCompanies.length > 0
-                          ? `Mostly ${overlap.sharedCompanies.slice(0, 3).map(displayName).join(", ")}.`
+                          ? `Mostly ${overlap.sharedCompanies.slice(0, 3).map(shortName).join(", ")}.`
                           : "No shared companies among their largest holdings."}
                       {overlap.incomplete && " One of these holds a fund we can't open yet, so the real overlap is likely higher."}
                     </div>
@@ -339,7 +377,11 @@ export default function LookThrough({ report }: { report: Report }) {
               {result.notLookedThrough.map((holding, holdingIndex) => (
                 <tr key={`${holding.symbol}-${holdingIndex}`}>
                   <td>
-                    {holding.symbol} <span className="muted">{displayName(holding.name)}</span>
+                    {holding.symbol}{" "}
+                    {/* "USDC USDC" says nothing twice. */}
+                    {holding.name.toUpperCase() !== holding.symbol.toUpperCase() && (
+                      <span className="muted">{displayName(holding.name)}</span>
+                    )}
                     <div className="muted small">{holding.reason}</div>
                   </td>
                   <td className="num">{money(holding.value)}</td>

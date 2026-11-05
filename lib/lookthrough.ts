@@ -53,7 +53,8 @@ export type LookThroughResult = {
   overlaps: FundOverlap[]; // Largest first.
   otherInFunds: number; // Smaller holdings and cash inside funds, beyond each fund's top list.
   insideUnopenedFunds: { symbol: string; name: string; value: number }[];
-  notLookedThrough: { symbol: string; name: string; value: number; reason: string }[];
+  notLookedThrough: { symbol: string; name: string; kind: string; value: number; reason: string }[];
+  cashEquivalents: { symbol: string; name: string; value: number }[]; // Already inside the cash balance.
   unconverted: { symbol: string; name: string; value: number; currency: string }[]; // Not in the total.
   fxAsOf?: string; // Set only if a conversion happened.
 };
@@ -196,6 +197,7 @@ export function lookThrough(holdings: Holding[], options: Options = {}): LookThr
     otherInFunds: 0,
     insideUnopenedFunds: [],
     notLookedThrough: [],
+    cashEquivalents: [],
     unconverted: [],
   };
 
@@ -234,12 +236,21 @@ export function lookThrough(holdings: Holding[], options: Options = {}): LookThr
       continue;
     }
     if (holding.currency !== currency) result.fxAsOf = fx.asOf;
+
+    // SnapTrade reports money market funds as a position and inside the cash balance.
+    // Counting the position as well would add the same money twice.
+    if (holding.cashEquivalent) {
+      result.cashEquivalents.push({ symbol: holding.symbol, name: holding.name, value });
+      continue;
+    }
+
     result.total += value;
 
     if (holding.notLookedThrough) {
       result.notLookedThrough.push({
         symbol: holding.symbol,
         name: holding.name,
+        kind: holding.kind,
         value,
         reason: holding.notLookedThrough,
       });
@@ -258,6 +269,7 @@ export function lookThrough(holdings: Holding[], options: Options = {}): LookThr
       result.notLookedThrough.push({
         symbol: holding.symbol,
         name: holding.name,
+        kind: holding.kind,
         value,
         reason: "We don't have this fund's contents yet",
       });
