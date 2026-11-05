@@ -1,19 +1,29 @@
 // Prepares everything the look-through screen shows from the /api/raw response.
 // No UI here, so the wording and the failure handling can be tested directly.
-import { toHoldings } from "./holdings";
-import { lookThrough, type CompanyExposure, type LookThroughResult } from "./lookthrough";
+import { FX } from "../data/fx";
+import { toHoldings, toNumber } from "./holdings";
+import { convertCurrency, lookThrough, type CompanyExposure, type LookThroughResult } from "./lookthrough";
 
 export type AccountData = {
   account?: { name?: string };
   positions: { ok: boolean; status: number; data: unknown };
+  balances?: { ok: boolean; data: unknown };
+};
+
+export type Headline = {
+  title: string;
+  detail: string;
 };
 
 export type Report = {
   result: LookThroughResult;
-  headline?: string;
+  headline?: Headline;
   skipped: string[]; // Positions we couldn't value.
   failedAccounts: string[]; // Accounts whose positions didn't load, so the totals are short.
   holdingsAsOf?: string;
+  cash: number; // In the report's currency.
+  cashNotLoaded: string[]; // Accounts whose balances didn't load, so net worth is short.
+  cashUnconverted: string[]; // Currencies of cash we have no exchange rate for.
 };
 
 // Fund files shout: "APPLE INC" reads better as "Apple Inc". Names already in
@@ -39,20 +49,43 @@ export function percentText(fraction: number): string {
   return `${(fraction * 100).toFixed(1)}%`;
 }
 
-// Leads with the most surprising fact: the largest company you own in more than one way.
-export function headlineFor(companies: CompanyExposure[]): string | undefined {
-  const company = companies.find((candidate) => candidate.direct > 0 && candidate.viaFunds.length > 0) ?? companies[0];
+// Legal endings make a sentence hard to read: "Microsoft Corporation Common Stock" is just Microsoft.
+const NAME_ENDINGS =
+  /[\s,]+(common stock|ordinary shares|class [a-z]( shares)?|cl [a-z]|corporation|incorporated|corp\.?|inc\.?|holdings|limited|ltd\.?|plc|& co\.?|co\.?)$/i;
+
+export function shortName(name: string): string {
+  let short = displayName(name).trim();
+  let previous;
+  do {
+    previous = short;
+    short = short.replace(NAME_ENDINGS, "");
+  } while (short !== previous && short);
+  return short || name;
+}
+
+function listOf(names: string[]): string {
+  if (names.length < 2) return names.join("");
+  return `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}`;
+}
+
+// Answers "what's my biggest company, and why might that surprise me?"
+// Companies arrive largest first, so the first one is the biggest overall.
+export function headlineFor(companies: CompanyExposure[]): Headline | undefined {
+  const company = companies[0];
   if (!company) return undefined;
 
-  const count = company.viaFunds.length;
-  const funds = `${count} ${count === 1 ? "fund" : "funds"}`;
-  const how =
-    company.direct > 0 && count > 0
-      ? `directly and through ${funds}`
-      : count > 0
-        ? `through ${funds}`
-        : "directly";
-  return `You own ${displayName(company.name)} ${how}: ${percentText(company.percent)} of your portfolio.`;
+  const funds = listOf(company.viaFunds);
+  const title = `${shortName(company.name)} is your biggest company, at ${percentText(company.percent)} of your holdings.`;
+  if (company.direct > 0 && funds) {
+    return {
+      title,
+      detail: `You own it directly and through ${funds}, so it's a bigger part of your money than your brokerage's list suggests.`,
+    };
+  }
+  if (funds) {
+    return { title, detail: `You own it only through ${funds}, so it doesn't appear on your brokerage's list.` };
+  }
+  return { title, detail: "You own it directly, and none of the funds we can see hold it." };
 }
 
 // With several accounts, the oldest date is the honest one for the whole page.
@@ -63,11 +96,45 @@ function oldestAsOf(responses: unknown[]): string | undefined {
   return dates.sort((earlier, later) => Date.parse(earlier) - Date.parse(later))[0];
 }
 
+// /balances returns one row per currency: [{ currency: { code }, cash }].
+function readCash(accounts: AccountData[], reportCurrency: string) {
+  let cash = 0;
+  let converted = false;
+  const cashNotLoaded: string[] = [];
+  const cashUnconverted = new Set<string>();
+
+  for (const accountData of accounts) {
+    if (!accountData.balances) continue;
+    if (!accountData.balances.ok) {
+      cashNotLoaded.push(accountData.account?.name ?? "An account");
+      continue;
+    }
+    const rows = Array.isArray(accountData.balances.data) ? accountData.balances.data : [];
+    for (const row of rows) {
+      const amount = toNumber(row?.cash);
+      const currency = row?.currency?.code ?? row?.currency;
+      if (amount === null || typeof currency !== "string") continue;
+
+      const value = convertCurrency(amount, currency, reportCurrency);
+      if (value === null) {
+        cashUnconverted.add(currency);
+        continue;
+      }
+      if (currency !== reportCurrency) converted = true;
+      cash += value;
+    }
+  }
+
+  return { cash, converted, cashNotLoaded, cashUnconverted: [...cashUnconverted] };
+}
+
 export function buildReport(accounts: AccountData[]): Report {
   const loaded = accounts.filter((accountData) => accountData.positions.ok);
   const responses = loaded.map((accountData) => accountData.positions.data);
   const { holdings, skipped } = toHoldings(responses);
   const result = lookThrough(holdings);
+  const { cash, converted, cashNotLoaded, cashUnconverted } = readCash(accounts, result.currency);
+  if (converted) result.fxAsOf = FX.asOf;
 
   return {
     result,
@@ -77,5 +144,8 @@ export function buildReport(accounts: AccountData[]): Report {
       .filter((accountData) => !accountData.positions.ok)
       .map((accountData) => accountData.account?.name ?? "An account"),
     holdingsAsOf: oldestAsOf(responses),
+    cash,
+    cashNotLoaded,
+    cashUnconverted,
   };
 }

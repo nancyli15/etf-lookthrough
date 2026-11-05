@@ -87,6 +87,25 @@ describe("exposure", () => {
   });
 });
 
+describe("portfolio sections", () => {
+  it("lists direct stocks with shares, and every holding lands in exactly one section", () => {
+    const r = lookThrough(
+      [
+        holding("AAPL", "stock", 500),
+        holding("SPY", "etf", 1000),
+        holding("BTC", "crypto", 100, { notLookedThrough: "crypto" }),
+      ],
+      { funds: { SPY: spy } },
+    );
+    expect(r.directHoldings).toMatchObject([{ symbol: "AAPL", value: 500 }]);
+    const sections =
+      r.directHoldings.reduce((sum, direct) => sum + direct.value, 0) +
+      r.funds.reduce((sum, fund) => sum + fund.value, 0) +
+      r.notLookedThrough.reduce((sum, item) => sum + item.value, 0);
+    expect(sections).toBeCloseTo(r.total);
+  });
+});
+
 describe("what can't be looked through", () => {
   it("lists crypto and unknown funds with reasons, and counts them in the total", () => {
     const r = lookThrough(

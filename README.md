@@ -52,7 +52,9 @@ Requires Node.js 20 or newer.
 | Dated snapshot of each fund's top 25 holdings, plus an "other" share | Simple to build and check for v1, and the largest holdings carry the story | Refresh the files on a schedule and keep every holding |
 | Identify a company by ticker plus market | The same ticker can be two companies: ROP is Roche in Switzerland and Roper in the US | Match on FIGI through OpenFIGI |
 | Mixed portfolios report in CAD, at a dated Bank of Canada rate | One rate is simple to check and explain. Other currencies are listed, not guessed | Daily rates and more currencies |
-| Percentages exclude cash balances | Holdings come from `/positions/all`, and cash comes from a separate call | Add `/balances` to the total |
+| Net worth adds cash from `/balances`, but percentages exclude it | Net worth without cash would be wrong, while company percentages answer "of what I've invested" | Use SnapTrade's account value if it proves more reliable, and confirm how each brokerage reports money market funds so they aren't counted twice |
+| Separate tables for direct stocks, fund contents and both combined | Showing where each dollar comes from is easier to follow than one table with a blank column | Show each fund's amount per company |
+| Open with net worth, then the biggest company, then the details | People want the total first, and one clear finding gives the tables a reason to be read | Let the user choose the finding, such as most overlap |
 | Fund overlap adds the smaller weight of each shared company, from top holdings only | A standard measure that's easy to check by hand, but it's a minimum | Use every holding, for the true figure |
 | Calculate the look-through in the browser from `/api/raw` | No new endpoint, and the fund snapshot is small | Move it to the server if the fund data grows to every holding |
 | Show what the numbers can't see, on the main screen | A confident total that's missing money is worse than an honest gap | Close the gaps with more fund files |
