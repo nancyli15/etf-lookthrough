@@ -31,7 +31,7 @@ export function displayName(name: string): string {
 const UNOPENED_WARNING_ABOVE = 0.05;
 
 export function hasLargeGap(result: LookThroughResult): boolean {
-  const unopened = result.insideUnopenedFunds.reduce((sum, u) => sum + u.value, 0);
+  const unopened = result.insideUnopenedFunds.reduce((sum, unopenedFund) => sum + unopenedFund.value, 0);
   return result.total > 0 && unopened / result.total > UNOPENED_WARNING_ABOVE;
 }
 
@@ -41,7 +41,7 @@ export function percentText(fraction: number): string {
 
 // Leads with the most surprising fact: the largest company you own in more than one way.
 export function headlineFor(companies: CompanyExposure[]): string | undefined {
-  const company = companies.find((c) => c.direct > 0 && c.viaFunds.length > 0) ?? companies[0];
+  const company = companies.find((candidate) => candidate.direct > 0 && candidate.viaFunds.length > 0) ?? companies[0];
   if (!company) return undefined;
 
   const count = company.viaFunds.length;
@@ -58,14 +58,14 @@ export function headlineFor(companies: CompanyExposure[]): string | undefined {
 // With several accounts, the oldest date is the honest one for the whole page.
 function oldestAsOf(responses: unknown[]): string | undefined {
   const dates = responses
-    .map((r) => (r as { data_freshness?: { as_of?: unknown } })?.data_freshness?.as_of)
-    .filter((d): d is string => typeof d === "string" && !Number.isNaN(Date.parse(d)));
-  return dates.sort((a, b) => Date.parse(a) - Date.parse(b))[0];
+    .map((response) => (response as { data_freshness?: { as_of?: unknown } })?.data_freshness?.as_of)
+    .filter((date): date is string => typeof date === "string" && !Number.isNaN(Date.parse(date)));
+  return dates.sort((earlier, later) => Date.parse(earlier) - Date.parse(later))[0];
 }
 
 export function buildReport(accounts: AccountData[]): Report {
-  const loaded = accounts.filter((a) => a.positions.ok);
-  const responses = loaded.map((a) => a.positions.data);
+  const loaded = accounts.filter((accountData) => accountData.positions.ok);
+  const responses = loaded.map((accountData) => accountData.positions.data);
   const { holdings, skipped } = toHoldings(responses);
   const result = lookThrough(holdings);
 
@@ -73,7 +73,9 @@ export function buildReport(accounts: AccountData[]): Report {
     result,
     headline: headlineFor(result.companies),
     skipped,
-    failedAccounts: accounts.filter((a) => !a.positions.ok).map((a) => a.account?.name ?? "An account"),
+    failedAccounts: accounts
+      .filter((accountData) => !accountData.positions.ok)
+      .map((accountData) => accountData.account?.name ?? "An account"),
     holdingsAsOf: oldestAsOf(responses),
   };
 }

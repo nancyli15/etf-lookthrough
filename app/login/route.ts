@@ -9,24 +9,35 @@ export const dynamic = "force-dynamic";
 
 export async function GET(req: NextRequest) {
   try {
-    const metadata = await getMetadata();
+    const snapTradeOAuthMetadata = await getMetadata();
 
-    const state = randomToken(32);
-    const nonce = randomToken(32);
-    const codeVerifier = randomToken(64);
-    await setLoginState({ state, nonce, codeVerifier });
+    // Lets the callback confirm that the response belongs to this login attempt.
+    const loginState = randomToken(32);
+    // Ties the identity token (id_token) to this login attempt.
+    const loginNonce = randomToken(32);
+    // PKCE: SnapTrade gets a challenge derived from this secret now, and our
+    // backend proves it holds the secret when exchanging the authorization code.
+    const pkceCodeVerifier = randomToken(64);
 
-    const url = new URL(metadata.authorization_endpoint);
-    url.searchParams.set("response_type", "code");
-    url.searchParams.set("client_id", requireEnv("SNAPTRADE_CLIENT_ID"));
-    url.searchParams.set("redirect_uri", redirectUri());
-    url.searchParams.set("scope", SCOPES);
-    url.searchParams.set("state", state);
-    url.searchParams.set("nonce", nonce);
-    url.searchParams.set("code_challenge", codeChallenge(codeVerifier));
-    url.searchParams.set("code_challenge_method", "S256");
+    // Saved so the callback can check them when SnapTrade sends the user back.
+    await setLoginState({
+      state: loginState,
+      nonce: loginNonce,
+      codeVerifier: pkceCodeVerifier,
+    });
 
-    return NextResponse.redirect(url);
+    const snapTradeAuthorizationUrl = new URL(snapTradeOAuthMetadata.authorization_endpoint);
+    const params = snapTradeAuthorizationUrl.searchParams;
+    params.set("response_type", "code");
+    params.set("client_id", requireEnv("SNAPTRADE_CLIENT_ID"));
+    params.set("redirect_uri", redirectUri());
+    params.set("scope", SCOPES);
+    params.set("state", loginState);
+    params.set("nonce", loginNonce);
+    params.set("code_challenge", codeChallenge(pkceCodeVerifier));
+    params.set("code_challenge_method", "S256");
+
+    return NextResponse.redirect(snapTradeAuthorizationUrl);
   } catch (err) {
     // SnapTrade unreachable or a setting missing: a message beats a crash page.
     console.error("Starting sign-in failed:", err instanceof Error ? err.message : "unknown");

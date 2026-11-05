@@ -6,58 +6,82 @@ import { positionsOf, toNumber } from "@/lib/holdings";
 import { buildReport } from "@/lib/report";
 import LookThrough from "./LookThrough";
 
-type ApiResult = { path: string; status: number; ok: boolean; data: unknown };
-type AccountDump = { account: any; positions: ApiResult; balances: ApiResult; activities: ApiResult };
-type RawData = {
-  fetchedAt: string;
-  accountsCall: { status: number; ok: boolean };
-  accounts: AccountDump[];
-  accountsRaw?: unknown;
+// The result of one SnapTrade API call, as packaged by /api/raw.
+type ApiResponse = {
+  path: string;   // API endpoint that was called
+  status: number; // HTTP status code
+  ok: boolean;    // Whether the request succeeded
+  data: unknown;  // Response body, exactly as SnapTrade sent it
 };
 
-// /positions/all returns { results: [...] }; each item has an `instrument`
-// (kind, symbol, raw_symbol, currency, ...). Older shapes nest under `symbol`.
-// Read defensively and fall back to "?".
-function symbolOf(p: any): string {
-  if (typeof p?.instrument?.symbol === "string") return p.instrument.symbol;
-  const s = p?.symbol;
-  const inner = s?.symbol;
-  if (typeof inner === "string") return inner;
-  if (typeof inner?.symbol === "string") return inner.symbol;
-  if (typeof s?.raw_symbol === "string") return s.raw_symbol;
+// One brokerage account and the results of its API requests.
+type AccountData = {
+  account: any;            // Brokerage account information (name, ID, institution, etc.)
+  positions: ApiResponse;  // Stocks, ETFs, and other investments held in the account
+  balances: ApiResponse;   // Cash and account balances
+  activities: ApiResponse; // Transactions and account activity
+};
+
+// The complete response from our /api/raw endpoint, covering all connected accounts.
+type DashboardData = {
+  fetchedAt: string; // When the data was retrieved
+  accountsCall: { status: number; ok: boolean }; // Result of the request for the user's accounts
+  accounts: AccountData[];
+  accountsRaw?: unknown; // Original accounts response, for debugging failed requests
+};
+
+// Returns a position's ticker symbol, such as "AAPL" or "VOO".
+// /positions/all uses instrument.symbol. The rest handles older formats.
+function getPositionSymbol(position: any): string {
+  if (typeof position?.instrument?.symbol === "string") return position.instrument.symbol;
+
+  const symbolData = position?.symbol;
+  const nestedSymbol = symbolData?.symbol;
+  if (typeof nestedSymbol === "string") return nestedSymbol;
+  if (typeof nestedSymbol?.symbol === "string") return nestedSymbol.symbol;
+  if (typeof symbolData?.raw_symbol === "string") return symbolData.raw_symbol;
   return "?";
 }
-function kindOf(p: any): string {
-  return p?.instrument?.kind ?? p?.symbol?.symbol?.type?.code ?? "";
+
+// Returns the investment type, such as stock or ETF.
+function getPositionType(position: any): string {
+  return position?.instrument?.kind ?? position?.symbol?.symbol?.type?.code ?? "";
 }
-function currencyOf(p: any): string {
-  const c = p?.currency ?? p?.instrument?.currency ?? p?.symbol?.symbol?.currency;
-  if (typeof c === "string") return c;
-  return c?.code ?? "";
+
+// Returns a position's currency code. It can arrive as "USD" or { code: "USD" }.
+function getPositionCurrency(position: any): string {
+  const currencyData = position?.currency ?? position?.instrument?.currency ?? position?.symbol?.symbol?.currency;
+  if (typeof currencyData === "string") return currencyData;
+  return currencyData?.code ?? "";
 }
-function num(v: unknown): string {
-  const n = toNumber(v);
-  return n === null ? "–" : n.toLocaleString(undefined, { maximumFractionDigits: 4 });
+
+// Formats a value for display: 1234.56789 becomes "1,234.5679", and unusable values become "–".
+function formatNumber(value: unknown): string {
+  const numericValue = toNumber(value);
+  return numericValue === null ? "–" : numericValue.toLocaleString(undefined, { maximumFractionDigits: 4 });
 }
 
 export default function Dashboard({ email }: { email?: string }) {
-  const [data, setData] = useState<RawData | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   useEffect(() => {
     fetch("/api/raw")
-      .then(async (res) => {
-        if (res.status === 401) {
+      .then(async (response) => {
+        if (response.status === 401) {
           window.location.href = "/?error=session_expired";
           return;
         }
-        if (!res.ok) throw new Error(`Request failed (${res.status})`);
-        setData(await res.json());
+        if (!response.ok) throw new Error(`Request failed (${response.status})`);
+        setDashboardData(await response.json());
       })
-      .catch((e) => setError(e instanceof Error ? e.message : "Something went wrong"));
+      .catch((error) => setErrorMessage(error instanceof Error ? error.message : "Something went wrong"));
   }, []);
 
-  const report = useMemo(() => (data?.accountsCall.ok ? buildReport(data.accounts) : null), [data]);
+  const report = useMemo(
+    () => (dashboardData?.accountsCall.ok ? buildReport(dashboardData.accounts) : null),
+    [dashboardData],
+  );
 
   return (
     <>
@@ -73,16 +97,16 @@ export default function Dashboard({ email }: { email?: string }) {
         </div>
       </div>
 
-      {error && <div className="card error">Couldn't load your data: {error}. Try refreshing.</div>}
-      {!data && !error && <div className="card muted">Loading your accounts…</div>}
+      {errorMessage && <div className="card error">Couldn't load your data: {errorMessage}. Try refreshing.</div>}
+      {!dashboardData && !errorMessage && <div className="card muted">Loading your accounts…</div>}
 
-      {data && !data.accountsCall.ok && (
+      {dashboardData && !dashboardData.accountsCall.ok && (
         <div className="card error">
-          SnapTrade couldn't load your accounts right now (status {data.accountsCall.status}). Try refreshing.
+          SnapTrade couldn't load your accounts right now (status {dashboardData.accountsCall.status}). Try refreshing.
         </div>
       )}
 
-      {data && data.accountsCall.ok && data.accounts.length === 0 && (
+      {dashboardData && dashboardData.accountsCall.ok && dashboardData.accounts.length === 0 && (
         <div className="card">
           <h2>No accounts yet</h2>
           <p className="muted">
@@ -91,25 +115,25 @@ export default function Dashboard({ email }: { email?: string }) {
         </div>
       )}
 
-      {report && data && data.accounts.length > 0 && <LookThrough report={report} />}
+      {report && dashboardData && dashboardData.accounts.length > 0 && <LookThrough report={report} />}
 
-      {data && (
+      {dashboardData && (
         <details className="developer">
           <summary className="muted">Developer view</summary>
           <p className="spaced">
             <a className="button secondary" href="/api/raw?download=1">Download raw data</a>
           </p>
-          {!data.accountsCall.ok && <pre>{JSON.stringify(data.accountsRaw, null, 2)}</pre>}
-          {data.accounts.map((a, i) => {
-            const positions = positionsOf(a.positions.data);
+          {!dashboardData.accountsCall.ok && <pre>{JSON.stringify(dashboardData.accountsRaw, null, 2)}</pre>}
+          {dashboardData.accounts.map((accountData, accountIndex) => {
+            const positions = positionsOf(accountData.positions.data);
             return (
-              <div className="card" key={a.account?.id ?? i}>
+              <div className="card" key={accountData.account?.id ?? accountIndex}>
                 <h2>
-                  {a.account?.name ?? "Account"}{" "}
-                  <span className="muted">{a.account?.institution_name ?? ""}</span>
+                  {accountData.account?.name ?? "Account"}{" "}
+                  <span className="muted">{accountData.account?.institution_name ?? ""}</span>
                 </h2>
-                {!a.positions.ok ? (
-                  <p className="error">Positions request returned status {a.positions.status}.</p>
+                {!accountData.positions.ok ? (
+                  <p className="error">Positions request returned status {accountData.positions.status}.</p>
                 ) : positions.length === 0 ? (
                   <p className="muted">No positions in this account.</p>
                 ) : (
@@ -124,13 +148,13 @@ export default function Dashboard({ email }: { email?: string }) {
                       </tr>
                     </thead>
                     <tbody>
-                      {positions.map((p, j) => (
-                        <tr key={j}>
-                          <td>{symbolOf(p)}</td>
-                          <td>{kindOf(p)}</td>
-                          <td className="num">{num(p?.units ?? p?.fractional_units)}</td>
-                          <td className="num">{num(p?.price)}</td>
-                          <td>{currencyOf(p)}</td>
+                      {positions.map((position, positionIndex) => (
+                        <tr key={positionIndex}>
+                          <td>{getPositionSymbol(position)}</td>
+                          <td>{getPositionType(position)}</td>
+                          <td className="num">{formatNumber(position?.units ?? position?.fractional_units)}</td>
+                          <td className="num">{formatNumber(position?.price)}</td>
+                          <td>{getPositionCurrency(position)}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -138,12 +162,12 @@ export default function Dashboard({ email }: { email?: string }) {
                 )}
                 <details style={{ marginTop: 12 }}>
                   <summary className="muted">Raw JSON for this account</summary>
-                  <pre>{JSON.stringify(a, null, 2)}</pre>
+                  <pre>{JSON.stringify(accountData, null, 2)}</pre>
                 </details>
               </div>
             );
           })}
-          <p className="muted">Fetched {new Date(data.fetchedAt).toLocaleString()}</p>
+          <p className="muted">Fetched {new Date(dashboardData.fetchedAt).toLocaleString()}</p>
         </details>
       )}
     </>
