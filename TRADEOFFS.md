@@ -73,7 +73,8 @@ The parts of the API the app depends on, and what happens if they change. SnapTr
 | Share percentages only: no dollar amounts, net worth or account names | People share this with friends and online, and the percentages are the interesting part | A share image, made the same way |
 | Share image of the top 5 companies, made in the browser | A picture travels further than text in chats and posts. Drawing it in the browser means holdings never go to a server to make it | — |
 | Build the image as an SVG, then convert it to a PNG | The SVG is plain text, so tests can check it has no dollar amounts. Chats and social apps accept PNGs, but often not SVGs | — |
-| Phones share the image; computers download it, with the text as a second button | Desktop browsers mostly can't share files | — |
+| Share opens a card showing the exact image, with Copy image, Download and Copy as text | You see what you're sharing before it leaves the page, and copying is quicker than saving a file. The system share menu is one more button, only where it works, instead of popping up by itself | — |
+| Copied text has no link | Chat apps turn a pasted link into their own preview image, which looked like extra images | Let the user choose to include the link |
 | Link preview is one generic image, with no holdings | Anyone can fetch a link's preview, so it must never show a user's data | — |
 | One light theme, styled like SnapTrade's dashboard, instead of following the system's dark mode | It feels at home next to SnapTrade's own screens, and one theme is half the colors to check | Add a dark theme back, with its own checked chart colors |
 
