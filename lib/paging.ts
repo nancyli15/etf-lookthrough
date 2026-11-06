@@ -33,13 +33,38 @@ export function pageNumbers(current: number, total: number): (number | "…")[] 
 }
 
 // The filter buttons above the company table. "Bought directly" is the old direct
-// stocks table, "Through funds" the old fund contents table.
-export type CompanyView = "all" | "direct" | "funds";
+// stocks table, "Through funds" the old fund contents table, and "fund:SPY" shows
+// only what's inside SPY.
+export type CompanyView = "all" | "direct" | "funds" | `fund:${string}`;
 
-export function inView(view: CompanyView, company: { direct: number; throughFunds: number }): boolean {
+type Filterable = { direct: number; throughFunds: number; total: number; byFund: { symbol: string; value: number }[] };
+
+export const fundView = (symbol: string): CompanyView => `fund:${symbol}`;
+
+// The fund a view is about, or undefined for the other views.
+export function viewFund(view: CompanyView): string | undefined {
+  return view.startsWith("fund:") ? view.slice("fund:".length) : undefined;
+}
+
+// How much of a company comes through one fund.
+function throughFund(company: Filterable, symbol: string): number {
+  return company.byFund.find((entry) => entry.symbol === symbol)?.value ?? 0;
+}
+
+export function inView(view: CompanyView, company: Filterable): boolean {
+  const fund = viewFund(view);
+  if (fund) return throughFund(company, fund) > 0;
   if (view === "direct") return company.direct > 0;
   if (view === "funds") return company.throughFunds > 0;
   return true;
+}
+
+// Largest first, by what the view is about: in a fund's view, by how much comes
+// through that fund (SPY's biggest holdings first), otherwise by each company's total.
+export function sortForView<T extends Filterable>(view: CompanyView, companies: T[]): T[] {
+  const fund = viewFund(view);
+  if (!fund) return companies; // Already largest first, by total.
+  return [...companies].sort((a, b) => throughFund(b, fund) - throughFund(a, fund));
 }
 
 // Matches the ticker or any part of the name, ignoring case: "tes" finds Tesla.

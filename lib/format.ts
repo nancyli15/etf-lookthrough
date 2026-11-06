@@ -8,15 +8,20 @@ import { shortName } from "./names";
 // accounts looked like the symbol disappeared. Same text on every computer.
 const PREFIX: Record<string, string> = { USD: "US$", CAD: "CA$" };
 
-export function formatMoney(value: number, currency: string, options: { compact?: boolean } = {}): string {
-  const prefix = PREFIX[currency];
-  const number = Math.abs(value).toLocaleString(
-    "en-US",
-    options.compact
-      ? { notation: "compact", maximumFractionDigits: 1 }
-      : { minimumFractionDigits: 2, maximumFractionDigits: 2 },
-  );
+type MoneyOptions = {
+  compact?: boolean; // "CA$165.4K", for the chart's axis and the donut's middle.
+  whole?: boolean; // "CA$4,100", for the short line under each bar.
+};
+
+export function formatMoney(value: number, currency: string, options: MoneyOptions = {}): string {
+  const digits = options.compact
+    ? { notation: "compact" as const, maximumFractionDigits: 1 }
+    : options.whole
+      ? { maximumFractionDigits: 0 }
+      : { minimumFractionDigits: 2, maximumFractionDigits: 2 };
+  const number = Math.abs(value).toLocaleString("en-US", digits);
   const sign = value < 0 ? "-" : "";
+  const prefix = PREFIX[currency];
   // Other currencies are rare here (they're listed as unconverted), so the code is clearest.
   return prefix ? `${sign}${prefix}${number}` : `${sign}${number} ${currency}`;
 }
@@ -31,6 +36,8 @@ export function hasLargeGap(result: LookThroughResult): boolean {
 }
 
 export function percentText(fraction: number): string {
+  // A real but tiny share, like CA$69 of CA$109K, reads as "<0.1%", not a misleading "0.0%".
+  if (fraction > 0 && fraction < 0.0005) return "<0.1%";
   return `${(fraction * 100).toFixed(1)}%`;
 }
 

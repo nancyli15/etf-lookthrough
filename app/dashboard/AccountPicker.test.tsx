@@ -43,7 +43,7 @@ describe("account picker", () => {
 });
 
 describe("an account with only cash, like an empty FHSA", () => {
-  it("stays in CA$, with no conversion and no notes about holdings", () => {
+  it("stays in CAD, with no conversion and no notes about holdings", () => {
     const report = buildReport([
       {
         positions: { ok: true, status: 200, data: { results: [], data_freshness: { as_of: "2026-11-06T00:00:00Z" } } },
@@ -67,13 +67,13 @@ describe("summary with several currencies", () => {
     currency,
   });
 
-  it("says US$ amounts were converted, next to the total, not only in the small print", () => {
+  it("says USD amounts were converted, in an ⓘ next to the total", () => {
     const report = buildReport([
       { positions: { ok: true, status: 200, data: { results: [position("AAPL", "stock", 100, "USD")] } } },
       { positions: { ok: true, status: 200, data: { results: [position("RY", "stock", 100, "CAD")] } } },
     ]);
-    const html = renderToStaticMarkup(<LookThrough report={report} includes="Includes all 2 accounts: Individual and TFSA." />);
-    expect(html).toContain("Includes all 2 accounts: Individual and TFSA.");
-    expect(html).toContain("US$ amounts are converted to CA$ at 1.3978 CAD per USD");
+    const html = renderToStaticMarkup(<LookThrough report={report} />);
+    expect(html).toContain('aria-label="About the exchange rate"');
+    expect(html).toContain("US$ amounts are converted to CAD at 1.3978 CAD per USD");
   });
 });

@@ -1,12 +1,12 @@
 "use client";
-// US$ or CA$, like a light/dark switch. By default the page follows the accounts:
-// CA$ if any Canadian money is shown, otherwise US$. Flipping it recalculates the
+// USD or CAD, like a light/dark switch. By default the page follows the accounts:
+// CAD if any Canadian money is shown, otherwise USD. Flipping it recalculates the
 // whole page in the chosen currency, at the one dated rate in data/fx.ts.
 import type { ReportCurrency } from "../../lib/report";
 
 const OPTIONS: { currency: ReportCurrency; label: string }[] = [
-  { currency: "USD", label: "US$" },
-  { currency: "CAD", label: "CA$" },
+  { currency: "USD", label: "USD" },
+  { currency: "CAD", label: "CAD" },
 ];
 
 type Props = {

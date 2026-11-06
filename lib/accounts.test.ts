@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { groupAccounts, includesText, selectionTitle } from "./accounts";
+import { groupAccounts, selectionTitle } from "./accounts";
 
 // Shaped like the real /accounts and /authorizations responses, with made-up IDs.
 const account = (id: string, name: string, institution: string, connection: string, amount: number, currency: string) => ({
@@ -40,12 +40,5 @@ describe("accounts grouped by brokerage", () => {
   it("uses the brokerage name when there's only one account", () => {
     const one = groupAccounts([accounts[2]], connections);
     expect(selectionTitle(one, pick("tfsa"))).toBe("Wealthsimple · TFSA");
-  });
-
-  it("says which accounts the totals include", () => {
-    expect(includesText(groups, pick("ind", "ira", "tfsa", "fhsa"))).toBe(
-      "Includes all 4 accounts: Individual, IRA, TFSA and FHSA.",
-    );
-    expect(includesText(groups, pick("tfsa", "fhsa"))).toBe("Includes 2 of 4 accounts: TFSA and FHSA.");
   });
 });

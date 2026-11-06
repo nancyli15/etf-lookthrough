@@ -2,8 +2,9 @@
 // Chooses which accounts the page adds up: all of them (the default), one, or
 // any mix. Grouped by brokerage connection, each with SnapTrade's own total in
 // the account's own currency. Only shown when there's more than one account.
-import { useEffect, useRef } from "react";
+import { useRef } from "react";
 import type { AccountGroup } from "../../lib/accounts";
+import { useDismiss } from "./useDismiss";
 
 type Props = {
   groups: AccountGroup[];
@@ -15,29 +16,7 @@ type Props = {
 export default function AccountPicker({ groups, selected, onChange, money }: Props) {
   const menuRef = useRef<HTMLDetailsElement>(null);
 
-  // <details> stays open until its button is clicked again. A dropdown should also
-  // close on a click anywhere else, or on Esc. Clicks inside, like ticking boxes,
-  // leave it open so several accounts can be changed in one go.
-  useEffect(() => {
-    function closeOnOutsideClick(event: PointerEvent) {
-      const menu = menuRef.current;
-      if (menu?.open && !menu.contains(event.target as Node)) menu.open = false;
-    }
-    function closeOnEscape(event: KeyboardEvent) {
-      const menu = menuRef.current;
-      if (event.key === "Escape" && menu?.open) {
-        menu.open = false;
-        // Back on the button, so keyboard users don't lose their place.
-        menu.querySelector("summary")?.focus();
-      }
-    }
-    document.addEventListener("pointerdown", closeOnOutsideClick);
-    document.addEventListener("keydown", closeOnEscape);
-    return () => {
-      document.removeEventListener("pointerdown", closeOnOutsideClick);
-      document.removeEventListener("keydown", closeOnEscape);
-    };
-  }, []);
+  useDismiss(menuRef); // Closes on a click outside, or on Esc.
 
   const all = groups.flatMap((group) => group.accounts.map((account) => account.id));
   if (all.length < 2) return null;

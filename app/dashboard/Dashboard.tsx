@@ -7,7 +7,7 @@
 // refresh and the second would sign the user out. Waiting for /api/raw means its
 // refreshed token is already saved when /api/history starts.
 import { useEffect, useMemo, useRef, useState } from "react";
-import { groupAccounts, includesText, selectionTitle } from "@/lib/accounts";
+import { groupAccounts, selectionTitle } from "@/lib/accounts";
 import { formatMoney } from "@/lib/format";
 import { emptyAccountsMessage } from "@/lib/connections";
 import type { HistoryLoad } from "@/lib/history";
@@ -135,7 +135,7 @@ export default function Dashboard({ email }: { email?: string }) {
   const report = noneChosen ? null : isDefault ? (dashboardData?.report ?? null) : customReport;
   // What the switch shows: the chosen currency, or the one the page is in.
   // With no account chosen there's no report, so fall back to the full report's currency
-  // rather than US$: unticking everything shouldn't flip the switch.
+  // rather than USD: unticking everything shouldn't flip the switch.
   const pageCurrency = report?.result.currency ?? dashboardData?.report?.result.currency;
   const shownCurrency: ReportCurrency = currency ?? (pageCurrency === "CAD" ? "CAD" : "USD");
   const showingAll = selected === null || selected.size === allIds.length;
@@ -196,7 +196,6 @@ export default function Dashboard({ email }: { email?: string }) {
           report={report}
           history={shownHistory}
           title={groups.length ? selectionTitle(groups, chosen) : undefined}
-          includes={allIds.length > 1 ? includesText(groups, chosen) : undefined}
         />
       )}
 
