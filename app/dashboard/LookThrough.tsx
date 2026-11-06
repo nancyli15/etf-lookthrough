@@ -7,7 +7,7 @@
 import { Fragment, useState } from "react";
 import { FX } from "../../data/fx";
 import { displayName, shortName } from "../../lib/names";
-import { hasLargeGap, percentText, shareText, type Report } from "../../lib/report";
+import { hasLargeGap, percentText, type Report } from "../../lib/report";
 import AccountValueChart from "./AccountValueChart";
 import CompanyBreakdown, { SourceRows } from "./CompanyBreakdown";
 import CompanyChart from "./CompanyChart";
@@ -85,7 +85,6 @@ export default function LookThrough({ report }: { report: Report }) {
   const shareOf = (value: number) => percentText(result.total ? value / result.total : 0);
   const fundDates = [...new Set(result.funds.map((fund) => fund.asOf))].map(formatDate).join(", ");
   const selected = result.companies.find((company) => company.key === selectedKey) ?? result.companies[0];
-  const share = shareText(result);
 
   function toggleOpen(key: string) {
     const next = new Set(openKeys);
@@ -191,7 +190,7 @@ export default function LookThrough({ report }: { report: Report }) {
             {result.insideUnopenedFunds.map((fund) => fund.symbol).join(", ")}), so company totals are likely understated.
           </p>
         )}
-        {share && <ShareButton text={share} />}
+        <ShareButton result={result} />
       </div>
 
       {result.total !== 0 && (

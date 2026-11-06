@@ -36,6 +36,14 @@ describe("account value history", () => {
     expect(history.points).toEqual([{ date: "2026-11-03", value: 150 }]);
   });
 
+  it("drops $0 days before the account had money, but keeps a later $0", () => {
+    const history = combineHistory(
+      [account("A", [["2026-10-01", "0"], ["2026-10-02", "0"], ["2026-10-05", "500"], ["2026-10-06", "0"]])],
+      "USD",
+    );
+    expect(history.points.map((point) => point.value)).toEqual([500, 0]);
+  });
+
   it("sorts oldest first, whatever order SnapTrade sends", () => {
     const history = combineHistory([account("A", [["2026-11-03", "2"], ["2026-11-02", "1"]])], "USD");
     expect(history.points.map((point) => point.date)).toEqual(["2026-11-02", "2026-11-03"]);
