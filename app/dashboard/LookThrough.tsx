@@ -1,17 +1,21 @@
 // The look-through screen. Only displays a Report: all the math and wording rules
 // live in lib/ where they're tested.
 //
-// Top to bottom: net worth beside its history, the biggest-company finding, one
-// table of every company, your funds, and what couldn't be looked through.
-// One page scroll; on a phone, the top pair stacks.
+// Top to bottom: the summary (net worth, split into stocks, funds, crypto and cash)
+// beside the account value chart, the biggest-company finding, your funds and their overlap,
+// every company, and what couldn't be looked through. Clicking a fund's name shows
+// its companies in the table below it. One page scroll; on a phone, the top pair stacks.
+import { useState } from "react";
 import { FX } from "../../data/fx";
 import { formatMoney, hasLargeGap, percentText } from "../../lib/format";
 import type { HistoryLoad } from "../../lib/history";
 import { displayName } from "../../lib/names";
+import { fundView, type CompanyView } from "../../lib/paging";
 import type { Report } from "../../lib/report";
 import AccountValueChart from "./AccountValueChart";
 import CompanyTable from "./CompanyTable";
 import FundsCard from "./FundsCard";
+import InfoPopover from "./InfoPopover";
 import ShareButton from "./ShareButton";
 
 function sumOf<T>(rows: T[], valueOf: (row: T) => number): number {
@@ -50,17 +54,20 @@ export default function LookThrough({ report, history = { state: "loading" }, in
     return formatMoney(value, currency);
   }
 
+  // The company table's filter. Kept here so clicking a fund in the Funds card can set it.
+  const [view, setView] = useState<CompanyView>("all");
+  function showFund(symbol: string) {
+    setView(fundView(symbol));
+    document.getElementById("companies")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
   const directTotal = sumOf(result.directHoldings, (holding) => holding.value);
   const fundsTotal = sumOf(result.funds, (fund) => fund.value);
-  const crypto = sumOf(
-    result.notLookedThrough.filter((holding) => holding.kind === "crypto"),
-    (holding) => holding.value,
-  );
-  const otherHoldings = sumOf(
-    result.notLookedThrough.filter((holding) => holding.kind !== "crypto"),
-    (holding) => holding.value,
-  );
+  // Crypto and anything else with no companies inside, in one row.
+  const notLookedTotal = sumOf(result.notLookedThrough, (holding) => holding.value);
   const unopened = sumOf(result.insideUnopenedFunds, (fund) => fund.value);
+  // The part of your funds that isn't companies: cash, futures and currency lines, plus funds we can't open.
+  const cashInsideFunds = result.otherInFunds + unopened;
   const cashEquivalentsText = result.cashEquivalents
     .map((holding) => `${money(holding.value)} in ${holding.symbol}`)
     .join(", ");
@@ -114,27 +121,38 @@ export default function LookThrough({ report, history = { state: "loading" }, in
                 )}
                 {fundsTotal !== 0 && (
                   <tr>
-                    <td>Funds</td>
+                    <td>
+                      Funds
+                      {cashInsideFunds > 0 && (
+                        <>
+                          {" "}
+                          <InfoPopover label="About the cash inside your funds">
+                            Includes {money(cashInsideFunds)} of cash inside your funds: the cash, futures and currency
+                            contracts they hold
+                            {unopened > 0 && ", and funds inside them we can't open yet"}.
+                          </InfoPopover>
+                        </>
+                      )}
+                    </td>
                     <td className="num">{money(fundsTotal)}</td>
                   </tr>
                 )}
-                {crypto !== 0 && (
+                {notLookedTotal !== 0 && (
                   <tr>
-                    <td>Crypto</td>
-                    <td className="num">{money(crypto)}</td>
-                  </tr>
-                )}
-                {otherHoldings !== 0 && (
-                  <tr>
-                    <td>Other holdings</td>
-                    <td className="num">{money(otherHoldings)}</td>
+                    <td>Crypto and other</td>
+                    <td className="num">{money(notLookedTotal)}</td>
                   </tr>
                 )}
                 <tr>
                   <td>
                     Cash
                     {cashEquivalentsText && cashNotLoaded.length === 0 && (
-                      <div className="muted small">Includes {cashEquivalentsText}, a money market fund</div>
+                      <>
+                        {" "}
+                        <InfoPopover label="About the cash in your accounts">
+                          Includes {cashEquivalentsText}, a money market fund.
+                        </InfoPopover>
+                      </>
                     )}
                   </td>
                   <td className="num">{money(cash)}</td>
@@ -178,9 +196,11 @@ export default function LookThrough({ report, history = { state: "loading" }, in
         <ShareButton result={result} />
       </div>
 
-      <CompanyTable report={report} money={money} />
+      {/* Funds before companies: the funds are what you bought, and clicking one filters
+          the company table below it to what's inside. */}
+      <FundsCard result={result} money={money} onFundClick={showFund} />
 
-      <FundsCard result={result} money={money} />
+      <CompanyTable report={report} money={money} view={view} onViewChange={setView} />
 
       {(result.notLookedThrough.length > 0 || result.insideUnopenedFunds.length > 0) && (
         <div className="card">

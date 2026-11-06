@@ -14,6 +14,8 @@
   /* Chart colors, checked for colorblind separation and 3:1 contrast on white. */
   --series-direct: #2a78d6;
   --series-funds: #eb6834;
+  --series-none: #6b7280; /* Holdings with no companies inside, like crypto. Grey, like cash: not a company. */
+  --series-neutral: #b8bcc4; /* Not a company: cash inside funds, "Other". Always labelled. */
 }
 * { box-sizing: border-box; }
 body {
@@ -80,7 +82,8 @@ tfoot tr.subtotal td { font-weight: 400; color: var(--muted); }
 .section-title { font-size: 1.35rem; margin: 32px 0 0; }
 .net-worth { border-color: var(--accent-soft); }
 .net-worth-value { font-size: 2.2rem; font-weight: 700; line-height: 1.2; margin-bottom: 4px; }
-td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+/* Amounts stay on one line: "CA$31,205.61", not "CAD" wrapped under it. */
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
 pre {
   overflow-x: auto;
   font-size: 0.8rem;
@@ -284,7 +287,7 @@ html { scrollbar-gutter: stable; }
 .picker-account { padding-left: 24px; font-size: 0.9rem; }
 .picker-account .num { margin-left: auto; font-variant-numeric: tabular-nums; }
 
-/* US$ / CA$ switch: two halves of one pill, like a light/dark toggle. */
+/* USD / CAD switch: two halves of one pill, like a light/dark toggle. */
 .switch { display: inline-flex; border: 1px solid var(--border); border-radius: 999px; background: var(--card); padding: 2px; }
 .switch-option {
   padding: 6px 12px;
@@ -311,3 +314,78 @@ html { scrollbar-gutter: stable; }
   .page-header { flex-direction: column; }
   .page-controls { flex-wrap: wrap; }
 }
+
+/* Donut: the chart on the left, a labelled legend on the right. Every slice has its
+   amount and share written out, so nothing depends on colour or slice size alone. */
+.donut { display: flex; flex-wrap: wrap; gap: 16px 24px; align-items: center; }
+.donut-chart { width: 160px; height: 160px; flex: none; }
+.donut-total { font-size: 13px; font-weight: 700; fill: var(--text); font-variant-numeric: tabular-nums; }
+.donut-caption { font-size: 11px; fill: var(--muted); }
+.donut-legend { flex: 1 1 280px; list-style: none; margin: 0; padding: 0; font-size: 0.9rem; }
+.donut-legend li { display: grid; grid-template-columns: auto 1fr auto 52px; gap: 10px; align-items: center; padding: 5px 0; border-bottom: 1px solid var(--border); }
+.donut-legend .num { white-space: nowrap; text-align: right; }
+.donut-legend li:last-child { border-bottom: none; }
+.donut-label { white-space: nowrap; } /* "Cash inside your funds" on one line. */
+
+/* Funds card: the table, with the donut of fund sizes beside it on a wide screen. */
+.funds-layout { display: grid; gap: 16px 32px; align-items: start; }
+@media (min-width: 900px) { .funds-layout { grid-template-columns: minmax(0, 1fr) auto; align-items: center; } }
+.funds-layout .donut { justify-content: center; }
+.funds-layout td .swatch { margin-right: 8px; }
+
+/* ⓘ popup: a small round button, and a note card under it. */
+.info { position: relative; display: inline-block; vertical-align: middle; }
+.info-button {
+  background: none;
+  border: none;
+  font: inherit;
+  cursor: pointer;
+  color: var(--muted);
+  font-size: 0.95rem;
+  line-height: 1;
+  padding: 2px 4px;
+  border-radius: 999px;
+}
+.info-button:hover, .info-button[aria-expanded="true"] { color: var(--accent); }
+.info-button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.info-pop {
+  position: absolute;
+  left: 0;
+  top: calc(100% + 6px);
+  z-index: 10;
+  display: block;
+  width: min(320px, calc(100vw - 48px));
+  margin: 0;
+  padding: 12px 14px;
+  box-shadow: 0 8px 24px rgba(17, 24, 39, 0.12);
+  font-weight: 400;
+  white-space: normal;
+  text-align: left;
+  color: var(--text);
+}
+.info-pop[hidden] { display: none; }
+/* Fills the gap above the note, so moving the mouse down to read it doesn't close it. */
+.info-pop::before { content: ""; position: absolute; left: 0; right: 0; top: -8px; height: 8px; }
+.info-line { display: block; margin: 0 0 6px; }
+.info-line:last-child { margin: 0; }
+
+/* Overlap grid: one cell per pair of funds, darker blue = more of the same companies. */
+.overlap { display: grid; gap: 12px 24px; align-items: start; }
+@media (min-width: 900px) { .overlap { grid-template-columns: auto minmax(0, 1fr); } }
+.overlap-grid { width: auto; border-collapse: separate; border-spacing: 4px; }
+.overlap-grid th { border: none; padding: 4px 6px; font-size: 0.85rem; text-align: center; }
+.overlap-grid td { border: none; padding: 0; }
+.overlap-cell {
+  width: 76px;
+  height: 44px;
+  border: 2px solid transparent;
+  border-radius: 6px;
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+}
+.overlap-cell.selected { border-color: var(--text); }
+.overlap-cell:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.overlap-detail p { margin: 0 0 6px; }

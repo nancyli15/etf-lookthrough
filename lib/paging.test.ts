@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { inView, matchesSearch, pageCount, pageNumbers, pageOf } from "./paging";
+import { fundView, inView, matchesSearch, pageCount, pageNumbers, pageOf, sortForView, viewFund } from "./paging";
 
 const rows = Array.from({ length: 502 }, (_, index) => index + 1);
 
@@ -23,13 +23,34 @@ describe("paging", () => {
     expect(pageNumbers(2, 5)).toEqual([1, 2, 3, 4, 5]);
   });
 
+  // Made-up companies: how much of each you bought, and how much comes through each fund.
+  const company = (name: string, direct: number, byFund: [string, number][]) => {
+    const throughFunds = byFund.reduce((sum, [, value]) => sum + value, 0);
+    return { name, direct, throughFunds, total: direct + throughFunds, byFund: byFund.map(([symbol, value]) => ({ symbol, value })) };
+  };
+  const both = company("both", 100, [["SPY", 10]]);
+  const fundOnly = company("fundOnly", 0, [["SPY", 5], ["XQQ", 40]]);
+  const directOnly = company("directOnly", 100, []);
+  const all = [both, fundOnly, directOnly];
+
   it("filters to what you bought, or what's in your funds", () => {
-    const both = { direct: 100, throughFunds: 10 };
-    const fundOnly = { direct: 0, throughFunds: 10 };
-    const directOnly = { direct: 100, throughFunds: 0 };
-    expect([both, fundOnly, directOnly].filter((company) => inView("direct", company))).toEqual([both, directOnly]);
-    expect([both, fundOnly, directOnly].filter((company) => inView("funds", company))).toEqual([both, fundOnly]);
-    expect([both, fundOnly, directOnly].filter((company) => inView("all", company))).toHaveLength(3);
+    expect(all.filter((c) => inView("direct", c))).toEqual([both, directOnly]);
+    expect(all.filter((c) => inView("funds", c))).toEqual([both, fundOnly]);
+    expect(all.filter((c) => inView("all", c))).toHaveLength(3);
+  });
+
+  it("filters to one fund's companies, largest through that fund first", () => {
+    const inSpy = all.filter((c) => inView(fundView("SPY"), c));
+    expect(inSpy).toEqual([both, fundOnly]);
+    // In SPY, "both" has $10 and "fundOnly" $5, so "both" first.
+    expect(sortForView(fundView("SPY"), inSpy).map((c) => c.name)).toEqual(["both", "fundOnly"]);
+    expect(all.filter((c) => inView(fundView("XQQ"), c))).toEqual([fundOnly]);
+    expect(viewFund(fundView("XEQT"))).toBe("XEQT");
+    expect(viewFund("all")).toBeUndefined();
+  });
+
+  it("keeps the usual order outside a fund's view", () => {
+    expect(sortForView("all", all)).toBe(all);
   });
 
   it("searches the ticker and the name, ignoring case", () => {

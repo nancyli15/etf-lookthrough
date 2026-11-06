@@ -31,7 +31,7 @@ describe("LookThrough screen", () => {
     expect(html).toContain("Your funds");
     expect(html).toContain("Where your funds overlap");
     expect(html).toContain("SPY and FXAIX");
-    expect(html).toContain("About 100%");
+    expect(html).toContain("~100%");
     expect(html).toContain("BTC");
     expect(html).toContain("We don&#x27;t have this fund&#x27;s contents yet");
     expect(html).toContain("don&#x27;t include cash");
@@ -42,8 +42,8 @@ describe("LookThrough screen", () => {
     expect(html).toContain("Where it comes from");
     expect(html).toContain('class="bar direct"');
     expect(html).toContain('class="bar funds"');
-    expect(html).toContain("$500.00 you bought"); // The bar's label for screen readers, in full amounts.
-    expect(html).toContain("$500 you bought"); // The line under the bar, in whole dollars.
+    expect(html).toContain("US$500.00 you bought"); // The bar's label for screen readers, in full amounts.
+    expect(html).toContain("US$500 you bought"); // The line under the bar, in whole dollars.
     expect(html).toContain("via SPY");
     // Filter buttons replace the separate direct and fund tables.
     expect(html).toContain("Bought directly");
@@ -53,7 +53,7 @@ describe("LookThrough screen", () => {
     expect(html).toContain("Copy image");
     // The old chart, breakdown card and separate tables are gone.
     expect(html).not.toContain("Your biggest companies");
-    expect(html).not.toContain("Companies inside your funds");
+    expect(html).not.toContain("<h2>Companies inside your funds</h2>");
     expect(html).not.toContain("Both combined");
     // A company held only through funds shows no direct amount, not a dash.
     expect(html).not.toContain(">–<");
@@ -79,8 +79,9 @@ describe("LookThrough screen", () => {
     const funds = html.indexOf("Your funds");
     expect(summary).toBeGreaterThan(-1);
     expect(finding).toBeGreaterThan(summary);
-    expect(companies).toBeGreaterThan(finding);
-    expect(funds).toBeGreaterThan(companies);
+    // Funds come before companies: clicking a fund filters the company table below it.
+    expect(funds).toBeGreaterThan(finding);
+    expect(companies).toBeGreaterThan(funds);
     expect(html).not.toContain("This total is incomplete");
   });
 
@@ -101,9 +102,11 @@ describe("LookThrough screen", () => {
         balances: { ok: true, data: [{ currency: { code: "USD" }, cash: 300 }] },
       },
     ]);
-    expect(html).toContain("Includes US$200.00 in SPAXX");
-    expect(html).toContain("Crypto");
-    expect(html).toContain("Other holdings");
+    // In the ⓘ next to "Cash", not a line under it.
+    expect(html).toContain('aria-label="About the cash in your accounts"');
+    expect(html).toContain("Includes US$200.00 in SPAXX, a money market fund.");
+    // Crypto and a fund we can't open share one row of the summary.
+    expect(html).toContain("Crypto and other");
     expect(html).toContain("$450.00"); // 100 + 50 + 300, with SPAXX inside the cash.
     expect(html).not.toContain("Not looked through</td>");
     expect(html).not.toContain("<td>SPAXX");
@@ -290,14 +293,45 @@ describe("company dropdown", () => {
   });
 });
 
+describe("your funds card", () => {
+  const html = render([ok([position("SPY", "etf", 1000), position("XEQT", "etf", 1000, "CAD"), position("AAPL", "stock", 1000)])]);
+
+  it("puts how much is matched to companies in an ⓘ note, not a column", () => {
+    expect(html).not.toContain(">Matched to companies<");
+    expect(html).toContain("About SPY&#x27;s contents");
+    expect(html).toContain("is matched to named companies");
+    expect(html).toContain("is cash, futures or currency contracts inside the");
+  });
+
+  it("shows each fund's share of your funds, with a donut of fund sizes", () => {
+    expect(html).toContain("Of your funds");
+    expect(html).toContain("in funds"); // The donut's centre label.
+  });
+
+  it("links each fund's name to its companies, and adds a filter button per fund", () => {
+    expect(html).toContain('title="Show the companies inside SPY">SPY</button>');
+    expect(html).toContain('title="Show the companies inside XEQT">XEQT</button>');
+    // In the company table, after All / Bought directly / Through funds.
+    expect(html).toMatch(/Through funds<\/button><button[^>]*>SPY<\/button>/);
+  });
+
+  it("shows overlap as a grid of pairs, with the duplicated money in dollars", () => {
+    expect(html).toContain("overlap-grid");
+    expect(html).toContain("of your money is in the same companies through both");
+  });
+});
+
 describe("long company tables", () => {
-  it("says what the company total leaves out, so it doesn't seem to disagree with the summary", () => {
+  it("gives the company total in one line, with the rest of holdings in the summary above", () => {
     const html = render([ok([position("AAPL", "stock", 500), position("SPY", "etf", 1000), position("BTC", "crypto", 100)])]);
-    expect(html).toContain("traced to companies");
-    expect(html).toContain("of your holdings");
-    expect(html).toContain("The rest of your holdings:");
-    expect(html).toContain("$100.00 in holdings with no companies inside, like crypto");
-    expect(html).not.toContain(" total (");
+    expect(html).toContain("in companies (");
+    expect(html).toContain("of your holdings)");
+    // The rest of holdings is in the summary's rows, not a sentence.
+    expect(html).not.toContain("The rest of your holdings:");
+    expect(html).toContain("<td>Crypto and other</td>");
+    // The cash, futures and currency lines inside SPY are in an ⓘ on the Funds row.
+    expect(html).toContain('aria-label="About the cash inside your funds"');
+    expect(html).toContain("US$100.00");
   });
 
   it("has a search box and a count, and no page buttons for one page", () => {

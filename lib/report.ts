@@ -139,7 +139,7 @@ export type ReportCurrency = "USD" | "CAD";
 
 // The currency to report in, if the user hasn't chosen one with the switch. It
 // looks at cash and SnapTrade's account totals as well as holdings: an FHSA with
-// only CA$ cash used to fall back to USD and get converted for no reason.
+// only CAD cash used to fall back to USD and get converted for no reason.
 export function naturalCurrency(accounts: AccountData[], holdingCurrencies: string[]): ReportCurrency {
   const currencies = new Set(holdingCurrencies);
   for (const accountData of accounts) {

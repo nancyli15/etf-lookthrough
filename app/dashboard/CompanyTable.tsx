@@ -3,13 +3,14 @@
 // the bar chart, the "Where it comes from" card and three separate tables:
 //   - each row's bar is the old chart: blue for what you bought, orange via funds
 //   - the line under the bar replaces the Direct and Through funds columns
-//   - the filter buttons replace the direct-stocks and fund-contents tables
+//   - the filter buttons replace the direct-stocks and fund-contents tables, and
+//     one button per fund shows just that fund's companies, largest in it first
 //   - clicking a company opens its dropdown (CompanyDetails)
-import { Fragment, useState } from "react";
-import { percentText } from "../../lib/format";
+import { Fragment, useEffect, useState } from "react";
+import { formatMoney, percentText } from "../../lib/format";
 import type { CompanyExposure } from "../../lib/lookthrough";
 import { shortName } from "../../lib/names";
-import { inView, matchesSearch, pageOf, type CompanyView } from "../../lib/paging";
+import { fundView, inView, matchesSearch, pageOf, sortForView, type CompanyView } from "../../lib/paging";
 import type { Report } from "../../lib/report";
 import CompanyDetails from "./CompanyDetails";
 import Pager from "./Pager";
@@ -23,39 +24,43 @@ const VIEWS: { view: CompanyView; label: string }[] = [
 type Props = {
   report: Report;
   money: (value: number, currency?: string) => string;
+  // The view lives in LookThrough, so clicking a fund's name in the Funds card can set it.
+  view: CompanyView;
+  onViewChange: (view: CompanyView) => void;
 };
 
 function sumOf(companies: CompanyExposure[], valueOf: (company: CompanyExposure) => number): number {
   return companies.reduce((sum, company) => sum + valueOf(company), 0);
 }
 
-export default function CompanyTable({ report, money }: Props) {
+export default function CompanyTable({ report, money, view, onViewChange }: Props) {
   const { result } = report;
-  const [view, setView] = useState<CompanyView>("all");
   const [query, setQuery] = useState("");
   const [pageNumber, setPageNumber] = useState(1);
   // Open dropdowns stay open across pages, so you can page away and come back.
   const [openKeys, setOpenKeys] = useState<Set<string>>(new Set());
 
-  const matches = result.companies.filter(
-    (company) => inView(view, company) && matchesSearch(query, company.symbol, company.name, shortName(company.name)),
+  // Back to page 1 whenever the view changes, including from the Funds card.
+  useEffect(() => setPageNumber(1), [view]);
+
+  const matches = sortForView(
+    view,
+    result.companies.filter(
+      (company) => inView(view, company) && matchesSearch(query, company.symbol, company.name, shortName(company.name)),
+    ),
   );
+  // All, Bought directly, Through funds, then one button per fund you hold.
+  const views = [...VIEWS, ...result.funds.map((fund) => ({ view: fundView(fund.symbol), label: fund.symbol }))];
   const page = pageOf(matches, pageNumber);
   // Bars are scaled to your biggest company, on every page, so they compare across pages.
   const largest = result.companies[0]?.total || 1;
   // Totals cover every company, whatever the page, filter or search, so the money never seems to move.
   const directTotal = sumOf(result.companies, (company) => company.direct);
   const fundsTotal = sumOf(result.companies, (company) => company.throughFunds);
-  // Holdings that aren't in any company: a fund's cash and futures, funds we can't
-  // open yet, and things like crypto. Companies + these = holdings in the summary.
-  const insideFundsNotCompanies =
-    result.otherInFunds + result.insideUnopenedFunds.reduce((sum, fund) => sum + fund.value, 0);
-  const notCompanies = result.notLookedThrough.reduce((sum, holding) => sum + holding.value, 0);
 
   // Whole dollars read faster in the line under each bar. Small amounts keep their cents.
   function brief(value: number): string {
-    if (value >= 100) return money(Math.round(value)).replace(/\.00$/, "");
-    return money(value);
+    return value >= 100 ? formatMoney(value, result.currency, { whole: true }) : money(value);
   }
 
   function toggleOpen(key: string) {
@@ -66,14 +71,14 @@ export default function CompanyTable({ report, money }: Props) {
   }
 
   function changeView(next: CompanyView) {
-    setView(next);
+    onViewChange(next);
     setPageNumber(1);
   }
 
   if (result.companies.length === 0) return null;
 
   return (
-    <div className="card">
+    <div className="card" id="companies">
       <div className="table-header">
         <h2>Your companies</h2>
         <input
@@ -91,7 +96,7 @@ export default function CompanyTable({ report, money }: Props) {
 
       <div className="table-tools">
         <div className="views" role="group" aria-label="Show companies">
-          {VIEWS.map((option) => (
+          {views.map((option) => (
             <button
               key={option.view}
               type="button"
@@ -212,19 +217,12 @@ export default function CompanyTable({ report, money }: Props) {
           </span>
         )}
         <strong>
-          {money(directTotal + fundsTotal)} traced to companies ({percentText(result.total ? (directTotal + fundsTotal) / result.total : 0)} of
+          {money(directTotal + fundsTotal)} in companies ({percentText(result.total ? (directTotal + fundsTotal) / result.total : 0)} of
           your holdings)
         </strong>
       </p>
-      {/* The rest of holdings, so this total doesn't look like it disagrees with the summary's. */}
-      {(insideFundsNotCompanies > 0 || notCompanies > 0) && (
-        <p className="muted small">
-          The rest of your holdings:
-          {insideFundsNotCompanies > 0 && <> {money(insideFundsNotCompanies)} of cash and other non-stock holdings inside your funds</>}
-          {insideFundsNotCompanies > 0 && notCompanies > 0 && <>, and</>}
-          {notCompanies > 0 && <> {money(notCompanies)} in holdings with no companies inside, like crypto</>}.
-        </p>
-      )}
+      {/* What the other part of holdings is (cash inside funds, crypto) is in the
+          "What's inside your holdings" donut at the top, not repeated here. */}
     </div>
   );
 }

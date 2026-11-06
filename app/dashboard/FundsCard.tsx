@@ -1,90 +1,129 @@
-// Everything about your funds in one card: how much of each we can trace to
-// companies, the money inside them that isn't companies, and where they overlap.
-// It replaces three separate cards and the fund table's footer rows.
-import { percentText } from "../../lib/format";
+// Everything about your funds in one card: how big each one is, and where they
+// overlap. How much of a fund we can match to companies is nearly always 99%+, so
+// it's in an ⓘ note per fund instead of a column. The table is the donut's legend:
+// each row has its slice's colour, so the amounts aren't listed twice.
+import { formatMoney, percentText } from "../../lib/format";
 import type { LookThroughResult } from "../../lib/lookthrough";
-import { shortName } from "../../lib/names";
+import Donut, { type DonutSlice } from "./Donut";
+import InfoPopover from "./InfoPopover";
+import OverlapMatrix from "./OverlapMatrix";
+
+// Not blue, orange or aqua: those mean "you bought", "via funds" and "cash in your
+// accounts" elsewhere on the page. Four checked colours, then grey for "Other". Red was
+// left out: next to green or pink, colourblind readers couldn't tell them apart.
+const FUND_COLORS = ["#eda100", "#6250d6", "#e87ba4", "#008300"];
+const MAX_SLICES = FUND_COLORS.length;
 
 type Props = {
   result: LookThroughResult;
   money: (value: number) => string;
+  onFundClick: (symbol: string) => void; // Shows that fund's companies in the table below.
 };
 
-export default function FundsCard({ result, money }: Props) {
+export default function FundsCard({ result, money, onFundClick }: Props) {
   if (result.funds.length === 0) return null;
   const share = (value: number) => percentText(result.total ? value / result.total : 0);
   const unopened = result.insideUnopenedFunds.reduce((sum, fund) => sum + fund.value, 0);
   const fundsTotal = result.funds.reduce((sum, fund) => sum + fund.value, 0);
 
+  // Funds come largest first. Past four, the rest fold into "Other", so no colour is invented.
+  const shown = result.funds.slice(0, MAX_SLICES);
+  const rest = result.funds.slice(MAX_SLICES).reduce((sum, fund) => sum + fund.value, 0);
+  const slices: DonutSlice[] = [
+    ...shown.map((fund, index) => ({ key: fund.symbol, label: fund.symbol, value: fund.value, color: FUND_COLORS[index] })),
+    ...(rest > 0 ? [{ key: "other", label: "Other funds", value: rest, color: "var(--series-neutral)" }] : []),
+  ];
+
   return (
     <div className="card">
       <h2>Your funds</h2>
-      <table>
-        <thead>
-          <tr>
-            <th>Fund</th>
-            <th className="num">Value</th>
-            <th className="num">Traced to companies</th>
-          </tr>
-        </thead>
-        <tbody>
-          {result.funds.map((fund) => (
-            <tr key={fund.symbol}>
+      <div className="funds-layout">
+        <table>
+          <thead>
+            <tr>
+              <th>Fund</th>
+              <th className="num">Value</th>
+              <th className="num">Of your funds</th>
+            </tr>
+          </thead>
+          <tbody>
+            {result.funds.map((fund, index) => {
+              const color = index < MAX_SLICES ? FUND_COLORS[index] : "var(--series-neutral)";
+              const matched = 1 - fund.otherWeight - fund.unopenedWeight;
+              return (
+                <tr key={fund.symbol}>
+                  <td>
+                    {result.funds.length > 1 && (
+                      <i className="swatch" style={{ background: color }} aria-hidden="true" />
+                    )}
+                    <button
+                      className="link"
+                      type="button"
+                      onClick={() => onFundClick(fund.symbol)}
+                      title={`Show the companies inside ${fund.symbol}`}
+                    >
+                      {fund.symbol}
+                    </button>{" "}
+                    <span className="muted">{fund.name}</span>{" "}
+                    <InfoPopover label={`About ${fund.symbol}'s contents`}>
+                      <span className="info-line">
+                        <strong>{percentText(matched)}</strong> of {fund.symbol} is matched to named companies, all in
+                        the table below.
+                      </span>
+                      <span className="info-line muted">
+                        The other {money(fund.value * (1 - matched))} is cash, futures or currency contracts inside the
+                        fund
+                        {fund.unopenedWeight > 0 && ", or funds we can't open yet"}.
+                      </span>
+                      {fund.approximatedBy && (
+                        <span className="info-line muted">Uses {fund.approximatedBy}'s holdings, because both track the same index.</span>
+                      )}
+                      <span className="info-line muted">Holdings as of {fund.asOf}.</span>
+                    </InfoPopover>
+                  </td>
+                  <td className="num">{money(fund.value)}</td>
+                  <td className="num">{percentText(fundsTotal ? fund.value / fundsTotal : 0)}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+          <tfoot>
+            {unopened > 0 && (
+              <tr className="subtotal">
+                <td>
+                  Inside funds we can't open yet ({result.insideUnopenedFunds.map((fund) => fund.symbol).join(", ")})
+                </td>
+                <td className="num">{money(unopened)}</td>
+                <td />
+              </tr>
+            )}
+            <tr>
               <td>
-                {fund.symbol} <span className="muted">{fund.name}</span>
-                {fund.approximatedBy && (
-                  <div className="muted small">Uses {fund.approximatedBy}'s holdings, because both track the same index.</div>
-                )}
+                Total in your funds
+                <div className="muted small">{share(fundsTotal)} of your holdings</div>
               </td>
-              <td className="num">{money(fund.value)}</td>
-              <td className="num">{percentText(1 - fund.otherWeight - fund.unopenedWeight)}</td>
+              <td className="num">{money(fundsTotal)}</td>
+              <td className="num">100.0%</td>
             </tr>
-          ))}
-        </tbody>
-        <tfoot>
-          <tr className="subtotal">
-            <td>Cash and other non-stock holdings inside them</td>
-            <td className="num">{money(result.otherInFunds)}</td>
-            <td className="num">{share(result.otherInFunds)} of holdings</td>
-          </tr>
-          {unopened > 0 && (
-            <tr className="subtotal">
-              <td>Inside funds we can't open yet ({result.insideUnopenedFunds.map((fund) => fund.symbol).join(", ")})</td>
-              <td className="num">{money(unopened)}</td>
-              <td className="num">{share(unopened)} of holdings</td>
-            </tr>
-          )}
-          <tr>
-            <td>Total in your funds</td>
-            <td className="num">{money(fundsTotal)}</td>
-            <td className="num">{share(fundsTotal)} of holdings</td>
-          </tr>
-        </tfoot>
-      </table>
+          </tfoot>
+        </table>
+        {result.funds.length > 1 && (
+          <Donut
+            slices={slices}
+            money={money}
+            centerValue={formatMoney(fundsTotal, result.currency, { compact: true })}
+            centerLabel="in funds"
+            legend={false}
+            ariaLabel={`Your funds: ${slices.map((slice) => `${slice.label} ${money(slice.value)}`).join(", ")}`}
+          />
+        )}
+      </div>
 
       {result.overlaps.length > 0 && (
         <>
           <h3 className="subheading">Where your funds overlap</h3>
-          <table>
-            <tbody>
-              {result.overlaps.map((overlap) => (
-                <tr key={`${overlap.fundA}-${overlap.fundB}`}>
-                  <td>
-                    {overlap.fundA} and {overlap.fundB}
-                    <div className="muted small">
-                      {overlap.basis === "same-list"
-                        ? "Both track the same index."
-                        : overlap.sharedCompanies.length > 0
-                          ? `Mostly ${overlap.sharedCompanies.slice(0, 3).map(shortName).join(", ")}.`
-                          : "No shared companies."}
-                      {overlap.incomplete && " One of these holds a fund we can't open yet, so the real overlap is likely higher."}
-                    </div>
-                  </td>
-                  <td className="num">{overlap.basis === "same-list" ? "About 100%" : percentText(overlap.sharedWeight)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <p className="muted small">Each cell is a pair of your funds. Darker means more of the same companies. Click one for the details.</p>
+          <OverlapMatrix funds={result.funds} overlaps={result.overlaps} money={money} />
         </>
       )}
     </div>
