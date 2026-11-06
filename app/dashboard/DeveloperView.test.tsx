@@ -56,6 +56,24 @@ describe("Developer view", () => {
     expect(render(dashboard(1), { state: "failed", message: "status 502" })).toContain("/api/history failed (status 502)");
   });
 
+  it("with no accounts, shows /accounts and /authorizations, and counts 2 calls", () => {
+    const empty: DashboardData = {
+      ...dashboard(0),
+      accountsRaw: [],
+      connectionsCall: { path: "/authorizations", status: 200, ok: true, data: [] },
+    };
+    const html = render(empty, { state: "loading" });
+    expect(html).toContain("This sign-in");
+    expect(html).toContain("0 accounts");
+    expect(html).toContain("0 connections shared with this sign-in");
+    expect(html).toContain("<strong>2 calls</strong>");
+  });
+
+  it("says 1 call, not 1 calls", () => {
+    const html = render({ ...dashboard(0), accountsRaw: [] }, { state: "loading" });
+    expect(html).toContain("<strong>1 call</strong>");
+  });
+
   it("labels our calculated report as not from SnapTrade", () => {
     const html = render(dashboard(1), { state: "loading" });
     expect(html).toContain("Our calculation");
