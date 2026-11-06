@@ -50,11 +50,12 @@ export function whatIf(company: CompanyExposure, holdingsTotal: number, move: nu
   return { change, share: holdingsTotal ? change / holdingsTotal : 0 };
 }
 
-export function whatIfText(company: CompanyExposure, holdingsTotal: number, move: number, money: Money): string {
-  if (move === 0) return "No change.";
+// The slider picks the size of the move, 0% to 100%. A fall and a rise of the same
+// size move the same dollars, so one sentence covers both directions.
+export function movesText(company: CompanyExposure, holdingsTotal: number, move: number, money: Money): string {
+  if (move === 0) return "No move, no change.";
   const { change, share } = whatIf(company, holdingsTotal, move);
-  const direction = change < 0 ? "fall" : "rise";
-  return `Your holdings would ${direction} ${money(Math.abs(change))} (${percentText(Math.abs(share))}).`;
+  return `Up or down, your holdings move about ${money(change)} (${percentText(share)}).`;
 }
 
 // 4. Which part do I control? Shares you hold change when you trade them. The

@@ -237,7 +237,7 @@ describe("company dropdown", () => {
   it("answers all five: more than shown, inside each fund, what if, which part you control, recent", () => {
     expect(html).toContain("Your brokerage shows $500.00 (1 share)");
     expect(html).toContain("Inside SPY:");
-    expect(html).toContain("moves?");
+    expect(html).toContain("your holdings move about");
     expect(html).toContain("You control the $500.00 in your own shares");
     expect(html).toContain("Sold 5 shares at $180.50");
   });
@@ -268,10 +268,28 @@ describe("company dropdown", () => {
     expect(markup).toContain("2026");
   });
 
-  it("starts the slider at a 10% fall, on a scale from a 50% fall to a 50% rise", () => {
-    expect(html).toContain('min="-50"');
-    expect(html).toContain('max="50"');
-    expect(html).toContain('value="-10"');
-    expect(html).toContain("Your holdings would fall");
+  it("has a slider for the size of the move, from 0% to 100%, starting at 10%", () => {
+    expect(html).toContain('type="range"');
+    expect(html).toContain('min="0"');
+    expect(html).toContain('max="100"');
+    expect(html).toContain('value="10"');
+    expect(html).toContain("Up or down, your holdings move about");
+  });
+});
+
+describe("long company tables", () => {
+  it("has a search box and a count, and no page buttons for one page", () => {
+    const html = render([ok([position("AAPL", "stock", 500)])]);
+    expect(html).toContain("Search all companies");
+    expect(html).toContain("Showing 1–1 of 1");
+    expect(html).not.toContain("Next ›");
+    expect(html).not.toContain("Show all");
+  });
+
+  // SPY's 503 companies need the real fund data (see scripts/fetch_fund_data.mjs).
+  it.skipIf(FUND_DATA_IS_SAMPLE)("pages through SPY's companies 10 at a time", () => {
+    const html = render([ok([position("SPY", "etf", 1000)])]);
+    expect(html).toMatch(/Showing 1–10 of \d{3}/);
+    expect(html).toContain("Next ›");
   });
 });

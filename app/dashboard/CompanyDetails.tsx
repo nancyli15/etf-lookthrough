@@ -3,11 +3,11 @@
 // lib/details.ts, where they're tested; this file only lays them out.
 import { useId, useState } from "react";
 import type { Activity } from "../../lib/activities";
-import { activityNote, activityText, controlText, insideFunds, ownershipText, weightText, whatIfText } from "../../lib/details";
+import { activityNote, activityText, controlText, insideFunds, movesText, ownershipText, weightText } from "../../lib/details";
 import type { CompanyExposure, FundSummary } from "../../lib/lookthrough";
 import { shortName } from "../../lib/names";
 
-const START_MOVE = -10; // Percent. A fall is the question people usually ask first.
+const START_MOVE = 10; // Percent: a round number that's easy to check in your head.
 
 type Props = {
   company: CompanyExposure;
@@ -39,7 +39,7 @@ export default function CompanyDetails({
   const [move, setMove] = useState(START_MOVE);
   const sliderId = useId();
   const name = shortName(company.name);
-  const moveText = `${move > 0 ? "+" : move < 0 ? "−" : ""}${Math.abs(move)}%`;
+  const result = movesText(company, holdingsTotal, move / 100, money);
   const note = activityNote(company, activities.length, activitySince, activityNotLoaded, longDate);
 
   return (
@@ -60,26 +60,25 @@ export default function CompanyDetails({
       </div>
 
       <div className="details-column">
-        <label className="small" htmlFor={sliderId}>
-          What if {name} moves? <strong>{moveText}</strong>
+        <label className="small details-heading" htmlFor={sliderId}>
+          If {name} moves <strong>{move}%</strong>
         </label>
         <input
           id={sliderId}
           className="slider"
           type="range"
-          min={-50}
-          max={50}
+          min={0}
+          max={100}
           step={1}
           value={move}
           onChange={(event) => setMove(Number(event.target.value))}
-          aria-valuetext={`${moveText}. ${whatIfText(company, holdingsTotal, move / 100, money)}`}
+          aria-valuetext={`${move}%. ${result}`}
         />
         <div className="slider-ends muted small" aria-hidden="true">
-          <span>−50%</span>
-          <span>0</span>
-          <span>+50%</span>
+          <span>0%</span>
+          <span>100%</span>
         </div>
-        <p>{whatIfText(company, holdingsTotal, move / 100, money)}</p>
+        <p>{result}</p>
 
         <p className="small details-heading">Your recent activity</p>
         {activities.length > 0 && (

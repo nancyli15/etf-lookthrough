@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Activity } from "./activities";
-import { activityNote, activityText, controlText, insideFunds, ownershipText, weightText, whatIf, whatIfText } from "./details";
+import { activityNote, activityText, controlText, insideFunds, movesText, ownershipText, weightText, whatIf } from "./details";
 import type { CompanyExposure, FundSummary } from "./lookthrough";
 
 const money = (value: number) => `$${value.toFixed(2)}`;
@@ -47,9 +47,11 @@ describe("company dropdown", () => {
 
   it("moves every dollar of the company: a 20% fall on $2,057.04 is $411.41", () => {
     expect(whatIf(tesla, 43851.25, -0.2).change).toBeCloseTo(-411.41, 2);
-    expect(whatIfText(tesla, 43851.25, -0.2, money)).toBe("Your holdings would fall $411.41 (0.9%).");
-    expect(whatIfText(tesla, 43851.25, 0.1, money)).toBe("Your holdings would rise $205.70 (0.5%).");
-    expect(whatIfText(tesla, 43851.25, 0, money)).toBe("No change.");
+    // Same size up or down, so the slider only needs the size of the move.
+    expect(whatIf(tesla, 43851.25, 0.2).change).toBeCloseTo(411.41, 2);
+    expect(movesText(tesla, 43851.25, 0.2, money)).toBe("Up or down, your holdings move about $411.41 (0.9%).");
+    expect(movesText(tesla, 43851.25, 0.1, money)).toBe("Up or down, your holdings move about $205.70 (0.5%).");
+    expect(movesText(tesla, 43851.25, 0, money)).toBe("No move, no change.");
   });
 
   it("says which part you control, without telling you what to do", () => {

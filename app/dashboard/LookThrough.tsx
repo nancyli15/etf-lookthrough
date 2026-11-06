@@ -8,14 +8,15 @@ import { Fragment, useState } from "react";
 import { FX } from "../../data/fx";
 import { displayName, shortName } from "../../lib/names";
 import { hasLargeGap, percentText } from "../../lib/format";
+import type { CompanyExposure } from "../../lib/lookthrough";
+import { matchesSearch, pageOf } from "../../lib/paging";
 import type { Report } from "../../lib/report";
 import AccountValueChart from "./AccountValueChart";
 import CompanyBreakdown from "./CompanyBreakdown";
 import CompanyDetails from "./CompanyDetails";
 import CompanyChart from "./CompanyChart";
+import Pager from "./Pager";
 import ShareButton from "./ShareButton";
-
-const TOP_ROWS = 15;
 
 function formatUnits(units: number): string {
   return units.toLocaleString(undefined, { maximumFractionDigits: 4 });
@@ -31,8 +32,10 @@ function formatDate(iso: string): string {
 }
 
 export default function LookThrough({ report }: { report: Report }) {
-  const [showAllFundCompanies, setShowAllFundCompanies] = useState(false);
-  const [showAll, setShowAll] = useState(false);
+  const [fundPageNumber, setFundPageNumber] = useState(1);
+  const [fundQuery, setFundQuery] = useState("");
+  const [combinedPageNumber, setCombinedPageNumber] = useState(1);
+  const [combinedQuery, setCombinedQuery] = useState("");
   // The company shown in the "Where it comes from" card. Starts on the biggest one.
   const [selectedKey, setSelectedKey] = useState<string | undefined>(undefined);
   // Companies opened inside the combined table. Opening one in place, instead of
@@ -61,11 +64,17 @@ export default function LookThrough({ report }: { report: Report }) {
     }
   }
 
-  const companies = showAll ? result.companies : result.companies.slice(0, TOP_ROWS);
+  // Each long table pages through 10 companies at a time, with a search box.
+  // Totals below still cover every company, not just the page you're on.
+  const searchable = (company: CompanyExposure, query: string) =>
+    matchesSearch(query, company.symbol, company.name, shortName(company.name));
+  const combinedMatches = result.companies.filter((company) => searchable(company, combinedQuery));
+  const combinedPage = pageOf(combinedMatches, combinedPageNumber);
   const fundCompanies = result.companies
     .filter((company) => company.throughFunds > 0)
     .sort((first, second) => second.throughFunds - first.throughFunds);
-  const visibleFundCompanies = showAllFundCompanies ? fundCompanies : fundCompanies.slice(0, TOP_ROWS);
+  const fundMatches = fundCompanies.filter((company) => searchable(company, fundQuery));
+  const fundPage = pageOf(fundMatches, fundPageNumber);
 
   // Totals always cover every row, including rows hidden behind "Show all".
   const directTotal = sumOf(result.directHoldings, (holding) => holding.value);
@@ -247,7 +256,20 @@ export default function LookThrough({ report }: { report: Report }) {
 
       {result.funds.length > 0 && (
         <div className="card">
-          <h2>Companies inside your funds</h2>
+          <div className="table-header">
+            <h2>Companies inside your funds</h2>
+            <input
+              type="search"
+              className="search"
+              placeholder="Search companies"
+              aria-label="Search companies inside your funds"
+              value={fundQuery}
+              onChange={(event) => {
+                setFundQuery(event.target.value);
+                setFundPageNumber(1);
+              }}
+            />
+          </div>
           <p className="muted small">What your ETFs and mutual funds hold, shown as the dollars of each company you own through them.</p>
           <table>
             <thead>
@@ -258,7 +280,7 @@ export default function LookThrough({ report }: { report: Report }) {
               </tr>
             </thead>
             <tbody>
-              {visibleFundCompanies.map((company) => (
+              {fundPage.rows.map((company) => (
                 <tr key={company.key}>
                   <td>
                     {shortName(company.name)} <span className="muted">{company.symbol}</span>
@@ -294,21 +316,33 @@ export default function LookThrough({ report }: { report: Report }) {
               </tr>
             </tfoot>
           </table>
-          {fundCompanies.length > TOP_ROWS && (
-            <button
-              className="button secondary spaced"
-              type="button"
-              onClick={() => setShowAllFundCompanies(!showAllFundCompanies)}
-            >
-              {showAllFundCompanies ? "Show fewer" : `Show all ${fundCompanies.length}`}
-            </button>
-          )}
+          <Pager
+            page={fundPage.page}
+            first={fundPage.first}
+            last={fundPage.last}
+            total={fundMatches.length}
+            label="Companies inside your funds"
+            onPage={setFundPageNumber}
+          />
         </div>
       )}
 
       {result.companies.length > 0 && (
         <div className="card">
-          <h2>Both combined, by company</h2>
+          <div className="table-header">
+            <h2>Both combined, by company</h2>
+            <input
+              type="search"
+              className="search"
+              placeholder="Search companies"
+              aria-label="Search all companies"
+              value={combinedQuery}
+              onChange={(event) => {
+                setCombinedQuery(event.target.value);
+                setCombinedPageNumber(1);
+              }}
+            />
+          </div>
           <table>
             <thead>
               <tr>
@@ -320,7 +354,7 @@ export default function LookThrough({ report }: { report: Report }) {
               </tr>
             </thead>
             <tbody>
-              {companies.map((company) => {
+              {combinedPage.rows.map((company) => {
                 const isOpen = openKeys.has(company.key);
                 return (
                   <Fragment key={company.key}>
@@ -371,11 +405,14 @@ export default function LookThrough({ report }: { report: Report }) {
               </tr>
             </tfoot>
           </table>
-          {result.companies.length > TOP_ROWS && (
-            <button className="button secondary spaced" type="button" onClick={() => setShowAll(!showAll)}>
-              {showAll ? "Show fewer" : `Show all ${result.companies.length}`}
-            </button>
-          )}
+          <Pager
+            page={combinedPage.page}
+            first={combinedPage.first}
+            last={combinedPage.last}
+            total={combinedMatches.length}
+            label="Both combined, by company"
+            onPage={setCombinedPageNumber}
+          />
         </div>
       )}
 
