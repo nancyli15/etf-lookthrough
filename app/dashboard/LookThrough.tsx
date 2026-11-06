@@ -7,7 +7,8 @@
 import { Fragment, useState } from "react";
 import { FX } from "../../data/fx";
 import { displayName, shortName } from "../../lib/names";
-import { hasLargeGap, percentText, type Report } from "../../lib/report";
+import { hasLargeGap, percentText } from "../../lib/format";
+import type { Report } from "../../lib/report";
 import AccountValueChart from "./AccountValueChart";
 import CompanyBreakdown, { SourceRows } from "./CompanyBreakdown";
 import CompanyChart from "./CompanyChart";
@@ -274,7 +275,7 @@ export default function LookThrough({ report }: { report: Report }) {
                 <td className="num">{shareOf(namedInFunds)}</td>
               </tr>
               <tr className="subtotal">
-                <td>Smaller holdings and cash inside funds</td>
+                <td>Cash and other non-stock holdings inside funds</td>
                 <td className="num">{money(result.otherInFunds)}</td>
                 <td className="num">{shareOf(result.otherInFunds)}</td>
               </tr>
@@ -383,12 +384,12 @@ export default function LookThrough({ report }: { report: Report }) {
                         ? "Both track the same index."
                         : overlap.sharedCompanies.length > 0
                           ? `Mostly ${overlap.sharedCompanies.slice(0, 3).map(shortName).join(", ")}.`
-                          : "No shared companies among their largest holdings."}
+                          : "No shared companies."}
                       {overlap.incomplete && " One of these holds a fund we can't open yet, so the real overlap is likely higher."}
                     </div>
                   </td>
                   <td className="num">
-                    {overlap.basis === "same-list" ? "About 100%" : `At least ${percentText(overlap.sharedWeight)}`}
+                    {overlap.basis === "same-list" ? "About 100%" : percentText(overlap.sharedWeight)}
                   </td>
                 </tr>
               ))}
@@ -460,7 +461,7 @@ export default function LookThrough({ report }: { report: Report }) {
 
       <p className="muted small">
         {holdingsAsOf && <>Holdings as of {formatDate(holdingsAsOf)}. </>}
-        {fundDates && <>Fund data as of {fundDates}, largest holdings only. </>}
+        {fundDates && <>Fund data as of {fundDates}. </>}
         {result.fxAsOf && <>Converted at {FX.cadPerUsd} CAD per USD ({FX.source}, {formatDate(result.fxAsOf)}). </>}
         Percentages are of your holdings, so they don't include cash.
       </p>

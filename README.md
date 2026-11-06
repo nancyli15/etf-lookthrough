@@ -20,10 +20,18 @@ Requires Node.js 20 or newer.
 
 `.env.local` is git-ignored. Never commit secrets.
 
+## Fund data
+
+What's inside each ETF comes from the fund providers' holdings files, not from SnapTrade. BlackRock's and State Street's terms don't allow republishing those files, so they aren't in this repo:
+
+- **Without the real data,** `npm run dev`, `build` and `test` write a small made-up sample first (`scripts/fetch_fund_data.mjs`). The app runs, and tests that check real numbers are skipped.
+- **On Vercel,** the build downloads the real file from a private repo, using a read-only token in `FUND_DATA_TOKEN`. If the download fails, the build fails, so the live site never shows sample data.
+- **To refresh it,** download each fund's holdings file by hand, run `python3 scripts/build_funds.py <folder>`, and upload the new `data/fund-data.ts` to the private repo.
+
 ## Deploy (Vercel)
 
 1. Import the GitHub repo in Vercel.
-2. Add the same four environment variables, with `APP_URL=https://<your-project>.vercel.app`.
+2. Add the same four environment variables, with `APP_URL=https://<your-project>.vercel.app`. Add `FUND_DATA_TOKEN` too, for the real fund data (see above).
 3. Add `https://<your-project>.vercel.app/oauth/snaptrade/callback` as a redirect URI in OAuth Apps.
 4. Redeploy.
 
@@ -44,7 +52,7 @@ Every choice I made, why, and what I'd change, grouped by topic, is in [TRADEOFF
 
 ## Known limitations
 
-- Fund contents (what's inside each ETF) come from the fund providers, not SnapTrade. The look-through will support a fixed list of popular ETFs, with a dated snapshot.
+- Fund contents come from the fund providers, not SnapTrade, as a dated snapshot of 8 ETFs. Other ETFs are listed as not looked through.
 - Two tabs refreshing at the same moment can sign you out, because refresh tokens rotate and each tab holds its own copy of the cookie. Sign in again to recover.
 - Any failed refresh signs you out, including a brief network problem, because it's safer than keeping a token that may be invalid.
 - Short positions aren't handled specially: they'd count as negative values.

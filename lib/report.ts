@@ -2,8 +2,13 @@
 // No UI here, so the wording and the failure handling can be tested directly.
 import { FX } from "../data/fx";
 import { toHoldings, toNumber } from "./holdings";
-import { convertCurrency, lookThrough, type CompanyExposure, type LookThroughResult } from "./lookthrough";
+import { convertCurrency } from "./currency";
+import { hasLargeGap, listOf, percentText, shareText } from "./format";
+import { lookThrough, type CompanyExposure, type LookThroughResult } from "./lookthrough";
 import { shortName } from "./names";
+
+// Re-exported so existing imports keep working. Browser code imports lib/format.ts.
+export { hasLargeGap, percentText, shareText };
 
 export type AccountData = {
   account?: { name?: string; balance?: { total?: { amount?: unknown; currency?: unknown } } };
@@ -30,26 +35,8 @@ export type Report = {
   differsFromBrokerage: boolean; // Our total and SnapTrade's disagree by more than timing could explain.
 };
 
-// Below this share, an unopened fund barely moves the numbers. Above it, a company's
-// total could be noticeably understated, so the screen says so up front.
-const UNOPENED_WARNING_ABOVE = 0.05;
-
 // Prices can move between API calls, so a small difference isn't a real disagreement.
 const TOTAL_MISMATCH_ABOVE = 0.01;
-
-export function hasLargeGap(result: LookThroughResult): boolean {
-  const unopened = result.insideUnopenedFunds.reduce((sum, unopenedFund) => sum + unopenedFund.value, 0);
-  return result.total > 0 && unopened / result.total > UNOPENED_WARNING_ABOVE;
-}
-
-export function percentText(fraction: number): string {
-  return `${(fraction * 100).toFixed(1)}%`;
-}
-
-function listOf(names: string[]): string {
-  if (names.length < 2) return names.join("");
-  return `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}`;
-}
 
 // Answers "what's my biggest company, and why might that surprise me?"
 // Companies arrive largest first, so the first one is the biggest overall.
@@ -69,21 +56,6 @@ export function headlineFor(companies: CompanyExposure[]): Headline | undefined 
     return { title, detail: `You own it only through ${funds}, so it doesn't appear on your brokerage's list.` };
   }
   return { title, detail: "You own it directly, and none of the funds we can see hold it." };
-}
-
-const SHARED_COMPANIES = 5;
-
-// Text for the Share button. Percentages only: no dollar amounts, account names
-// or net worth, because people share this with friends and on social media.
-export function shareText(result: LookThroughResult): string | undefined {
-  const top = result.companies.slice(0, SHARED_COMPANIES);
-  if (top.length === 0) return undefined;
-  const lines = top.map((company, index) => `${index + 1}. ${shortName(company.name)}: ${percentText(company.percent)}`);
-  const funds = result.funds.map((fund) => fund.symbol);
-  const opening = funds.length
-    ? `I looked inside my funds (${listOf(funds)}). My biggest companies, counting what I own through them:`
-    : "My biggest companies:";
-  return [opening, ...lines].join("\n");
 }
 
 // With several accounts, the oldest date is the honest one for the whole page.

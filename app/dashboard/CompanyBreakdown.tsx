@@ -2,7 +2,7 @@
 // Uses the per-fund amounts from lib/lookthrough.ts (byFund).
 import type { CompanyExposure } from "../../lib/lookthrough";
 import { shortName } from "../../lib/names";
-import { percentText } from "../../lib/report";
+import { percentText } from "../../lib/format";
 
 type Props = {
   company: CompanyExposure;

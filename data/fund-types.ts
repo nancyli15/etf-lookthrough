@@ -9,8 +9,8 @@ export type Fund = {
   symbol: string;
   name: string;
   asOf: string; // Date of the holdings file, YYYY-MM-DD. Shown in the UI.
-  source: string;
-  holdings: FundHolding[]; // Largest first, top 25 at most.
-  other: number; // Everything else: smaller holdings and cash, so weights add up to 1.
+  source: string; // Where the file came from. Stored for reference, not shown as a link.
+  holdings: FundHolding[]; // Every holding, largest first.
+  other: number; // Cash, futures and other non-stock lines, so weights add up to 1.
   approximatedBy?: string; // Set when another fund's list stands in for this one.
 };

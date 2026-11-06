@@ -3,7 +3,7 @@
 // Plain HTML and CSS, no chart library, so every line can be explained.
 import type { CompanyExposure } from "../../lib/lookthrough";
 import { shortName } from "../../lib/names";
-import { percentText } from "../../lib/report";
+import { percentText } from "../../lib/format";
 
 const BARS = 10;
 

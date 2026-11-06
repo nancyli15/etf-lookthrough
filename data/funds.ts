@@ -1,6 +1,9 @@
 // Fund contents the app knows about. An ETF that isn't here stays "not supported yet".
 import type { Fund } from "./fund-types";
-import { FUND_DATA } from "./fund-data";
+import { FUND_DATA, FUND_DATA_IS_SAMPLE } from "./fund-data";
+
+// True in a clone without the real data. Tests that check real numbers skip then.
+export { FUND_DATA_IS_SAMPLE };
 
 // FXAIX and SPY track the same index. We don't have Fidelity's file, so SPY's
 // list stands in, and the UI can say so.
@@ -16,7 +19,8 @@ export const FUNDS: Record<string, Fund> = {
 
 // Funds that appear inside other funds but have no file yet. Listing them keeps
 // them from being counted as companies. A fund with data in FUNDS takes priority.
-export const FUNDS_WITHOUT_DATA = new Set(["ITOT", "IEFA", "IEMG"]);
+// IEFA sits inside XEF, and IEMG inside XEC.
+export const FUNDS_WITHOUT_DATA = new Set(["IEFA", "IEMG"]);
 
 // Two share classes of one company, so the look-through should show one row.
 export const COMPANY_BY_SYMBOL: Record<string, string> = {

@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { FUNDS } from "./funds";
+import { FUND_DATA_IS_SAMPLE, FUNDS } from "./funds";
+
+// Checks of real numbers only run with the real fund data (see scripts/fetch_fund_data.mjs).
+const realData = it.skipIf(FUND_DATA_IS_SAMPLE);
 
 describe("fund snapshot", () => {
   it("has weights that add up to 100% for every fund", () => {
@@ -28,11 +31,18 @@ describe("fund snapshot", () => {
     expect(FUNDS.FXAIX.holdings).toEqual(FUNDS.SPY.holdings);
   });
 
-  // Independent check: BlackRock's own look-through table in the XEQT file, dated
-  // 2026-11-02, puts Royal Bank at 2.01% of XEQT. XEQT only holds it through XIC.
-  it("matches BlackRock's published Royal Bank weight inside XEQT", () => {
-    const xic = FUNDS.XEQT.holdings.find((h) => h.symbol === "XIC")!;
-    const ry = FUNDS.XIC.holdings.find((h) => h.symbol === "RY")!;
-    expect(xic.weight * ry.weight).toBeCloseTo(0.0201, 3);
+  // XEQT's file is BlackRock's look-through, and XIC's is a separate file. XEQT puts
+  // about a quarter of its money in Canada through XIC, so Royal Bank's weight in
+  // XEQT should be about a quarter of its weight in XIC. On 2026-11-04: 2.02% / 7.84%.
+  realData("agrees with XIC's file on Royal Bank: XEQT holds about a quarter as much", () => {
+    const inXeqt = FUNDS.XEQT.holdings.find((h) => h.symbol === "RY")!.weight;
+    const inXic = FUNDS.XIC.holdings.find((h) => h.symbol === "RY")!.weight;
+    expect(inXeqt / inXic).toBeGreaterThan(0.2);
+    expect(inXeqt / inXic).toBeLessThan(0.3);
+  });
+
+  realData("keeps every holding, so almost nothing is left as other", () => {
+    expect(FUNDS.SPY.holdings.length).toBeGreaterThan(490);
+    for (const fund of Object.values(FUNDS)) expect(fund.other, fund.symbol).toBeLessThan(0.02);
   });
 });

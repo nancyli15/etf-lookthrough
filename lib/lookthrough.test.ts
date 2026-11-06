@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 import type { Fund, FundHolding } from "../data/fund-types";
-import { FUNDS } from "../data/funds";
+import { FUND_DATA_IS_SAMPLE, FUNDS } from "../data/funds";
 import type { Holding } from "./holdings";
+import { hasLargeGap } from "./format";
 import { lookThrough } from "./lookthrough";
 
 function holding(symbol: string, kind: string, value: number, extra: Partial<Holding> = {}): Holding {
@@ -204,7 +205,7 @@ describe("fund overlap", () => {
     expect(r.overlaps).toHaveLength(1);
     expect(r.overlaps[0].sharedWeight).toBeCloseTo(0.09);
     expect(r.overlaps[0].sharedCompanies).toEqual(["MSFT", "AAPL"]);
-    expect(r.overlaps[0].basis).toBe("top-holdings");
+    expect(r.overlaps[0].basis).toBe("holdings");
   });
 
   it("calls two funds on the same list a 100% overlap", () => {
@@ -229,17 +230,33 @@ describe("fund overlap", () => {
   });
 });
 
-describe("with the real fund snapshot", () => {
-  // BlackRock's own table puts Royal Bank at 2.01% of XEQT on 2026-11-02.
-  it("matches BlackRock's published Royal Bank weight on $1,000 of XEQT", () => {
+describe("funds we can't open", () => {
+  it("warns when more than 5% of the portfolio sits in them, and not below", () => {
+    const funds = { F: fund("F", [stock("AAPL", 0.5), stock("HIDDEN", 0.5)]) };
+    const big = lookThrough([holding("F", "etf", 1000)], { funds, fundsWithoutData: new Set(["HIDDEN"]) });
+    expect(big.insideUnopenedFunds).toEqual([{ symbol: "HIDDEN", name: "HIDDEN", value: 500 }]);
+    expect(hasLargeGap(big)).toBe(true);
+
+    const small = lookThrough([holding("F", "etf", 1000), holding("AAPL", "stock", 20000)], {
+      funds,
+      fundsWithoutData: new Set(["HIDDEN"]),
+    });
+    expect(hasLargeGap(small)).toBe(false); // $500 of $21,000 is 2.4%.
+  });
+});
+
+// Only with the real fund data (see scripts/fetch_fund_data.mjs).
+describe.skipIf(FUND_DATA_IS_SAMPLE)("with the real fund snapshot", () => {
+  // BlackRock's XEQT file puts Royal Bank at 2.02% of XEQT on 2026-11-04.
+  it("gives $20.23 of Royal Bank on $1,000 of XEQT at 2.02%", () => {
     const r = lookThrough([holding("XEQT", "etf", 1000, { currency: "CAD" })]);
-    expect(r.companies.find((c) => c.symbol === "RY")!.total).toBeCloseTo(20.1, 1);
+    expect(r.companies.find((c) => c.symbol === "RY")!.total).toBeCloseTo(20.23, 1);
   });
 
-  it("gives $76 of Apple on $1,000 of SPY at 7.6%, plus $500 direct", () => {
+  it("gives $76.90 of Apple on $1,000 of SPY at 7.69%, plus $500 direct", () => {
     const r = lookThrough([holding("SPY", "etf", 1000), holding("AAPL", "stock", 500, { exchange: "NASDAQ" })]);
     const apple = r.companies.find((c) => c.symbol === "AAPL")!;
-    expect(apple.total).toBeCloseTo(575.96, 1);
+    expect(apple.total).toBeCloseTo(576.9, 1);
   });
 
   it("doesn't count a fund as a company anywhere in the snapshot", () => {
