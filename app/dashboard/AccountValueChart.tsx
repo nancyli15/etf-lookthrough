@@ -1,19 +1,16 @@
 "use client";
 // Line chart of total account value over the past year, from SnapTrade's beta
-// /balanceHistory endpoint (through /api/history). It loads on its own, so if the
-// beta fails, only this card shows an error.
-//
-// Only mounted after /api/raw has finished, so any token refresh from that call is
-// already saved. Two calls refreshing at once would reuse a single-use refresh token
-// and sign the user out.
-import { useEffect, useMemo, useRef, useState } from "react";
-import { combineHistory, splitAtGaps, type HistoryResponse, type ValuePoint } from "../../lib/history";
+// /balanceHistory endpoint. Dashboard.tsx loads /api/history and passes it in, so
+// if the beta fails, only this card shows an error.
+import { useMemo, useRef, useState } from "react";
+import { combineHistory, splitAtGaps, type HistoryLoad, type ValuePoint } from "../../lib/history";
 
 const WIDTH = 560;
 const HEIGHT = 200;
 const PAD = { top: 12, right: 12, bottom: 30, left: 72 };
 
 type Props = {
+  history: HistoryLoad;
   currency: string;
   money: (value: number) => string;
 };
@@ -27,22 +24,15 @@ function shortDate(date: string, withYear = false): string {
   });
 }
 
-export default function AccountValueChart({ currency, money }: Props) {
-  const [responses, setResponses] = useState<HistoryResponse[] | null>(null);
-  const [error, setError] = useState<string | null>(null);
+export default function AccountValueChart({ history: load, currency, money }: Props) {
   const [hoverIndex, setHoverIndex] = useState<number | null>(null);
   const svgRef = useRef<SVGSVGElement>(null);
+  const error = load.state === "failed" ? load.message : null;
 
-  useEffect(() => {
-    fetch("/api/history")
-      .then(async (response) => {
-        if (!response.ok) throw new Error(`status ${response.status}`);
-        setResponses((await response.json()).accounts ?? []);
-      })
-      .catch((err) => setError(err instanceof Error ? err.message : "unknown error"));
-  }, []);
-
-  const history = useMemo(() => (responses ? combineHistory(responses, currency) : null), [responses, currency]);
+  const history = useMemo(
+    () => (load.state === "loaded" ? combineHistory(load.accounts, currency) : null),
+    [load, currency],
+  );
 
   const compactMoney = (value: number) =>
     value.toLocaleString(undefined, { style: "currency", currency, notation: "compact", maximumFractionDigits: 1 });

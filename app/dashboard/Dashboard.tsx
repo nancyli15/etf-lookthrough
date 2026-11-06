@@ -1,7 +1,13 @@
 "use client";
 // Loads the signed-in user's data, then shows the look-through. The raw API
 // responses stay available in the Developer view, at the bottom.
+//
+// Two calls, one after the other: /api/raw, then /api/history. Refresh tokens can
+// be used once, so if both ran at the same moment with an expiring token, both would
+// refresh and the second would sign the user out. Waiting for /api/raw means its
+// refreshed token is already saved when /api/history starts.
 import { useEffect, useState } from "react";
+import type { HistoryLoad } from "@/lib/history";
 import type { Report } from "@/lib/report";
 import DeveloperView from "./DeveloperView";
 import LookThrough from "./LookThrough";
@@ -34,6 +40,7 @@ export type DashboardData = {
 export default function Dashboard({ email }: { email?: string }) {
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [history, setHistory] = useState<HistoryLoad>({ state: "loading" });
 
   useEffect(() => {
     fetch("/api/raw")
@@ -43,9 +50,22 @@ export default function Dashboard({ email }: { email?: string }) {
           return;
         }
         if (!response.ok) throw new Error(`Request failed (${response.status})`);
-        setDashboardData(await response.json());
+        const data: DashboardData = await response.json();
+        setDashboardData(data);
+        if (data.accountsCall.ok && data.accounts.length > 0) loadHistory();
       })
       .catch((error) => setErrorMessage(error instanceof Error ? error.message : "Something went wrong"));
+
+    // Only after /api/raw has finished: see the note at the top of this file.
+    function loadHistory() {
+      fetch("/api/history")
+        .then(async (response) => {
+          if (!response.ok) throw new Error(`status ${response.status}`);
+          const body = await response.json();
+          setHistory({ state: "loaded", fetchedAt: body.fetchedAt, accounts: body.accounts ?? [] });
+        })
+        .catch((error) => setHistory({ state: "failed", message: error instanceof Error ? error.message : "unknown error" }));
+    }
   }, []);
 
   const report = dashboardData?.report ?? null;
@@ -82,9 +102,9 @@ export default function Dashboard({ email }: { email?: string }) {
         </div>
       )}
 
-      {report && dashboardData && dashboardData.accounts.length > 0 && <LookThrough report={report} />}
+      {report && dashboardData && dashboardData.accounts.length > 0 && <LookThrough report={report} history={history} />}
 
-      {dashboardData && <DeveloperView data={dashboardData} />}
+      {dashboardData && <DeveloperView data={dashboardData} history={history} />}
     </>
   );
 }

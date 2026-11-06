@@ -4,7 +4,28 @@ Your brokerage app shows a few ETF tickers. This app shows the companies inside 
 
 Built on [SnapTrade OAuth](https://docs.snaptrade.com/docs/oauth-apps): you sign in with SnapTrade, approve read-only access, and the app reads your holdings across connected brokerages.
 
-> **Status:** the look-through view is built on top of sign-in and holdings. Hardening comes next.
+**Live:** https://etf-lookthrough.vercel.app
+
+<!-- Screenshot: add docs/screenshot.png and uncomment.
+![The dashboard: net worth, account value, and every company you own](docs/screenshot.png)
+-->
+
+## What it does
+
+- **Net worth,** from your holdings and cash, checked against SnapTrade's own account totals.
+- **Account value over the past year,** from SnapTrade's beta balance history.
+- **Every company you own,** directly or inside your funds, in one table. Each row has a bar split into what you bought and what's in your funds, and you can filter, search and page through it.
+- **A dropdown per company:**
+  - how much more you own than your brokerage shows
+  - its weight inside each fund
+  - a slider for "if it moves this much"
+  - which part you control
+  - your recent trades and dividends
+- **Your funds:** how much of each the app can trace to companies, and how much your funds overlap.
+- **A share image** of your top companies, as percentages only, made in your browser.
+- **A Developer view** with every SnapTrade response behind the page, one row per call.
+
+SnapTrade endpoints used: `/accounts`, `/accounts/{id}/positions/all`, `/balances`, `/activities` and `/balanceHistory` (beta). All of them are read-only.
 
 ## Run it locally
 
@@ -56,6 +77,9 @@ Every choice I made, why, and what I'd change, grouped by topic, is in [TRADEOFF
 - Two tabs refreshing at the same moment can sign you out, because refresh tokens rotate and each tab holds its own copy of the cookie. Sign in again to recover.
 - Any failed refresh signs you out, including a brief network problem, because it's safer than keeping a token that may be invalid.
 - Short positions aren't handled specially: they'd count as negative values.
+- Account value history comes from a beta endpoint. Its values are estimates, it covers a year at most, and it counts deposits as growth.
+- Recent activity only goes back as far as each brokerage's history, which the dropdown states.
+- A portfolio holding XEQT sends about 7,900 companies to the browser (209 KB compressed).
 
 ## API and docs feedback log
 
