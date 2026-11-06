@@ -5,7 +5,7 @@
 // table of every company, your funds, and what couldn't be looked through.
 // One page scroll; on a phone, the top pair stacks.
 import { FX } from "../../data/fx";
-import { hasLargeGap, percentText } from "../../lib/format";
+import { formatMoney, hasLargeGap, percentText } from "../../lib/format";
 import type { HistoryLoad } from "../../lib/history";
 import { displayName } from "../../lib/names";
 import type { Report } from "../../lib/report";
@@ -27,9 +27,10 @@ type Props = {
   report: Report;
   history?: HistoryLoad; // Defaults to "loading" so tests and previews can render without it.
   includes?: string; // "Includes all 4 accounts: …", when there's more than one account.
+  title?: string; // The summary's heading: what's shown, like "Wealthsimple · TFSA".
 };
 
-export default function LookThrough({ report, history = { state: "loading" }, includes }: Props) {
+export default function LookThrough({ report, history = { state: "loading" }, includes, title }: Props) {
   const {
     result,
     headline,
@@ -44,13 +45,9 @@ export default function LookThrough({ report, history = { state: "loading" }, in
     differsFromBrokerage,
   } = report;
 
+  // Always "US$" or "CA$" (see formatMoney), so switching accounts never hides which currency it is.
   function money(value: number, currency = result.currency): string {
-    try {
-      return value.toLocaleString(undefined, { style: "currency", currency });
-    } catch {
-      // A currency code the browser doesn't recognise shouldn't break the page.
-      return `${value.toFixed(2)} ${currency}`;
-    }
+    return formatMoney(value, currency);
   }
 
   const directTotal = sumOf(result.directHoldings, (holding) => holding.value);
@@ -92,7 +89,7 @@ export default function LookThrough({ report, history = { state: "loading" }, in
       <div className="pair">
         {netWorth !== 0 && (
           <div className="card net-worth">
-            <h2>Your summary</h2>
+            <h2>{title ?? "Your summary"}</h2>
             <p className="muted small">Total net worth</p>
             <p className="net-worth-value">{money(netWorth)}</p>
             <p className="muted small">
@@ -217,12 +214,16 @@ export default function LookThrough({ report, history = { state: "loading" }, in
         </div>
       )}
 
-      <p className="muted small">
-        {holdingsAsOf && <>Holdings as of {formatDate(holdingsAsOf)}. </>}
-        {fundDates && <>Fund data as of {fundDates}. </>}
-        {result.fxAsOf && <>Converted at {FX.cadPerUsd} CAD per USD ({FX.source}, {formatDate(result.fxAsOf)}). </>}
-        Percentages are of your holdings, so they don't include cash.
-      </p>
+      {/* Only with something to look through: for an account with just cash, like an
+          empty FHSA, notes about holdings, fund dates and percentages are noise. */}
+      {result.total !== 0 && (
+        <p className="muted small">
+          {holdingsAsOf && <>Holdings as of {formatDate(holdingsAsOf)}. </>}
+          {fundDates && <>Fund data as of {fundDates}. </>}
+          {result.fxAsOf && <>Converted at {FX.cadPerUsd} CAD per USD ({FX.source}, {formatDate(result.fxAsOf)}). </>}
+          Percentages are of your holdings, so they don't include cash.
+        </p>
+      )}
     </>
   );
 }

@@ -42,7 +42,11 @@ p { margin: 0 0 12px; }
   border: none;
   border-radius: 8px;
   padding: 10px 16px;
+  /* <button> doesn't inherit the page's font or line height, so it came out shorter
+     than a link or summary styled the same way. Set both, so they line up. */
+  font-family: inherit;
   font-size: 1rem;
+  line-height: 1.5;
   text-decoration: none;
   cursor: pointer;
 }
@@ -244,7 +248,9 @@ html { scrollbar-gutter: stable; }
 
 /* Account picker: a dropdown of checkboxes beside Disconnect. */
 .picker { position: relative; }
-.picker > summary { list-style: none; }
+/* Block, not inline: inline left a few pixels of text-line space under it, which
+   pushed it lower than the buttons beside it. */
+.picker > summary { display: block; list-style: none; }
 .picker > summary::-webkit-details-marker { display: none; }
 .picker-menu {
   position: absolute;
@@ -261,3 +267,31 @@ html { scrollbar-gutter: stable; }
 .picker-brokerage { font-weight: 600; margin-top: 6px; }
 .picker-account { padding-left: 24px; font-size: 0.9rem; }
 .picker-account .num { margin-left: auto; font-variant-numeric: tabular-nums; }
+
+/* US$ / CA$ switch: two halves of one pill, like a light/dark toggle. */
+.switch { display: inline-flex; border: 1px solid var(--border); border-radius: 999px; background: var(--card); padding: 2px; }
+.switch-option {
+  padding: 6px 12px;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.switch-option.current { background: var(--accent); color: #fff; }
+.switch-option:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* Page header: the title on the left, the controls on the right. The controls never
+   wrap under the title on a wide screen, so changing accounts can't make it jump. */
+.page-header { display: flex; gap: 16px 24px; align-items: flex-start; justify-content: space-between; }
+.page-title { flex: 1 1 auto; min-width: 0; }
+.page-title p { margin: 0 0 4px; }
+.page-controls { display: flex; flex: none; flex-wrap: nowrap; gap: 12px; align-items: center; }
+/* On a phone there isn't room, so the controls go under the title, the same way every time. */
+@media (max-width: 760px) {
+  .page-header { flex-direction: column; }
+  .page-controls { flex-wrap: wrap; }
+}

@@ -34,6 +34,7 @@ describe("accounts grouped by brokerage", () => {
     expect(selectionTitle(groups, pick("tfsa"))).toBe("Wealthsimple · TFSA");
     expect(selectionTitle(groups, pick("ind", "ira"))).toBe("SnapTrade Sandbox");
     expect(selectionTitle(groups, pick("ind", "tfsa"))).toBe("2 of 4 accounts");
+    expect(selectionTitle(groups, pick())).toBe("No account chosen");
   });
 
   it("uses the brokerage name when there's only one account", () => {

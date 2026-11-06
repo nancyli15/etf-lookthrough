@@ -74,6 +74,7 @@ function listOf(names: string[]): string {
 export function selectionTitle(groups: AccountGroup[], selected: Set<string>): string {
   const all = groups.flatMap((group) => group.accounts);
   const chosen = all.filter((account) => selected.has(account.id));
+  if (chosen.length === 0) return "No account chosen";
   if (chosen.length === 1) {
     const group = groups.find((candidate) => candidate.accounts.some((account) => account.id === chosen[0].id))!;
     return `${group.name} · ${chosen[0].name}`;

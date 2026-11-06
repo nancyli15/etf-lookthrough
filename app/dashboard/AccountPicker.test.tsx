@@ -42,6 +42,23 @@ describe("account picker", () => {
   });
 });
 
+describe("an account with only cash, like an empty FHSA", () => {
+  it("stays in CA$, with no conversion and no notes about holdings", () => {
+    const report = buildReport([
+      {
+        positions: { ok: true, status: 200, data: { results: [], data_freshness: { as_of: "2026-11-06T00:00:00Z" } } },
+        balances: { ok: true, data: [{ currency: { code: "CAD" }, cash: 18.59 }] },
+      },
+    ]);
+    const html = renderToStaticMarkup(<LookThrough report={report} />);
+    expect(html).toContain("CA$18.59");
+    expect(html).not.toContain("converted");
+    expect(html).not.toContain("Converted at");
+    expect(html).not.toContain("Holdings as of");
+    expect(html).not.toContain("Percentages are of your holdings");
+  });
+});
+
 describe("summary with several currencies", () => {
   const position = (symbol: string, kind: string, value: number, currency: string) => ({
     instrument: { kind, symbol, description: symbol, currency },

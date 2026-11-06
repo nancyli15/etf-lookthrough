@@ -15,14 +15,14 @@ export default function AccountPicker({ groups, selected, onChange, money }: Pro
   const all = groups.flatMap((group) => group.accounts.map((account) => account.id));
   if (all.length < 2) return null;
 
-  // At least one account always stays ticked: an empty page says nothing useful.
+  // Unticking everything is allowed: the page then says "No account chosen".
   function set(ids: string[], on: boolean) {
     const next = new Set(selected);
     for (const id of ids) {
       if (on) next.add(id);
       else next.delete(id);
     }
-    if (next.size > 0) onChange(next);
+    onChange(next);
   }
 
   const label = selected.size === all.length ? `All ${all.length}` : `${selected.size} of ${all.length}`;
@@ -35,7 +35,7 @@ export default function AccountPicker({ groups, selected, onChange, money }: Pro
           <input
             type="checkbox"
             checked={selected.size === all.length}
-            onChange={(event) => (event.target.checked ? onChange(new Set(all)) : undefined)}
+            onChange={(event) => onChange(event.target.checked ? new Set(all) : new Set())}
           />
           All accounts
         </label>

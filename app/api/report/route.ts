@@ -17,17 +17,22 @@ const MAX_ACCOUNTS = 50;
 export async function POST(req: NextRequest) {
   if (!(await getSession())) return NextResponse.json({ error: "not_signed_in" }, { status: 401 });
 
-  let accounts: unknown;
+  let body: { accounts?: unknown; currency?: unknown };
   try {
-    accounts = (await req.json())?.accounts;
+    body = await req.json();
   } catch {
     return NextResponse.json({ error: "bad_request" }, { status: 400 });
   }
+  const { accounts, currency } = body ?? {};
   if (!Array.isArray(accounts) || accounts.length > MAX_ACCOUNTS) {
+    return NextResponse.json({ error: "bad_request" }, { status: 400 });
+  }
+  // The currency switch. Only the two currencies the app has a rate for.
+  if (currency !== undefined && currency !== "USD" && currency !== "CAD") {
     return NextResponse.json({ error: "bad_request" }, { status: 400 });
   }
 
   // This is the user's own data from /api/raw, and buildReport reads every field
   // defensively, the same as it does for SnapTrade's responses.
-  return NextResponse.json({ report: buildReport(accounts as AccountData[]) });
+  return NextResponse.json({ report: buildReport(accounts as AccountData[], { currency }) });
 }

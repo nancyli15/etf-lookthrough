@@ -101,7 +101,7 @@ describe("LookThrough screen", () => {
         balances: { ok: true, data: [{ currency: { code: "USD" }, cash: 300 }] },
       },
     ]);
-    expect(html).toContain("Includes $200.00 in SPAXX");
+    expect(html).toContain("Includes US$200.00 in SPAXX");
     expect(html).toContain("Crypto");
     expect(html).toContain("Other holdings");
     expect(html).toContain("$450.00"); // 100 + 50 + 300, with SPAXX inside the cash.
@@ -117,8 +117,8 @@ describe("LookThrough screen", () => {
         balances: { ok: true, data: [] },
       },
     ]);
-    expect(html).toContain("SnapTrade reports $1,000.00");
-    expect(html).toContain("may be off by $500.00");
+    expect(html).toContain("SnapTrade reports US$1,000.00");
+    expect(html).toContain("may be off by US$500.00");
   });
 
   it("uses one short name per company and doesn't total shares", () => {

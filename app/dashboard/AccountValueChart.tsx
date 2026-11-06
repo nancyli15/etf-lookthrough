@@ -3,6 +3,7 @@
 // /balanceHistory endpoint. Dashboard.tsx loads /api/history and passes it in, so
 // if the beta fails, only this card shows an error.
 import { useMemo, useRef, useState } from "react";
+import { formatMoney } from "../../lib/format";
 import { combineHistory, splitAtGaps, type HistoryLoad, type ValuePoint } from "../../lib/history";
 
 const WIDTH = 560;
@@ -34,8 +35,7 @@ export default function AccountValueChart({ history: load, currency, money }: Pr
     [load, currency],
   );
 
-  const compactMoney = (value: number) =>
-    value.toLocaleString(undefined, { style: "currency", currency, notation: "compact", maximumFractionDigits: 1 });
+  const compactMoney = (value: number) => formatMoney(value, currency, { compact: true });
 
   let body: React.ReactNode;
   if (error) {
