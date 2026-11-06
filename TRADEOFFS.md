@@ -32,7 +32,7 @@ The parts of the API the app depends on, and what happens if they change. SnapTr
 | API calls only in Route Handlers | Server Components can't set cookies, so rotated refresh tokens would be lost | — |
 | Email kept only if `email_verified` | Per SnapTrade guidance | — |
 | Turn off Next's request log | It prints full URLs, and the OAuth callback's URL holds the authorization code. Testing with a fake code caught this | Keep it off, and add structured logs that leave out query strings |
-| Raw-data download | Look at real API responses before designing the UI | Remove or hide behind a debug flag |
+| Developer view: one row per API call with its status, and a download of everything | Checking a number against what SnapTrade sent is how the money market double count was found. A row per call shows which one failed without reading JSON | Hide behind a debug flag for real users, since the download includes account numbers |
 
 ## Reading holdings
 
