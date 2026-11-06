@@ -63,7 +63,7 @@ The parts of the API the app depends on, and what happens if they change. SnapTr
 | Open with net worth, then the biggest company, then the details | People want the total first, and one clear finding gives the tables a reason to be read | Let the user choose the finding, such as most overlap |
 | Separate tables for direct stocks, fund contents and both combined | Showing where each dollar comes from is easier to follow than one table with a blank column | Show each fund's amount per company |
 | Show what the numbers can't see, on the main screen | A confident total that's missing money is worse than an honest gap | Close the gaps with more fund files |
-| Two columns on wide screens: summary and tables left, charts right | The charts stay in view while you read the tables. On a phone the charts come between the summary and the details | Let the user collapse the chart column |
+| Charts in pairs beside what they explain, in one page scroll | A sticky chart column needed its own scrollbar, and two scroll areas felt awkward. Net worth now sits beside its history, and the company bars beside the breakdown they select. On a phone each pair stacks | — |
 | A bar chart of the 10 biggest companies, split into direct and through funds | The page's main question is "how much of each company do I own, and how?" Ten bars stay readable | — |
 | Clicking a company shows where its money comes from, fund by fund | Answers "why is Apple so big?" without reading three tables | Click a fund to see its own top companies |
 | Plain HTML, CSS and SVG charts, no chart library | Every line can be explained, and the page stays small | A library if charts need zooming or many series |

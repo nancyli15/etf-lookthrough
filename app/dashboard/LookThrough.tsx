@@ -1,8 +1,9 @@
 // The look-through screen. Only displays a Report: all the math and wording rules
 // live in lib/ where they're tested.
 //
-// Two columns on wide screens: the summary and tables on the left, charts on the
-// right. On a phone they stack, with the charts between the summary and the details.
+// One page scroll. On wide screens, each chart sits beside what it explains: net
+// worth beside its history, and the company bars beside the breakdown they select.
+// On a phone, each pair stacks.
 import { useState } from "react";
 import { FX } from "../../data/fx";
 import { displayName, shortName } from "../../lib/names";
@@ -83,32 +84,32 @@ export default function LookThrough({ report }: { report: Report }) {
   const selected = result.companies.find((company) => company.key === selectedKey) ?? result.companies[0];
   const share = shareText(result);
 
-  // Selecting from a table also scrolls the chart card into view on a phone.
+  // Selecting from a table scrolls up to the breakdown, so the change is visible.
   function selectCompany(key: string) {
     setSelectedKey(key);
     document.getElementById("company-breakdown")?.scrollIntoView({ behavior: "smooth", block: "nearest" });
   }
 
   return (
-    <div className="layout">
-      <div className="layout-top">
-        {failedAccounts.length > 0 && (
-          <div className="card error">
-            Couldn't load {failedAccounts.join(", ")}, so these totals are missing those holdings.
-          </div>
-        )}
-        {skipped.length > 0 && (
-          <div className="card error">
-            Left out because SnapTrade didn't return a usable price or quantity: {skipped.join(", ")}.
-          </div>
-        )}
-        {result.unconverted.length > 0 && (
-          <div className="card error">
-            Left out because we have no exchange rate:{" "}
-            {result.unconverted.map((holding) => `${holding.symbol} (${money(holding.value, holding.currency)})`).join(", ")}.
-          </div>
-        )}
+    <>
+      {failedAccounts.length > 0 && (
+        <div className="card error">
+          Couldn't load {failedAccounts.join(", ")}, so these totals are missing those holdings.
+        </div>
+      )}
+      {skipped.length > 0 && (
+        <div className="card error">
+          Left out because SnapTrade didn't return a usable price or quantity: {skipped.join(", ")}.
+        </div>
+      )}
+      {result.unconverted.length > 0 && (
+        <div className="card error">
+          Left out because we have no exchange rate:{" "}
+          {result.unconverted.map((holding) => `${holding.symbol} (${money(holding.value, holding.currency)})`).join(", ")}.
+        </div>
+      )}
 
+      <div className="pair">
         {netWorth !== 0 && (
           <div className="card net-worth">
             <h2>Your summary</h2>
@@ -174,281 +175,275 @@ export default function LookThrough({ report }: { report: Report }) {
             )}
           </div>
         )}
+        {result.total !== 0 && <AccountValueChart currency={result.currency} money={money} />}
+      </div>
 
-        <div className="card">
-          <p className="headline">{headline?.title ?? "There's nothing to look through in these accounts yet."}</p>
-          {headline && <p className="muted">{headline.detail}</p>}
-          {hasLargeGap(result) && (
-            <p className="error">
-              {shareOf(unopened)} of your portfolio sits inside funds we can't open yet (
-              {result.insideUnopenedFunds.map((fund) => fund.symbol).join(", ")}), so company totals are likely understated.
-            </p>
-          )}
-          {share && <ShareButton text={share} />}
-        </div>
+      <div className="card">
+        <p className="headline">{headline?.title ?? "There's nothing to look through in these accounts yet."}</p>
+        {headline && <p className="muted">{headline.detail}</p>}
+        {hasLargeGap(result) && (
+          <p className="error">
+            {shareOf(unopened)} of your portfolio sits inside funds we can't open yet (
+            {result.insideUnopenedFunds.map((fund) => fund.symbol).join(", ")}), so company totals are likely understated.
+          </p>
+        )}
+        {share && <ShareButton text={share} />}
       </div>
 
       {result.total !== 0 && (
-        <aside className="layout-side">
+        <div className="pair" id="company-breakdown">
           <CompanyChart
             companies={result.companies}
             selectedKey={selected?.key}
             onSelect={setSelectedKey}
             money={money}
           />
-          {selected && (
-            <div id="company-breakdown">
-              <CompanyBreakdown company={selected} money={money} />
-            </div>
-          )}
-          <AccountValueChart currency={result.currency} money={money} />
-        </aside>
+          {selected && <CompanyBreakdown company={selected} money={money} />}
+        </div>
       )}
 
-      <div className="layout-rest">
-        {result.total !== 0 && <h2 className="section-title">The details</h2>}
+      {result.total !== 0 && <h2 className="section-title">The details</h2>}
 
-        {result.directHoldings.length > 0 && (
-          <div className="card">
-            <h2>Stocks you bought directly</h2>
-            <table>
-              <thead>
-                <tr>
-                  <th>Company</th>
-                  <th className="num">Shares</th>
-                  <th className="num">Value</th>
-                  <th className="num">% of holdings</th>
+      {result.directHoldings.length > 0 && (
+        <div className="card">
+          <h2>Stocks you bought directly</h2>
+          <table>
+            <thead>
+              <tr>
+                <th>Company</th>
+                <th className="num">Shares</th>
+                <th className="num">Value</th>
+                <th className="num">% of holdings</th>
+              </tr>
+            </thead>
+            <tbody>
+              {result.directHoldings.map((holding, holdingIndex) => (
+                <tr key={`${holding.symbol}-${holdingIndex}`}>
+                  <td>
+                    {shortName(holding.name)} <span className="muted">{holding.symbol}</span>
+                  </td>
+                  <td className="num">{formatUnits(holding.units)}</td>
+                  <td className="num">{money(holding.value)}</td>
+                  <td className="num">{shareOf(holding.value)}</td>
                 </tr>
-              </thead>
-              <tbody>
-                {result.directHoldings.map((holding, holdingIndex) => (
-                  <tr key={`${holding.symbol}-${holdingIndex}`}>
-                    <td>
-                      {shortName(holding.name)} <span className="muted">{holding.symbol}</span>
-                    </td>
-                    <td className="num">{formatUnits(holding.units)}</td>
-                    <td className="num">{money(holding.value)}</td>
-                    <td className="num">{shareOf(holding.value)}</td>
-                  </tr>
-                ))}
-              </tbody>
-              <tfoot>
-                <tr>
-                  <td>Total bought directly</td>
-                  <td />
-                  <td className="num">{money(directTotal)}</td>
-                  <td className="num">{shareOf(directTotal)}</td>
-                </tr>
-              </tfoot>
-            </table>
-          </div>
-        )}
+              ))}
+            </tbody>
+            <tfoot>
+              <tr>
+                <td>Total bought directly</td>
+                <td />
+                <td className="num">{money(directTotal)}</td>
+                <td className="num">{shareOf(directTotal)}</td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      )}
 
-        {result.funds.length > 0 && (
-          <div className="card">
-            <h2>Companies inside your funds</h2>
-            <p className="muted small">What your ETFs and mutual funds hold, shown as the dollars of each company you own through them.</p>
-            <table>
-              <thead>
-                <tr>
-                  <th>Company</th>
-                  <th className="num">Value</th>
-                  <th className="num">% of holdings</th>
+      {result.funds.length > 0 && (
+        <div className="card">
+          <h2>Companies inside your funds</h2>
+          <p className="muted small">What your ETFs and mutual funds hold, shown as the dollars of each company you own through them.</p>
+          <table>
+            <thead>
+              <tr>
+                <th>Company</th>
+                <th className="num">Value</th>
+                <th className="num">% of holdings</th>
+              </tr>
+            </thead>
+            <tbody>
+              {visibleFundCompanies.map((company) => (
+                <tr key={company.key}>
+                  <td>
+                    {shortName(company.name)} <span className="muted">{company.symbol}</span>
+                    <div className="muted small">via {company.viaFunds.join(", ")}</div>
+                  </td>
+                  <td className="num">{money(company.throughFunds)}</td>
+                  <td className="num">{shareOf(company.throughFunds)}</td>
                 </tr>
-              </thead>
-              <tbody>
-                {visibleFundCompanies.map((company) => (
-                  <tr key={company.key}>
-                    <td>
-                      {shortName(company.name)} <span className="muted">{company.symbol}</span>
-                      <div className="muted small">via {company.viaFunds.join(", ")}</div>
-                    </td>
-                    <td className="num">{money(company.throughFunds)}</td>
-                    <td className="num">{shareOf(company.throughFunds)}</td>
-                  </tr>
-                ))}
-              </tbody>
-              <tfoot>
+              ))}
+            </tbody>
+            <tfoot>
+              <tr className="subtotal">
+                <td>Named companies</td>
+                <td className="num">{money(namedInFunds)}</td>
+                <td className="num">{shareOf(namedInFunds)}</td>
+              </tr>
+              <tr className="subtotal">
+                <td>Smaller holdings and cash inside funds</td>
+                <td className="num">{money(result.otherInFunds)}</td>
+                <td className="num">{shareOf(result.otherInFunds)}</td>
+              </tr>
+              {unopened > 0 && (
                 <tr className="subtotal">
-                  <td>Named companies</td>
-                  <td className="num">{money(namedInFunds)}</td>
-                  <td className="num">{shareOf(namedInFunds)}</td>
+                  <td>Inside funds we can't open yet</td>
+                  <td className="num">{money(unopened)}</td>
+                  <td className="num">{shareOf(unopened)}</td>
                 </tr>
-                <tr className="subtotal">
-                  <td>Smaller holdings and cash inside funds</td>
-                  <td className="num">{money(result.otherInFunds)}</td>
-                  <td className="num">{shareOf(result.otherInFunds)}</td>
-                </tr>
-                {unopened > 0 && (
-                  <tr className="subtotal">
-                    <td>Inside funds we can't open yet</td>
-                    <td className="num">{money(unopened)}</td>
-                    <td className="num">{shareOf(unopened)}</td>
-                  </tr>
-                )}
-                <tr>
-                  <td>Total in your funds</td>
-                  <td className="num">{money(fundsTotal)}</td>
-                  <td className="num">{shareOf(fundsTotal)}</td>
-                </tr>
-              </tfoot>
-            </table>
-            {fundCompanies.length > TOP_ROWS && (
-              <button
-                className="button secondary spaced"
-                type="button"
-                onClick={() => setShowAllFundCompanies(!showAllFundCompanies)}
-              >
-                {showAllFundCompanies ? "Show fewer" : `Show all ${fundCompanies.length}`}
-              </button>
-            )}
-          </div>
-        )}
+              )}
+              <tr>
+                <td>Total in your funds</td>
+                <td className="num">{money(fundsTotal)}</td>
+                <td className="num">{shareOf(fundsTotal)}</td>
+              </tr>
+            </tfoot>
+          </table>
+          {fundCompanies.length > TOP_ROWS && (
+            <button
+              className="button secondary spaced"
+              type="button"
+              onClick={() => setShowAllFundCompanies(!showAllFundCompanies)}
+            >
+              {showAllFundCompanies ? "Show fewer" : `Show all ${fundCompanies.length}`}
+            </button>
+          )}
+        </div>
+      )}
 
-        {result.companies.length > 0 && (
-          <div className="card">
-            <h2>Both combined, by company</h2>
-            <table>
-              <thead>
-                <tr>
-                  <th>Company</th>
-                  <th className="num">Direct</th>
-                  <th className="num">Through funds</th>
-                  <th className="num">Total</th>
-                  <th className="num">% of holdings</th>
+      {result.companies.length > 0 && (
+        <div className="card">
+          <h2>Both combined, by company</h2>
+          <table>
+            <thead>
+              <tr>
+                <th>Company</th>
+                <th className="num">Direct</th>
+                <th className="num">Through funds</th>
+                <th className="num">Total</th>
+                <th className="num">% of holdings</th>
+              </tr>
+            </thead>
+            <tbody>
+              {companies.map((company) => (
+                <tr key={company.key} className={company.key === selected?.key ? "selected" : undefined}>
+                  <td>
+                    <button className="link" type="button" onClick={() => selectCompany(company.key)}>
+                      {shortName(company.name)}
+                    </button>{" "}
+                    <span className="muted">{company.symbol}</span>
+                    {company.viaFunds.length > 0 && <div className="muted small">via {company.viaFunds.join(", ")}</div>}
+                  </td>
+                  <td className="num">{company.direct > 0 ? money(company.direct) : "–"}</td>
+                  <td className="num">{company.throughFunds > 0 ? money(company.throughFunds) : "–"}</td>
+                  <td className="num">{money(company.total)}</td>
+                  <td className="num">{percentText(company.percent)}</td>
                 </tr>
-              </thead>
-              <tbody>
-                {companies.map((company) => (
-                  <tr key={company.key} className={company.key === selected?.key ? "selected" : undefined}>
-                    <td>
-                      <button className="link" type="button" onClick={() => selectCompany(company.key)}>
-                        {shortName(company.name)}
-                      </button>{" "}
-                      <span className="muted">{company.symbol}</span>
-                      {company.viaFunds.length > 0 && <div className="muted small">via {company.viaFunds.join(", ")}</div>}
-                    </td>
-                    <td className="num">{company.direct > 0 ? money(company.direct) : "–"}</td>
-                    <td className="num">{company.throughFunds > 0 ? money(company.throughFunds) : "–"}</td>
-                    <td className="num">{money(company.total)}</td>
-                    <td className="num">{percentText(company.percent)}</td>
-                  </tr>
-                ))}
-              </tbody>
-              <tfoot>
-                <tr>
-                  <td>Total in named companies</td>
-                  <td className="num">{money(directTotal)}</td>
-                  <td className="num">{money(namedInFunds)}</td>
-                  <td className="num">{money(namedTotal)}</td>
-                  <td className="num">{shareOf(namedTotal)}</td>
+              ))}
+            </tbody>
+            <tfoot>
+              <tr>
+                <td>Total in named companies</td>
+                <td className="num">{money(directTotal)}</td>
+                <td className="num">{money(namedInFunds)}</td>
+                <td className="num">{money(namedTotal)}</td>
+                <td className="num">{shareOf(namedTotal)}</td>
+              </tr>
+            </tfoot>
+          </table>
+          {result.companies.length > TOP_ROWS && (
+            <button className="button secondary spaced" type="button" onClick={() => setShowAll(!showAll)}>
+              {showAll ? "Show fewer" : `Show all ${result.companies.length}`}
+            </button>
+          )}
+        </div>
+      )}
+
+      {result.overlaps.length > 0 && (
+        <div className="card">
+          <h2>Where your funds overlap</h2>
+          <table>
+            <tbody>
+              {result.overlaps.map((overlap) => (
+                <tr key={`${overlap.fundA}-${overlap.fundB}`}>
+                  <td>
+                    {overlap.fundA} and {overlap.fundB}
+                    <div className="muted small">
+                      {overlap.basis === "same-list"
+                        ? "Both track the same index."
+                        : overlap.sharedCompanies.length > 0
+                          ? `Mostly ${overlap.sharedCompanies.slice(0, 3).map(shortName).join(", ")}.`
+                          : "No shared companies among their largest holdings."}
+                      {overlap.incomplete && " One of these holds a fund we can't open yet, so the real overlap is likely higher."}
+                    </div>
+                  </td>
+                  <td className="num">
+                    {overlap.basis === "same-list" ? "About 100%" : `At least ${percentText(overlap.sharedWeight)}`}
+                  </td>
                 </tr>
-              </tfoot>
-            </table>
-            {result.companies.length > TOP_ROWS && (
-              <button className="button secondary spaced" type="button" onClick={() => setShowAll(!showAll)}>
-                {showAll ? "Show fewer" : `Show all ${result.companies.length}`}
-              </button>
-            )}
-          </div>
-        )}
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
 
-        {result.overlaps.length > 0 && (
-          <div className="card">
-            <h2>Where your funds overlap</h2>
-            <table>
-              <tbody>
-                {result.overlaps.map((overlap) => (
-                  <tr key={`${overlap.fundA}-${overlap.fundB}`}>
-                    <td>
-                      {overlap.fundA} and {overlap.fundB}
-                      <div className="muted small">
-                        {overlap.basis === "same-list"
-                          ? "Both track the same index."
-                          : overlap.sharedCompanies.length > 0
-                            ? `Mostly ${overlap.sharedCompanies.slice(0, 3).map(shortName).join(", ")}.`
-                            : "No shared companies among their largest holdings."}
-                        {overlap.incomplete && " One of these holds a fund we can't open yet, so the real overlap is likely higher."}
-                      </div>
-                    </td>
-                    <td className="num">
-                      {overlap.basis === "same-list" ? "About 100%" : `At least ${percentText(overlap.sharedWeight)}`}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-
-        {result.funds.length > 0 && (
-          <div className="card">
-            <h2>How much of each fund we can see</h2>
-            <table>
-              <thead>
-                <tr>
-                  <th>Fund</th>
-                  <th className="num">Value</th>
-                  <th className="num">Traced to companies</th>
+      {result.funds.length > 0 && (
+        <div className="card">
+          <h2>How much of each fund we can see</h2>
+          <table>
+            <thead>
+              <tr>
+                <th>Fund</th>
+                <th className="num">Value</th>
+                <th className="num">Traced to companies</th>
+              </tr>
+            </thead>
+            <tbody>
+              {result.funds.map((fund) => (
+                <tr key={fund.symbol}>
+                  <td>
+                    {fund.symbol} <span className="muted">{fund.name}</span>
+                    {fund.approximatedBy && (
+                      <div className="muted small">Uses {fund.approximatedBy}'s holdings, because both track the same index.</div>
+                    )}
+                  </td>
+                  <td className="num">{money(fund.value)}</td>
+                  <td className="num">{percentText(1 - fund.otherWeight - fund.unopenedWeight)}</td>
                 </tr>
-              </thead>
-              <tbody>
-                {result.funds.map((fund) => (
-                  <tr key={fund.symbol}>
-                    <td>
-                      {fund.symbol} <span className="muted">{fund.name}</span>
-                      {fund.approximatedBy && (
-                        <div className="muted small">Uses {fund.approximatedBy}'s holdings, because both track the same index.</div>
-                      )}
-                    </td>
-                    <td className="num">{money(fund.value)}</td>
-                    <td className="num">{percentText(1 - fund.otherWeight - fund.unopenedWeight)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
 
-        {(result.notLookedThrough.length > 0 || result.insideUnopenedFunds.length > 0) && (
-          <div className="card">
-            <h2>Not looked through</h2>
-            <table>
-              <tbody>
-                {result.notLookedThrough.map((holding, holdingIndex) => (
-                  <tr key={`${holding.symbol}-${holdingIndex}`}>
-                    <td>
-                      {holding.symbol}{" "}
-                      {/* "USDC USDC" says nothing twice. */}
-                      {holding.name.toUpperCase() !== holding.symbol.toUpperCase() && (
-                        <span className="muted">{displayName(holding.name)}</span>
-                      )}
-                      <div className="muted small">{holding.reason}</div>
-                    </td>
-                    <td className="num">{money(holding.value)}</td>
-                  </tr>
-                ))}
-                {result.insideUnopenedFunds.map((fund) => (
-                  <tr key={fund.symbol}>
-                    <td>
-                      {fund.symbol} <span className="muted">{displayName(fund.name)}</span>
-                      <div className="muted small">Held inside one of your funds. We don't have its contents yet.</div>
-                    </td>
-                    <td className="num">{money(fund.value)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+      {(result.notLookedThrough.length > 0 || result.insideUnopenedFunds.length > 0) && (
+        <div className="card">
+          <h2>Not looked through</h2>
+          <table>
+            <tbody>
+              {result.notLookedThrough.map((holding, holdingIndex) => (
+                <tr key={`${holding.symbol}-${holdingIndex}`}>
+                  <td>
+                    {holding.symbol}{" "}
+                    {/* "USDC USDC" says nothing twice. */}
+                    {holding.name.toUpperCase() !== holding.symbol.toUpperCase() && (
+                      <span className="muted">{displayName(holding.name)}</span>
+                    )}
+                    <div className="muted small">{holding.reason}</div>
+                  </td>
+                  <td className="num">{money(holding.value)}</td>
+                </tr>
+              ))}
+              {result.insideUnopenedFunds.map((fund) => (
+                <tr key={fund.symbol}>
+                  <td>
+                    {fund.symbol} <span className="muted">{displayName(fund.name)}</span>
+                    <div className="muted small">Held inside one of your funds. We don't have its contents yet.</div>
+                  </td>
+                  <td className="num">{money(fund.value)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
 
-        <p className="muted small">
-          {holdingsAsOf && <>Holdings as of {formatDate(holdingsAsOf)}. </>}
-          {fundDates && <>Fund data as of {fundDates}, largest holdings only. </>}
-          {result.fxAsOf && <>Converted at {FX.cadPerUsd} CAD per USD ({FX.source}, {formatDate(result.fxAsOf)}). </>}
-          Percentages are of your holdings, so they don't include cash.
-        </p>
-      </div>
-    </div>
+      <p className="muted small">
+        {holdingsAsOf && <>Holdings as of {formatDate(holdingsAsOf)}. </>}
+        {fundDates && <>Fund data as of {fundDates}, largest holdings only. </>}
+        {result.fxAsOf && <>Converted at {FX.cadPerUsd} CAD per USD ({FX.source}, {formatDate(result.fxAsOf)}). </>}
+        Percentages are of your holdings, so they don't include cash.
+      </p>
+    </>
   );
 }

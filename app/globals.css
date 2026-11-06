@@ -80,22 +80,14 @@ pre {
   max-height: 360px;
 }
 
-/* Two columns on wide screens: summary and tables left, charts right. On a phone
-   the areas stack in order: summary, charts, details. */
-.container:has(.layout) { max-width: 1240px; }
-.layout { display: grid; grid-template-areas: "top" "side" "rest"; }
-.layout-top { grid-area: top; min-width: 0; }
-.layout-side { grid-area: side; min-width: 0; }
-.layout-rest { grid-area: rest; min-width: 0; }
-@media (min-width: 1000px) {
-  .layout {
-    grid-template-columns: minmax(0, 1fr) 420px;
-    grid-template-areas: "top side" "rest side";
-    grid-template-rows: auto 1fr;
-    column-gap: 24px;
-    align-items: start;
-  }
-  .layout-side { position: sticky; top: 0; max-height: 100vh; overflow-y: auto; }
+/* Charts sit in pairs beside what they explain, inside one page scroll. Each pair
+   stacks on a phone, and a pair with one card left uses the full width. */
+.container:has(.pair) { max-width: 1100px; }
+.pair { display: grid; gap: 16px; margin: 16px 0; }
+.pair > .card { margin: 0; }
+@media (min-width: 900px) {
+  .pair { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .pair > :only-child { grid-column: 1 / -1; }
 }
 
 /* Bar chart */
