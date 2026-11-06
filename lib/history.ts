@@ -85,6 +85,11 @@ export function combineHistory(responses: HistoryResponse[], reportCurrency: str
     }
   }
   result.points.sort((earlier, later) => earlier.date.localeCompare(later.date));
+  // $0 days at the start are before the account had money in it. They'd stretch the
+  // chart down to $0 and make the first deposit look like a huge jump. A $0 later on
+  // could be real, so only the leading ones go.
+  const firstFunded = result.points.findIndex((point) => point.value !== 0);
+  result.points = firstFunded === -1 ? [] : result.points.slice(firstFunded);
   return result;
 }
 
