@@ -2,6 +2,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { FUND_DATA_IS_SAMPLE } from "../../data/funds";
 import { buildReport, type AccountData } from "../../lib/report";
+import CompanyDetails from "./CompanyDetails";
 import LookThrough from "./LookThrough";
 
 function position(symbol: string, kind: string, value: number, currency = "USD") {
@@ -26,9 +27,9 @@ describe("LookThrough screen", () => {
       ok([position("FXAIX", "mutualfund", 1000), position("SPAXX", "mutualfund", 200)]),
     ]);
     expect(html).toContain("is your biggest company");
-    expect(html).toContain("Stocks you bought directly");
-    expect(html).toContain("Companies inside your funds");
-    expect(html).toContain("Both combined, by company");
+    expect(html).toContain("Your companies");
+    expect(html).toContain("Your funds");
+    expect(html).toContain("Where your funds overlap");
     expect(html).toContain("SPY and FXAIX");
     expect(html).toContain("About 100%");
     expect(html).toContain("BTC");
@@ -36,17 +37,26 @@ describe("LookThrough screen", () => {
     expect(html).toContain("don&#x27;t include cash");
   });
 
-  it("shows the company chart, where the biggest company comes from, and a share button", () => {
+  it("shows every company in one table, with a bar and where its money comes from", () => {
     const html = render([ok([position("AAPL", "stock", 500), position("SPY", "etf", 1000)])]);
-    expect(html).toContain("Your biggest companies");
     expect(html).toContain("Where it comes from");
+    expect(html).toContain('class="bar direct"');
+    expect(html).toContain('class="bar funds"');
+    expect(html).toContain("$500.00 you bought"); // The bar's label for screen readers, in full amounts.
+    expect(html).toContain("$500 you bought"); // The line under the bar, in whole dollars.
+    expect(html).toContain("via SPY");
+    // Filter buttons replace the separate direct and fund tables.
     expect(html).toContain("Bought directly");
-    expect(html).toContain("Through SPY");
+    expect(html).toContain("Through funds");
     expect(html).toContain("Account value");
     expect(html).toContain("Share my top companies");
     expect(html).toContain("Copy image");
-    // The charts come between the summary and the details, so a phone shows them early.
-    expect(html.indexOf("Your biggest companies")).toBeLessThan(html.indexOf("The details"));
+    // The old chart, breakdown card and separate tables are gone.
+    expect(html).not.toContain("Your biggest companies");
+    expect(html).not.toContain("Companies inside your funds");
+    expect(html).not.toContain("Both combined");
+    // A company held only through funds shows no direct amount, not a dash.
+    expect(html).not.toContain(">–<");
   });
 
   it("opens with a net worth summary, then the biggest company, then the details", () => {
@@ -60,15 +70,17 @@ describe("LookThrough screen", () => {
         balances: { ok: true, data: [{ currency: { code: "USD" }, cash: 250 }] },
       },
     ]);
-    expect(html).toContain("Total bought directly");
+    expect(html).toContain("In all");
     expect(html).toContain("Total in your funds");
     expect(html).toContain("$1,850.00"); // 500 + 1000 + 100 + 250 cash.
     const summary = html.indexOf("Total net worth");
     const finding = html.indexOf("is your biggest company");
-    const details = html.indexOf("The details");
+    const companies = html.indexOf("Your companies");
+    const funds = html.indexOf("Your funds");
     expect(summary).toBeGreaterThan(-1);
     expect(finding).toBeGreaterThan(summary);
-    expect(details).toBeGreaterThan(finding);
+    expect(companies).toBeGreaterThan(finding);
+    expect(funds).toBeGreaterThan(companies);
     expect(html).not.toContain("This total is incomplete");
   });
 
@@ -127,7 +139,8 @@ describe("LookThrough screen", () => {
     expect(html).toContain("NVIDIA <span");
     expect(html).not.toContain("Nvidia");
     expect(html).not.toContain("NVIDIA Corporation");
-    expect(html).toContain("<td></td>");
+    // Shares of different companies can't be added up, so no table totals them.
+    expect(html).not.toMatch(/\d+ shares total/);
   });
 
   it("doesn't repeat a name that's the same as its symbol", () => {
@@ -201,5 +214,94 @@ describe("LookThrough screen", () => {
   it("doesn't warn about understated totals when nothing large is unopened", () => {
     const html = render([ok([position("SPY", "etf", 1000)])]);
     expect(html).not.toContain("likely understated");
+  });
+});
+
+describe("company dropdown", () => {
+  const sell = {
+    type: "SELL",
+    symbol: { symbol: "AAPL", raw_symbol: "AAPL" },
+    trade_date: "2026-10-10T15:00:00Z",
+    units: -5,
+    price: 180.5,
+    amount: 902.5,
+    currency: { code: "USD" },
+  };
+  const report = buildReport([
+    {
+      positions: { ok: true, status: 200, data: { results: [position("AAPL", "stock", 500), position("SPY", "etf", 1000)] } },
+      activities: { ok: true, data: { data: [sell] } },
+    },
+  ]);
+  const apple = report.result.companies.find((company) => company.symbol === "AAPL")!;
+  const html = renderToStaticMarkup(
+    <CompanyDetails
+      company={apple}
+      funds={report.result.funds}
+      holdingsTotal={report.result.total}
+      activities={report.recentActivity.AAPL}
+      activitySince={report.activitySince}
+      activityNotLoaded={report.activityNotLoaded}
+      money={(value) => `$${value.toFixed(2)}`}
+    />,
+  );
+
+  it("answers all five: more than shown, inside each fund, what if, which part you control, recent", () => {
+    expect(html).toContain("Your brokerage shows $500.00 (1 share)");
+    expect(html).toContain("Inside SPY:");
+    expect(html).toContain("your holdings move about");
+    expect(html).toContain("You control the $500.00 in your own shares");
+    expect(html).toContain("Sold 5 shares at $180.50");
+  });
+
+  it("shows the activity section even with nothing to list, with how far back history goes", () => {
+    const spyOnly = buildReport([
+      {
+        account: { name: "Individual", sync_status: { transactions: { first_transaction_date: "2026-09-16" } } },
+        positions: { ok: true, status: 200, data: { results: [position("SPY", "etf", 1000)] } },
+        activities: { ok: true, data: { data: [] } },
+      },
+    ]);
+    expect(spyOnly.activitySince).toBe("2026-09-16");
+    const company = spyOnly.result.companies[0];
+    const markup = renderToStaticMarkup(
+      <CompanyDetails
+        company={company}
+        funds={spyOnly.result.funds}
+        holdingsTotal={spyOnly.result.total}
+        activities={[]}
+        activitySince={spyOnly.activitySince}
+        activityNotLoaded={[]}
+        money={(value) => `$${value.toFixed(2)}`}
+      />,
+    );
+    expect(markup).toContain("Your recent activity");
+    expect(markup).toContain("directly since");
+    expect(markup).toContain("2026");
+  });
+
+  it("has a slider for the size of the move, from 0% to 100%, starting at 10%", () => {
+    expect(html).toContain('type="range"');
+    expect(html).toContain('min="0"');
+    expect(html).toContain('max="100"');
+    expect(html).toContain('value="10"');
+    expect(html).toContain("Up or down, your holdings move about");
+  });
+});
+
+describe("long company tables", () => {
+  it("has a search box and a count, and no page buttons for one page", () => {
+    const html = render([ok([position("AAPL", "stock", 500)])]);
+    expect(html).toContain("Search all companies");
+    expect(html).toContain("Showing 1–1 of 1");
+    expect(html).not.toContain("Next ›");
+    expect(html).not.toContain("Show all");
+  });
+
+  // SPY's 503 companies need the real fund data (see scripts/fetch_fund_data.mjs).
+  it.skipIf(FUND_DATA_IS_SAMPLE)("pages through SPY's companies 10 at a time", () => {
+    const html = render([ok([position("SPY", "etf", 1000)])]);
+    expect(html).toMatch(/Showing 1–10 of \d{3}/);
+    expect(html).toContain("Next ›");
   });
 });

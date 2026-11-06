@@ -70,12 +70,25 @@ The parts of the API the app depends on, and what happens if they change. SnapTr
 | Decision | Why | What I'd change with more time or users |
 |---|---|---|
 | Open with net worth, then the biggest company, then the details | People want the total first, and one clear finding gives the tables a reason to be read | Let the user choose the finding, such as most overlap |
-| Separate tables for direct stocks, fund contents and both combined | Showing where each dollar comes from is easier to follow than one table with a blank column | Show each fund's amount per company |
+| One "Your companies" table instead of a bar chart, a breakdown card and three tables | All five showed the same per-company numbers. Each row's bar is the old chart (page 1 is your top 10), the line under it replaces the Direct and Through funds columns, and the dropdown replaces the breakdown card. About 9 cards became 5 | — |
+| Filter buttons: All, Bought directly, Through funds | They keep the old direct-stocks and fund-contents views without separate tables | — |
+| The line under each bar lists only the parts that exist | "$611 via SPY" says what NVIDIA is. A "–" or "$0 you bought" beside it was noise | — |
+| Whole dollars under the bar, full amounts in the Total column | The line is for reading at a glance; the exact figure is one column over | — |
+| Bars are scaled to your biggest company on every page | A bar on page 3 compares with Microsoft's on page 1, instead of filling the width again | — |
+| One "Your funds" card: each fund's coverage, the cash inside funds, and overlap | All three are about funds rather than companies, so they sit together | — |
 | Show what the numbers can't see, on the main screen | A confident total that's missing money is worse than an honest gap | Close the gaps with more fund files |
-| Charts in pairs beside what they explain, in one page scroll | A sticky chart column needed its own scrollbar, and two scroll areas felt awkward. Net worth now sits beside its history, and the company bars beside the breakdown they select. On a phone each pair stacks | — |
-| A bar chart of the 10 biggest companies, split into direct and through funds | The page's main question is "how much of each company do I own, and how?" Ten bars stay readable | — |
-| Clicking a company shows where its money comes from, fund by fund | Answers "why is Apple so big?" without reading three tables | Click a fund to see its own top companies |
-| In the combined table, a company's breakdown opens under its row | Scrolling up to the chart's card lost the reader's place in a long table. Opening in place keeps it, and several can be open to compare | Click a fund to see its own top companies |
+| One page scroll, with net worth beside its history | A sticky chart column needed its own scrollbar, and two scroll areas felt awkward. On a phone the pair stacks | — |
+| A company's details open under its row | Scrolling up to a separate card lost the reader's place in a long table. Opening in place keeps it, and several can be open to compare | Click a fund to see its own top companies |
+| The dropdown answers five questions instead of repeating the row's dollars: more than your brokerage shows, its weight inside each fund, what if it moves, which part you control, and your recent activity | The row already shows direct and through-fund dollars, so repeating them added nothing | — |
+| Facts, not advice: "You control the $1,920 in your own shares", never "consider selling" | A read-only app shouldn't sound like it recommends trades. A test checks the wording | — |
+| A slider for the size of a move, 0% to 100%, starting at 10%, with "Up or down, your holdings move about $205.70" | A fall and a rise of the same size move the same dollars, so a −50% to +50% slider showed the same number twice. One direction, labelled "up or down", says it once and keeps the slider to try different sizes | Use real price history, to show how much it has actually moved |
+| Long company tables page through 10 at a time, with a search box | 502 companies, or 7,900 with XEQT, made "Show all" a very long scroll, especially with dropdowns open. Search finds one company faster than paging | Sort by any column |
+| Table totals still cover every company, not just the page or the search results | A total that changed with the page or a search would look like the money moved | — |
+| Weight inside a fund is worked out from dollars: $137.04 of $8,373.75 of SPY is 1.64% | It uses numbers already in the report, so the browser still gets no fund data | — |
+| Recent activity shows trades and dividends only, 3 per company, including stock dividends and reinvested ones | Fees and taxes aren't about the company. It's only your own activity: what a fund trades inside itself isn't in `/activities` | Show more, with a "See all" link |
+| Every dropdown has an activity section, and with nothing to list it says how far back the history goes | An empty space looks like a bug, while "nothing since Sep 16, 2026" is an answer. The date is each account's `sync_status.transactions.first_transaction_date` | — |
+| With several accounts, use the latest start date, and none if any account doesn't say | It's the earliest date every account's history covers, so "since" stays true | Show each account's start separately |
+| Gain or loss on your shares isn't shown | SnapTrade sends `cost_basis`, but I haven't confirmed whether it's per share or a total. A wrong gain is worse than none | Confirm in the docs, then add it |
 | Plain HTML, CSS and SVG charts, no chart library | Every line can be explained, and the page stays small | A library if charts need zooming or many series |
 | Chart colors checked for colorblind separation and contrast, in light and dark mode | Blue and orange stay distinct for the most common kinds of colorblindness, and every chart also has a table | — |
 | Share percentages only: no dollar amounts, net worth or account names | People share this with friends and online, and the percentages are the interesting part | A share image, made the same way |

@@ -4,7 +4,7 @@ import { displayName, shortName } from "./names";
 import { buildReport, headlineFor, shareText } from "./report";
 
 function company(name: string, direct: number, viaFunds: string[], percent: number): CompanyExposure {
-  return { key: name, symbol: name, name, direct, throughFunds: 0, total: 0, percent, viaFunds, byFund: [] };
+  return { key: name, symbol: name, name, direct, throughFunds: 0, total: 0, percent, viaFunds, byFund: [], directUnits: 0 };
 }
 
 function positions(results: unknown[], asOf?: string) {
@@ -229,5 +229,25 @@ describe("shareText", () => {
 
   it("has nothing to share without companies", () => {
     expect(shareText(buildReport([]).result)).toBeUndefined();
+  });
+});
+
+describe("how far back activity goes", () => {
+  const since = (date?: string) => ({
+    account: { name: "A", sync_status: { transactions: { first_transaction_date: date } } },
+    positions: positions([aapl]),
+  });
+
+  it("uses the latest start across accounts, since every account covers it", () => {
+    expect(buildReport([since("2026-09-16"), since("2025-01-03")]).activitySince).toBe("2026-09-16");
+  });
+
+  it("gives no date if any account doesn't say", () => {
+    expect(buildReport([since("2026-09-16"), since(undefined)]).activitySince).toBeUndefined();
+  });
+
+  it("lists accounts whose activity didn't load", () => {
+    const failed = { ...since("2026-09-16"), activities: { ok: false, data: {} } };
+    expect(buildReport([failed]).activityNotLoaded).toEqual(["A"]);
   });
 });

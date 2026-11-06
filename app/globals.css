@@ -93,33 +93,11 @@ pre {
   .pair > :only-child { grid-column: 1 / -1; }
 }
 
-/* Bar chart */
-.legend { display: flex; gap: 16px; color: var(--muted); margin-bottom: 8px; }
+/* Bars and colored squares: blue for what you bought, orange for what's in your funds. */
+.legend { display: flex; gap: 16px; color: var(--muted); }
 .swatch { display: inline-block; width: 10px; height: 10px; border-radius: 2px; vertical-align: baseline; }
 .swatch.direct { background: var(--series-direct); }
 .swatch.funds { background: var(--series-funds); }
-.bars { list-style: none; margin: 0; padding: 0; }
-.bar-row {
-  display: grid;
-  grid-template-columns: 110px 1fr 52px;
-  align-items: center;
-  gap: 10px;
-  width: 100%;
-  padding: 6px;
-  border: none;
-  border-radius: 6px;
-  background: transparent;
-  color: var(--text);
-  font: inherit;
-  font-size: 0.9rem;
-  text-align: left;
-  cursor: pointer;
-}
-.bar-row:hover { background: var(--bg); }
-.bar-row.selected { background: var(--selected); }
-.bar-row.selected .bar-label { font-weight: 600; }
-.bar-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.bar-value { text-align: right; font-variant-numeric: tabular-nums; }
 /* 2px gap between the two parts of a bar; rounded only at the end, square at the start. */
 .bar-track { display: flex; gap: 2px; height: 14px; }
 .bar { height: 100%; min-width: 2px; }
@@ -127,7 +105,29 @@ pre {
 .bar.funds { background: var(--series-funds); }
 .bar:last-child { border-radius: 0 4px 4px 0; }
 
-/* A company name in a table that selects it in the charts */
+/* The company table: filter buttons and legend above, a bar and a source line per row. */
+.table-tools { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; margin: 12px 0 4px; }
+.views { display: flex; gap: 4px; }
+.view-button {
+  padding: 6px 12px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--card);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+.view-button:hover { background: var(--bg); }
+.view-button.current { border-color: var(--accent); background: var(--selected); color: var(--accent); font-weight: 600; }
+.companies td { vertical-align: top; }
+.companies td.sources { width: 45%; padding-top: 12px; }
+.source-line { display: flex; flex-wrap: wrap; gap: 2px 14px; margin-top: 6px; }
+.totals { display: flex; flex-wrap: wrap; gap: 4px 16px; align-items: center; margin: 12px 0 0; color: var(--muted); }
+.totals strong { color: var(--text); }
+.subheading { font-size: 1rem; margin: 24px 0 4px; }
+
+/* A company name in a table that opens its dropdown */
 .link {
   padding: 0;
   border: none;
@@ -141,9 +141,51 @@ pre {
 .link:hover { color: var(--accent); }
 tr.selected td { background: var(--selected); }
 /* A company's breakdown, opened inside the combined table under its row. */
-tr.open-row > td { background: var(--selected); padding: 0 6px 8px 28px; }
-tr.open-row table { font-size: 0.85rem; }
-tr.open-row table td { border-bottom: none; padding: 4px 6px; }
+tr.open-row > td { background: var(--selected); padding: 4px 12px 16px 28px; }
+.details { display: grid; gap: 8px 32px; font-size: 0.9rem; }
+@media (min-width: 760px) { .details { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } }
+.details p { margin: 8px 0; }
+.details-list { list-style: none; margin: 0 0 8px; padding: 0; }
+.details-list li { padding: 3px 0; }
+.details-heading { font-weight: 600; margin-top: 16px; }
+.details-column > .details-heading:first-child { margin-top: 8px; }
+label.details-heading { display: block; }
+/* The slider sets the size of a move, 0% to 100%. The browser colors the track up
+   to the handle, which here shows that size. */
+.slider { width: 100%; margin: 10px 0 2px; accent-color: var(--accent); cursor: pointer; }
+.slider-ends { display: flex; justify-content: space-between; }
+
+/* Long tables: a search box beside the title, and page buttons underneath. */
+.table-header { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; margin-bottom: 4px; }
+.table-header h2 { margin: 0; }
+.search {
+  width: min(260px, 100%);
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--card);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.9rem;
+}
+.search:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.pager { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; margin-top: 12px; }
+.pager-buttons { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
+.pager-button {
+  min-width: 36px;
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--card);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.85rem;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+}
+.pager-button:hover:not(:disabled) { background: var(--bg); }
+.pager-button.current { border-color: var(--accent); background: var(--accent); color: #fff; }
+.pager-button:disabled { opacity: 0.4; cursor: default; }
 
 /* Line chart */
 .line-chart { position: relative; }
