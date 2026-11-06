@@ -9,9 +9,9 @@ describe("why there are no accounts", () => {
     expect(emptyAccountsMessage([], connections([]))).toContain("No brokerage is shared with this sign-in");
   });
 
-  it("names a connection that hasn't synced accounts yet", () => {
+  it("names an active connection with no visible accounts, and suggests they're hidden", () => {
     expect(emptyAccountsMessage([], connections([sandbox]))).toBe(
-      "Your SnapTrade Sandbox connection has no accounts yet. SnapTrade may still be syncing it, so try again in a few minutes.",
+      "Your SnapTrade Sandbox connection has no accounts this app can see. Its accounts may be hidden from apps in SnapTrade, or it may still be syncing.",
     );
   });
 

@@ -52,6 +52,12 @@ export default function CompanyDetails({
               <li key={fund.symbol}>
                 <i className="swatch funds" aria-hidden="true" /> Inside {fund.symbol}: {name} is {weightText(fund.weight)} of
                 the fund, so {money(fund.value)} of yours.
+                {fund.approximatedBy && (
+                  <span className="muted small">
+                    {" "}
+                    Uses {fund.approximatedBy}'s list, since both track the same index.
+                  </span>
+                )}
               </li>
             ))}
           </ul>

@@ -1,7 +1,8 @@
 // Explains an empty account list. SnapTrade answers /accounts with 200 and [] for
 // several different reasons, and "No accounts yet" alone doesn't say which:
 //   - no brokerage is shared with this sign-in (each OAuth sign-in can be its own user)
-//   - a connection exists but is disabled, or hasn't synced any accounts yet
+//   - a connection exists but is disabled, its accounts are hidden from apps,
+//     or it hasn't synced any accounts yet
 //   - SnapTrade sent accounts in a shape this app doesn't read
 // /api/raw calls /authorizations only in this case, to tell them apart.
 
@@ -39,5 +40,7 @@ export function emptyAccountsMessage(accountsRaw: unknown, connectionsCall?: Cal
   if (active.length === 0) {
     return `Your ${namesOf(connections)} connection is disabled. Reconnect it in SnapTrade, then sign in again.`;
   }
-  return `Your ${namesOf(active)} connection has no accounts yet. SnapTrade may still be syncing it, so try again in a few minutes.`;
+  // Accounts marked "Hidden" in SnapTrade come back exactly like this: the connection is
+  // active, but /accounts is empty. That was the real cause the first time this appeared.
+  return `Your ${namesOf(active)} connection has no accounts this app can see. Its accounts may be hidden from apps in SnapTrade, or it may still be syncing.`;
 }

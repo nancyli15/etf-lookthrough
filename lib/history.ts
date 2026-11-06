@@ -84,21 +84,42 @@ export function combineHistory(responses: HistoryResponse[], reportCurrency: str
 
   if (perAccount.length === 0) return result;
 
-  // Adding accounts on a date only some of them report would show a fake drop,
-  // so keep only the dates they all have.
-  const [first, ...rest] = perAccount;
-  for (const [date, value] of first) {
-    if (rest.every((values) => values.has(date))) {
-      result.points.push({ date, value: rest.reduce((sum, values) => sum + values.get(date)!, value) });
+  // Accounts update on different days: in the Sandbox, Individual's latest value was
+  // Nov 5 and the IRA's was Nov 4. Using only dates every account has would end the
+  // line on Nov 2, days out of date. So on each date, an account without a value
+  // uses its most recent one, up to MAX_GAP_DAYS old. Past that, or before the
+  // account's first value, the date is left out: adding a missing account as $0
+  // would show a fake drop.
+  const dates = [...new Set(perAccount.flatMap((values) => [...values.keys()]))].sort();
+  for (const date of dates) {
+    let total = 0;
+    let complete = true;
+    for (const values of perAccount) {
+      const value = latestOnOrBefore(values, date);
+      if (value === undefined) {
+        complete = false;
+        break;
+      }
+      total += value;
     }
+    if (complete) result.points.push({ date, value: total });
   }
-  result.points.sort((earlier, later) => earlier.date.localeCompare(later.date));
   // $0 days at the start are before the account had money in it. They'd stretch the
   // chart down to $0 and make the first deposit look like a huge jump. A $0 later on
   // could be real, so only the leading ones go.
   const firstFunded = result.points.findIndex((point) => point.value !== 0);
   result.points = firstFunded === -1 ? [] : result.points.slice(firstFunded);
   return result;
+}
+
+// An account's value on a date, or its most recent one up to MAX_GAP_DAYS earlier.
+function latestOnOrBefore(values: Map<string, number>, date: string): number | undefined {
+  if (values.has(date)) return values.get(date);
+  for (let daysBack = 1; daysBack <= MAX_GAP_DAYS; daysBack++) {
+    const earlier = new Date(Date.parse(date) - daysBack * DAY_MS).toISOString().slice(0, 10);
+    if (values.has(earlier)) return values.get(earlier);
+  }
+  return undefined;
 }
 
 // Splits the points wherever data is missing, so the chart can draw each run

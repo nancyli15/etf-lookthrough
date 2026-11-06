@@ -42,6 +42,12 @@ describe("company dropdown", () => {
     expect(inSpy.symbol).toBe("SPY");
     expect(weightText(inSpy.weight)).toBe("1.64%");
     expect(weightText(0.25)).toBe("25.0%");
+    // FXAIX borrows SPY's list, so its weight matches SPY's. The dropdown says so.
+    const fxaix: FundSummary = { ...spy, symbol: "FXAIX", value: 22324.6, approximatedBy: "SPY" };
+    const both = { ...tesla, byFund: [{ symbol: "SPY", value: 137.04 }, { symbol: "FXAIX", value: 365.36 }] };
+    const [, inFxaix] = insideFunds(both, [spy, fxaix]);
+    expect(inFxaix.approximatedBy).toBe("SPY");
+    expect(weightText(inFxaix.weight)).toBe("1.64%");
     expect(weightText(0.00004)).toBe("under 0.01%");
   });
 

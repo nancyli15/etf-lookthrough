@@ -36,6 +36,30 @@ describe("account value history", () => {
     expect(history.points).toEqual([{ date: "2026-11-03", value: 150 }]);
   });
 
+  it("uses an account's latest value when it skipped a day, like the Sandbox on Nov 5", () => {
+    // Individual's latest was Nov 5, the IRA's Nov 4. Only shared dates would end on Nov 2 at $117,994.93.
+    const history = combineHistory(
+      [
+        account("Individual", [["2026-11-02", "79908.64"], ["2026-11-03", "80006.43"], ["2026-11-05", "68851.25"]]),
+        account("IRA", [["2026-11-02", "38086.29"], ["2026-11-04", "36774.60"]]),
+      ],
+      "USD",
+    );
+    const latest = history.points[history.points.length - 1];
+    expect(latest.date).toBe("2026-11-05");
+    expect(latest.value).toBeCloseTo(105625.85, 2); // Matches net worth.
+    expect(history.points.map((point) => point.date)).toEqual(["2026-11-02", "2026-11-03", "2026-11-04", "2026-11-05"]);
+  });
+
+  it("doesn't carry a value forward more than 5 days", () => {
+    const history = combineHistory(
+      [account("A", [["2026-10-01", "100"], ["2026-10-10", "100"]]), account("B", [["2026-10-01", "50"]])],
+      "USD",
+    );
+    // B's Oct 1 value is 9 days old by Oct 10, too old to use, so Oct 10 is left out.
+    expect(history.points).toEqual([{ date: "2026-10-01", value: 150 }]);
+  });
+
   it("drops $0 days before the account had money, but keeps a later $0", () => {
     const history = combineHistory(
       [account("A", [["2026-10-01", "0"], ["2026-10-02", "0"], ["2026-10-05", "500"], ["2026-10-06", "0"]])],
