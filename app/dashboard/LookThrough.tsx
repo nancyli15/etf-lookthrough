@@ -1,9 +1,17 @@
 // The look-through screen. Only displays a Report: all the math and wording rules
 // live in lib/ where they're tested.
-import { useState } from "react";
+//
+// One page scroll. On wide screens, each chart sits beside what it explains: net
+// worth beside its history, and the company bars beside the breakdown they select.
+// On a phone, each pair stacks.
+import { Fragment, useState } from "react";
 import { FX } from "../../data/fx";
 import { displayName, shortName } from "../../lib/names";
-import { hasLargeGap, percentText, type Report } from "../../lib/report";
+import { hasLargeGap, percentText, shareText, type Report } from "../../lib/report";
+import AccountValueChart from "./AccountValueChart";
+import CompanyBreakdown, { SourceRows } from "./CompanyBreakdown";
+import CompanyChart from "./CompanyChart";
+import ShareButton from "./ShareButton";
 
 const TOP_ROWS = 15;
 
@@ -23,6 +31,11 @@ function formatDate(iso: string): string {
 export default function LookThrough({ report }: { report: Report }) {
   const [showAllFundCompanies, setShowAllFundCompanies] = useState(false);
   const [showAll, setShowAll] = useState(false);
+  // The company shown in the "Where it comes from" card. Starts on the biggest one.
+  const [selectedKey, setSelectedKey] = useState<string | undefined>(undefined);
+  // Companies opened inside the combined table. Opening one in place, instead of
+  // scrolling to the card, keeps the reader's spot in a long table.
+  const [openKeys, setOpenKeys] = useState<Set<string>>(new Set());
   const {
     result,
     headline,
@@ -69,8 +82,17 @@ export default function LookThrough({ report }: { report: Report }) {
   const cashEquivalentsText = result.cashEquivalents
     .map((holding) => `${money(holding.value)} in ${holding.symbol}`)
     .join(", ");
-  const share = (value: number) => percentText(result.total ? value / result.total : 0);
+  const shareOf = (value: number) => percentText(result.total ? value / result.total : 0);
   const fundDates = [...new Set(result.funds.map((fund) => fund.asOf))].map(formatDate).join(", ");
+  const selected = result.companies.find((company) => company.key === selectedKey) ?? result.companies[0];
+  const share = shareText(result);
+
+  function toggleOpen(key: string) {
+    const next = new Set(openKeys);
+    if (next.has(key)) next.delete(key);
+    else next.add(key);
+    setOpenKeys(next);
+  }
 
   return (
     <>
@@ -91,82 +113,98 @@ export default function LookThrough({ report }: { report: Report }) {
         </div>
       )}
 
-      {netWorth !== 0 && (
-        <div className="card net-worth">
-          <h2>Your summary</h2>
-          <p className="muted small">Total net worth</p>
-          <p className="net-worth-value">{money(netWorth)}</p>
-          <p className="muted small">Across your connected brokerage accounts only.</p>
-          <table>
-            <tbody>
-              {directTotal !== 0 && (
+      <div className="pair">
+        {netWorth !== 0 && (
+          <div className="card net-worth">
+            <h2>Your summary</h2>
+            <p className="muted small">Total net worth</p>
+            <p className="net-worth-value">{money(netWorth)}</p>
+            <p className="muted small">Across your connected brokerage accounts only.</p>
+            <table>
+              <tbody>
+                {directTotal !== 0 && (
+                  <tr>
+                    <td>Stocks you bought directly</td>
+                    <td className="num">{money(directTotal)}</td>
+                  </tr>
+                )}
+                {fundsTotal !== 0 && (
+                  <tr>
+                    <td>Funds</td>
+                    <td className="num">{money(fundsTotal)}</td>
+                  </tr>
+                )}
+                {crypto !== 0 && (
+                  <tr>
+                    <td>Crypto</td>
+                    <td className="num">{money(crypto)}</td>
+                  </tr>
+                )}
+                {otherHoldings !== 0 && (
+                  <tr>
+                    <td>Other holdings</td>
+                    <td className="num">{money(otherHoldings)}</td>
+                  </tr>
+                )}
                 <tr>
-                  <td>Stocks you bought directly</td>
-                  <td className="num">{money(directTotal)}</td>
+                  <td>
+                    Cash
+                    {cashEquivalentsText && cashNotLoaded.length === 0 && (
+                      <div className="muted small">Includes {cashEquivalentsText}, a money market fund</div>
+                    )}
+                  </td>
+                  <td className="num">{money(cash)}</td>
                 </tr>
-              )}
-              {fundsTotal !== 0 && (
-                <tr>
-                  <td>Funds</td>
-                  <td className="num">{money(fundsTotal)}</td>
-                </tr>
-              )}
-              {crypto !== 0 && (
-                <tr>
-                  <td>Crypto</td>
-                  <td className="num">{money(crypto)}</td>
-                </tr>
-              )}
-              {otherHoldings !== 0 && (
-                <tr>
-                  <td>Other holdings</td>
-                  <td className="num">{money(otherHoldings)}</td>
-                </tr>
-              )}
-              <tr>
-                <td>
-                  Cash
-                  {cashEquivalentsText && cashNotLoaded.length === 0 && (
-                    <div className="muted small">Includes {cashEquivalentsText}, a money market fund</div>
-                  )}
-                </td>
-                <td className="num">{money(cash)}</td>
-              </tr>
-            </tbody>
-          </table>
-          {(failedAccounts.length > 0 ||
-            cashNotLoaded.length > 0 ||
-            cashUnconverted.length > 0 ||
-            result.unconverted.length > 0 ||
-            skipped.length > 0) && (
-            <p className="error small spaced">
-              This total is incomplete.
-              {failedAccounts.length > 0 && <> Holdings didn't load for {failedAccounts.join(", ")}.</>}
-              {cashNotLoaded.length > 0 && <> Cash didn't load for {cashNotLoaded.join(", ")}.</>}
-              {cashUnconverted.length > 0 && <> No exchange rate for cash in {cashUnconverted.join(", ")}.</>}
-              {result.unconverted.length > 0 && <> Some holdings have no exchange rate.</>}
-              {skipped.length > 0 && <> Some positions couldn't be valued.</>}
-            </p>
-          )}
-          {differsFromBrokerage && brokerageTotal !== undefined && (
-            <p className="error small spaced">
-              SnapTrade reports {money(brokerageTotal)} for these accounts, so this total may be off by{" "}
-              {money(Math.abs(netWorth - brokerageTotal))}.
-            </p>
-          )}
-        </div>
-      )}
+              </tbody>
+            </table>
+            {(failedAccounts.length > 0 ||
+              cashNotLoaded.length > 0 ||
+              cashUnconverted.length > 0 ||
+              result.unconverted.length > 0 ||
+              skipped.length > 0) && (
+              <p className="error small spaced">
+                This total is incomplete.
+                {failedAccounts.length > 0 && <> Holdings didn't load for {failedAccounts.join(", ")}.</>}
+                {cashNotLoaded.length > 0 && <> Cash didn't load for {cashNotLoaded.join(", ")}.</>}
+                {cashUnconverted.length > 0 && <> No exchange rate for cash in {cashUnconverted.join(", ")}.</>}
+                {result.unconverted.length > 0 && <> Some holdings have no exchange rate.</>}
+                {skipped.length > 0 && <> Some positions couldn't be valued.</>}
+              </p>
+            )}
+            {differsFromBrokerage && brokerageTotal !== undefined && (
+              <p className="error small spaced">
+                SnapTrade reports {money(brokerageTotal)} for these accounts, so this total may be off by{" "}
+                {money(Math.abs(netWorth - brokerageTotal))}.
+              </p>
+            )}
+          </div>
+        )}
+        {result.total !== 0 && <AccountValueChart currency={result.currency} money={money} />}
+      </div>
 
       <div className="card">
         <p className="headline">{headline?.title ?? "There's nothing to look through in these accounts yet."}</p>
         {headline && <p className="muted">{headline.detail}</p>}
         {hasLargeGap(result) && (
           <p className="error">
-            {share(unopened)} of your portfolio sits inside funds we can't open yet (
+            {shareOf(unopened)} of your portfolio sits inside funds we can't open yet (
             {result.insideUnopenedFunds.map((fund) => fund.symbol).join(", ")}), so company totals are likely understated.
           </p>
         )}
+        {share && <ShareButton text={share} />}
       </div>
+
+      {result.total !== 0 && (
+        <div className="pair">
+          <CompanyChart
+            companies={result.companies}
+            selectedKey={selected?.key}
+            onSelect={setSelectedKey}
+            money={money}
+          />
+          {selected && <CompanyBreakdown company={selected} money={money} />}
+        </div>
+      )}
 
       {result.total !== 0 && <h2 className="section-title">The details</h2>}
 
@@ -190,7 +228,7 @@ export default function LookThrough({ report }: { report: Report }) {
                   </td>
                   <td className="num">{formatUnits(holding.units)}</td>
                   <td className="num">{money(holding.value)}</td>
-                  <td className="num">{share(holding.value)}</td>
+                  <td className="num">{shareOf(holding.value)}</td>
                 </tr>
               ))}
             </tbody>
@@ -199,7 +237,7 @@ export default function LookThrough({ report }: { report: Report }) {
                 <td>Total bought directly</td>
                 <td />
                 <td className="num">{money(directTotal)}</td>
-                <td className="num">{share(directTotal)}</td>
+                <td className="num">{shareOf(directTotal)}</td>
               </tr>
             </tfoot>
           </table>
@@ -226,7 +264,7 @@ export default function LookThrough({ report }: { report: Report }) {
                     <div className="muted small">via {company.viaFunds.join(", ")}</div>
                   </td>
                   <td className="num">{money(company.throughFunds)}</td>
-                  <td className="num">{share(company.throughFunds)}</td>
+                  <td className="num">{shareOf(company.throughFunds)}</td>
                 </tr>
               ))}
             </tbody>
@@ -234,24 +272,24 @@ export default function LookThrough({ report }: { report: Report }) {
               <tr className="subtotal">
                 <td>Named companies</td>
                 <td className="num">{money(namedInFunds)}</td>
-                <td className="num">{share(namedInFunds)}</td>
+                <td className="num">{shareOf(namedInFunds)}</td>
               </tr>
               <tr className="subtotal">
                 <td>Smaller holdings and cash inside funds</td>
                 <td className="num">{money(result.otherInFunds)}</td>
-                <td className="num">{share(result.otherInFunds)}</td>
+                <td className="num">{shareOf(result.otherInFunds)}</td>
               </tr>
               {unopened > 0 && (
                 <tr className="subtotal">
                   <td>Inside funds we can't open yet</td>
                   <td className="num">{money(unopened)}</td>
-                  <td className="num">{share(unopened)}</td>
+                  <td className="num">{shareOf(unopened)}</td>
                 </tr>
               )}
               <tr>
                 <td>Total in your funds</td>
                 <td className="num">{money(fundsTotal)}</td>
-                <td className="num">{share(fundsTotal)}</td>
+                <td className="num">{shareOf(fundsTotal)}</td>
               </tr>
             </tfoot>
           </table>
@@ -281,18 +319,38 @@ export default function LookThrough({ report }: { report: Report }) {
               </tr>
             </thead>
             <tbody>
-              {companies.map((company) => (
-                <tr key={company.key}>
-                  <td>
-                    {shortName(company.name)} <span className="muted">{company.symbol}</span>
-                    {company.viaFunds.length > 0 && <div className="muted small">via {company.viaFunds.join(", ")}</div>}
-                  </td>
-                  <td className="num">{company.direct > 0 ? money(company.direct) : "–"}</td>
-                  <td className="num">{company.throughFunds > 0 ? money(company.throughFunds) : "–"}</td>
-                  <td className="num">{money(company.total)}</td>
-                  <td className="num">{percentText(company.percent)}</td>
-                </tr>
-              ))}
+              {companies.map((company) => {
+                const isOpen = openKeys.has(company.key);
+                return (
+                  <Fragment key={company.key}>
+                    <tr className={isOpen ? "selected" : undefined}>
+                      <td>
+                        <button
+                          className="link"
+                          type="button"
+                          onClick={() => toggleOpen(company.key)}
+                          aria-expanded={isOpen}
+                        >
+                          {shortName(company.name)} <span aria-hidden="true">{isOpen ? "▾" : "▸"}</span>
+                        </button>{" "}
+                        <span className="muted">{company.symbol}</span>
+                        {company.viaFunds.length > 0 && <div className="muted small">via {company.viaFunds.join(", ")}</div>}
+                      </td>
+                      <td className="num">{company.direct > 0 ? money(company.direct) : "–"}</td>
+                      <td className="num">{company.throughFunds > 0 ? money(company.throughFunds) : "–"}</td>
+                      <td className="num">{money(company.total)}</td>
+                      <td className="num">{percentText(company.percent)}</td>
+                    </tr>
+                    {isOpen && (
+                      <tr className="open-row">
+                        <td colSpan={5}>
+                          <SourceRows company={company} money={money} />
+                        </td>
+                      </tr>
+                    )}
+                  </Fragment>
+                );
+              })}
             </tbody>
             <tfoot>
               <tr>
@@ -300,7 +358,7 @@ export default function LookThrough({ report }: { report: Report }) {
                 <td className="num">{money(directTotal)}</td>
                 <td className="num">{money(namedInFunds)}</td>
                 <td className="num">{money(namedTotal)}</td>
-                <td className="num">{share(namedTotal)}</td>
+                <td className="num">{shareOf(namedTotal)}</td>
               </tr>
             </tfoot>
           </table>

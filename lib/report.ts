@@ -71,6 +71,21 @@ export function headlineFor(companies: CompanyExposure[]): Headline | undefined 
   return { title, detail: "You own it directly, and none of the funds we can see hold it." };
 }
 
+const SHARED_COMPANIES = 5;
+
+// Text for the Share button. Percentages only: no dollar amounts, account names
+// or net worth, because people share this with friends and on social media.
+export function shareText(result: LookThroughResult): string | undefined {
+  const top = result.companies.slice(0, SHARED_COMPANIES);
+  if (top.length === 0) return undefined;
+  const lines = top.map((company, index) => `${index + 1}. ${shortName(company.name)}: ${percentText(company.percent)}`);
+  const funds = result.funds.map((fund) => fund.symbol);
+  const opening = funds.length
+    ? `I looked inside my funds (${listOf(funds)}). My biggest companies, counting what I own through them:`
+    : "My biggest companies:";
+  return [opening, ...lines].join("\n");
+}
+
 // With several accounts, the oldest date is the honest one for the whole page.
 function oldestAsOf(responses: unknown[]): string | undefined {
   const dates = responses

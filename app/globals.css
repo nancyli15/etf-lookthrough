@@ -1,22 +1,19 @@
+/* One light theme, styled like SnapTrade's dashboard: light gray page, white cards,
+   thin borders, teal accent. Every text color is at least 4.5:1 on its background. */
 :root {
-  --bg: #f7f7f5;
+  color-scheme: light;
+  --bg: #f8f9fb;
   --card: #ffffff;
-  --text: #1c1c1a;
-  --muted: #6b6b66;
-  --border: #e4e4df;
-  --accent: #1f5eff;
+  --text: #111827;
+  --muted: #6b7280;
+  --border: #e5e7eb;
+  --accent: #0e7c86;
+  --accent-soft: #5ec4c8; /* Decorative border only, never text. */
+  --selected: #eef7f7;
   --danger: #b42318;
-}
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #141413;
-    --card: #1e1e1c;
-    --text: #ececea;
-    --muted: #9a9a94;
-    --border: #2e2e2b;
-    --accent: #6e95ff;
-    --danger: #ff8a7a;
-  }
+  /* Chart colors, checked for colorblind separation and 3:1 contrast on white. */
+  --series-direct: #2a78d6;
+  --series-funds: #eb6834;
 }
 * { box-sizing: border-box; }
 body {
@@ -57,13 +54,24 @@ p { margin: 0 0 12px; }
 .spaced { margin-top: 12px; }
 .developer { margin-top: 32px; }
 .developer summary { cursor: pointer; }
+/* One row per API call in the developer view; opening it shows the raw JSON. */
+.call { border-bottom: 1px solid var(--border); }
+.call > summary { display: flex; gap: 12px; align-items: baseline; padding: 8px 0; }
+.call > summary { cursor: pointer; list-style: none; }
+.call > summary::-webkit-details-marker { display: none; }
+/* The flex layout hides the usual arrow, so draw it back. */
+.call > summary::before { content: "▸"; color: var(--muted); }
+.call[open] > summary::before { content: "▾"; }
+.call-path { min-width: 130px; font-size: 0.9rem; }
+.call-status { min-width: 70px; font-size: 0.85rem; font-variant-numeric: tabular-nums; }
+.call pre { margin: 0 0 12px; }
 table { width: 100%; border-collapse: collapse; font-size: 0.95rem; }
 th, td { text-align: left; padding: 8px 6px; border-bottom: 1px solid var(--border); }
 th { color: var(--muted); font-weight: 500; }
 tfoot td { font-weight: 600; border-bottom: none; }
 tfoot tr.subtotal td { font-weight: 400; color: var(--muted); }
 .section-title { font-size: 1.35rem; margin: 32px 0 0; }
-.net-worth { border-color: var(--accent); }
+.net-worth { border-color: var(--accent-soft); }
 .net-worth-value { font-size: 2.2rem; font-weight: 700; line-height: 1.2; margin-bottom: 4px; }
 td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
 pre {
@@ -73,4 +81,87 @@ pre {
   padding: 12px;
   border-radius: 8px;
   max-height: 360px;
+}
+
+/* Charts sit in pairs beside what they explain, inside one page scroll. Each pair
+   stacks on a phone, and a pair with one card left uses the full width. */
+.container:has(.pair) { max-width: 1100px; }
+.pair { display: grid; gap: 16px; margin: 16px 0; }
+.pair > .card { margin: 0; }
+@media (min-width: 900px) {
+  .pair { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .pair > :only-child { grid-column: 1 / -1; }
+}
+
+/* Bar chart */
+.legend { display: flex; gap: 16px; color: var(--muted); margin-bottom: 8px; }
+.swatch { display: inline-block; width: 10px; height: 10px; border-radius: 2px; vertical-align: baseline; }
+.swatch.direct { background: var(--series-direct); }
+.swatch.funds { background: var(--series-funds); }
+.bars { list-style: none; margin: 0; padding: 0; }
+.bar-row {
+  display: grid;
+  grid-template-columns: 110px 1fr 52px;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 6px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 0.9rem;
+  text-align: left;
+  cursor: pointer;
+}
+.bar-row:hover { background: var(--bg); }
+.bar-row.selected { background: var(--selected); }
+.bar-row.selected .bar-label { font-weight: 600; }
+.bar-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bar-value { text-align: right; font-variant-numeric: tabular-nums; }
+/* 2px gap between the two parts of a bar; rounded only at the end, square at the start. */
+.bar-track { display: flex; gap: 2px; height: 14px; }
+.bar { height: 100%; min-width: 2px; }
+.bar.direct { background: var(--series-direct); }
+.bar.funds { background: var(--series-funds); }
+.bar:last-child { border-radius: 0 4px 4px 0; }
+
+/* A company name in a table that selects it in the charts */
+.link {
+  padding: 0;
+  border: none;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-decoration: underline dotted var(--muted);
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+.link:hover { color: var(--accent); }
+tr.selected td { background: var(--selected); }
+/* A company's breakdown, opened inside the combined table under its row. */
+tr.open-row > td { background: var(--selected); padding: 0 6px 8px 28px; }
+tr.open-row table { font-size: 0.85rem; }
+tr.open-row table td { border-bottom: none; padding: 4px 6px; }
+
+/* Line chart */
+.line-chart { position: relative; }
+.line-chart svg { display: block; width: 100%; height: auto; touch-action: pan-y; }
+.line-chart .grid { stroke: var(--border); stroke-width: 1; }
+.line-chart .axis { fill: var(--muted); font-size: 16px; } /* SVG units: about 11px once the chart is scaled to the card. */
+.line-chart .series-line { fill: none; stroke: var(--series-direct); stroke-width: 2; stroke-linejoin: round; }
+.line-chart .series-dot { fill: var(--series-direct); }
+.line-chart .crosshair { stroke: var(--muted); stroke-width: 1; stroke-dasharray: 3 3; }
+.line-chart .hover-dot { fill: var(--series-direct); stroke: var(--card); stroke-width: 2; }
+.tooltip {
+  position: absolute;
+  top: 0;
+  transform: translateX(-50%);
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--card);
+  white-space: nowrap;
+  pointer-events: none;
 }
