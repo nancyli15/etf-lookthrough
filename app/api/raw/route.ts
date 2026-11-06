@@ -1,9 +1,13 @@
 // Fetches the raw SnapTrade data for the signed-in user: accounts, then each
 // account's positions, balances and activities. Statuses are kept per call so
-// we can see exactly what the API returns (Step 0: look at the raw data).
-// Add ?download=1 to save the result as a JSON file.
+// we can see exactly what the API returns.
+//
+// It also builds the look-through report here, on the server, because the fund
+// data (every holding of every fund) is too big to send to the browser.
+// Add ?download=1 to save the raw responses as a JSON file, without the report.
 import { NextResponse, type NextRequest } from "next/server";
 import { API_BASE } from "@/lib/config";
+import { buildReport, type AccountData } from "@/lib/report";
 import { NotSignedInError, createClient, type ApiResult } from "@/lib/snaptrade";
 
 export const dynamic = "force-dynamic";
@@ -44,7 +48,10 @@ export async function GET(req: NextRequest) {
     };
 
     const download = req.nextUrl.searchParams.get("download") === "1";
-    return NextResponse.json(body, {
+    // The download is what SnapTrade sent, so it leaves out our calculated report.
+    // /accounts is outside data; buildReport reads every field defensively.
+    const report = accounts.ok ? buildReport(perAccount as AccountData[]) : null;
+    return NextResponse.json(download ? body : { ...body, report }, {
       headers: download
         ? { "Content-Disposition": `attachment; filename="raw-data-${Date.now()}.json"` }
         : {},

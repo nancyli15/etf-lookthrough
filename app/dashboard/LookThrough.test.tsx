@@ -182,12 +182,17 @@ describe("LookThrough screen", () => {
     expect(html).toContain("contents yet");
   });
 
-  it("shows the FX date when it converts, and shows XEQT's unopened gap", () => {
+  it("shows the FX date when it converts", () => {
     const html = render([ok([position("XEQT", "etf", 1000, "CAD"), position("AAPL", "stock", 100)])]);
     expect(html).toContain("CAD per USD");
-    expect(html).toContain("ITOT");
-    expect(html).toContain("inside funds we can&#x27;t open yet");
-    expect(html).toContain("likely understated");
+  });
+
+  it("lists a fund held inside another fund that we can't open, like IEFA inside XEF", () => {
+    const html = render([ok([position("XEF", "etf", 1000, "CAD")])]);
+    expect(html).toContain("IEFA");
+    expect(html).toContain("Held inside one of your funds");
+    // IEFA is about 1.5% of XEF, too small to call the totals understated.
+    expect(html).not.toContain("likely understated");
   });
 
   it("doesn't warn about understated totals when nothing large is unopened", () => {

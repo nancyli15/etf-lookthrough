@@ -4,7 +4,10 @@
 import type { Fund } from "../data/fund-types";
 import { COMPANY_BY_SYMBOL, FUNDS, FUNDS_WITHOUT_DATA } from "../data/funds";
 import { FX } from "../data/fx";
+import { convertCurrency } from "./currency";
 import type { Holding } from "./holdings";
+
+export { convertCurrency };
 
 export type CompanyExposure = {
   key: string;
@@ -41,7 +44,7 @@ export type FundOverlap = {
   fundB: string;
   sharedWeight: number; // Fraction of each fund in common.
   sharedCompanies: string[]; // Largest few.
-  basis: "top-holdings" | "same-list";
+  basis: "holdings" | "same-list";
   incomplete: boolean; // Enough sits in unopened funds that the true overlap could be much higher.
 };
 
@@ -52,7 +55,7 @@ export type LookThroughResult = {
   directHoldings: DirectHolding[]; // Largest first.
   funds: FundSummary[];
   overlaps: FundOverlap[]; // Largest first.
-  otherInFunds: number; // Smaller holdings and cash inside funds, beyond each fund's top list.
+  otherInFunds: number; // Cash, futures and other non-stock lines inside funds.
   insideUnopenedFunds: { symbol: string; name: string; value: number }[];
   notLookedThrough: { symbol: string; name: string; kind: string; value: number; reason: string }[];
   cashEquivalents: { symbol: string; name: string; value: number }[]; // Already inside the cash balance.
@@ -98,7 +101,8 @@ type Flattened = {
 };
 
 // Opens a fund all the way down, turning it into a weight for each company.
-// Recursive because funds hold funds: XEQT → XTOT → ITOT → Apple.
+// Recursive because funds hold funds, like XEF holding IEFA. Each level multiplies
+// the weights. (XEQT's file is already looked through by BlackRock, so it's flat.)
 function flatten(root: Fund, funds: Record<string, Fund>, withoutData: Set<string>): Flattened {
   const flattened: Flattened = { companies: new Map(), unopened: new Map(), other: 0 };
 
@@ -129,13 +133,6 @@ function flatten(root: Fund, funds: Record<string, Fund>, withoutData: Set<strin
   return flattened;
 }
 
-// Returns null when we have no rate, so callers can show the amount instead of guessing.
-export function convertCurrency(value: number, from: string, to: string, fx: typeof FX = FX): number | null {
-  if (from === to) return value;
-  const usdPer: Record<string, number> = { USD: 1, CAD: 1 / fx.cadPerUsd };
-  if (!usdPer[from] || !usdPer[to]) return null;
-  return (value * usdPer[from]) / usdPer[to];
-}
 
 function chooseCurrency(holdings: Holding[]): string {
   const currencies = new Set(holdings.map((holding) => holding.currency));
@@ -152,7 +149,8 @@ function fundOverlap(
   fundB: Fund,
 ): FundOverlap {
   const incomplete = Math.max(summaryA.unopenedWeight, summaryB.unopenedWeight) > OVERLAP_INCOMPLETE_ABOVE;
-  // These two share one list on purpose, so their top-25 overlap would understate it.
+  // These two share one list on purpose: FXAIX is SPY's list standing in, so it's
+  // the same index, not two funds that happen to overlap.
   if (fundA.approximatedBy === summaryB.symbol || fundB.approximatedBy === summaryA.symbol) {
     return {
       fundA: summaryA.symbol,
@@ -176,7 +174,7 @@ function fundOverlap(
     fundB: summaryB.symbol,
     sharedWeight: shared.reduce((sum, company) => sum + company.weight, 0),
     sharedCompanies: shared.slice(0, 5).map((company) => company.name),
-    basis: "top-holdings",
+    basis: "holdings",
     incomplete,
   };
 }

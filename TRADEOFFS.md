@@ -49,12 +49,15 @@ The parts of the API the app depends on, and what happens if they change. SnapTr
 
 | Decision | Why | What I'd change with more time or users |
 |---|---|---|
-| Dated snapshot of each fund's top 25 holdings, plus an "other" share | Simple to build and check for v1, and the largest holdings carry the story | Refresh the files on a schedule and keep every holding |
+| Dated snapshot of every holding in each fund, with cash and futures as "other" | The top 25 covered only 51.7% of SPY, so most of the money couldn't be traced to companies. Every holding traces 99%+ of each fund | Refresh the files on a schedule |
 | Identify a company by ticker plus market | The same ticker can be two companies: ROP is Roche in Switzerland and Roper in the US | Match on FIGI through OpenFIGI |
 | One short name per company, with a list of spellings capitalization can't work out | SnapTrade and fund files name the same company differently, and identical companies shouldn't look like two | Use a company reference source, matched on FIGI |
-| Fund overlap adds the smaller weight of each shared company, from top holdings only | A standard measure that's easy to check by hand, but it's a minimum | Use every holding, for the true figure |
+| Fund overlap adds the smaller weight of each shared company | A standard measure that's easy to check by hand. With every holding it's the real figure, not a minimum | — |
 | FXAIX uses SPY's holdings list | Both track the S&P 500, so the weights should be very close, and the UI can say it's a stand-in | Add Fidelity's own file |
-| Calculate the look-through in the browser from `/api/raw` | No new endpoint, and the fund snapshot is small | Move it to the server if the fund data grows to every holding |
+| Use BlackRock's own look-through for XEQT | BlackRock's XEQT spreadsheet lists the companies inside its funds rather than the funds, and it's more complete than opening each fund ourselves | — |
+| Read iShares' `_fund.xls` spreadsheet as well as its CSV | The holdings download sometimes comes as an old Excel XML file. Python's standard library can read it, so there's no new dependency | — |
+| The fund script refuses to write if any file is missing | A run with a wrong folder name once replaced every fund with nothing. Now it stops, unless `--allow-missing` is passed on purpose | — |
+| Calculate the look-through on the server, in `/api/raw`, and send the finished report | Every holding of every fund is 2.6 MB. In the browser that made the page 303 KB; now it's 8 KB, and the math didn't change | Send only the top companies plus totals, since a portfolio with XEQT sends 7,900 companies (209 KB compressed) |
 
 ## The screen
 
