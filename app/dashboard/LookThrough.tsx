@@ -4,12 +4,12 @@
 // One page scroll. On wide screens, each chart sits beside what it explains: net
 // worth beside its history, and the company bars beside the breakdown they select.
 // On a phone, each pair stacks.
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import { FX } from "../../data/fx";
 import { displayName, shortName } from "../../lib/names";
 import { hasLargeGap, percentText, shareText, type Report } from "../../lib/report";
 import AccountValueChart from "./AccountValueChart";
-import CompanyBreakdown from "./CompanyBreakdown";
+import CompanyBreakdown, { SourceRows } from "./CompanyBreakdown";
 import CompanyChart from "./CompanyChart";
 import ShareButton from "./ShareButton";
 
@@ -33,6 +33,9 @@ export default function LookThrough({ report }: { report: Report }) {
   const [showAll, setShowAll] = useState(false);
   // The company shown in the "Where it comes from" card. Starts on the biggest one.
   const [selectedKey, setSelectedKey] = useState<string | undefined>(undefined);
+  // Companies opened inside the combined table. Opening one in place, instead of
+  // scrolling to the card, keeps the reader's spot in a long table.
+  const [openKeys, setOpenKeys] = useState<Set<string>>(new Set());
   const {
     result,
     headline,
@@ -84,10 +87,11 @@ export default function LookThrough({ report }: { report: Report }) {
   const selected = result.companies.find((company) => company.key === selectedKey) ?? result.companies[0];
   const share = shareText(result);
 
-  // Selecting from a table scrolls up to the breakdown, so the change is visible.
-  function selectCompany(key: string) {
-    setSelectedKey(key);
-    document.getElementById("company-breakdown")?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  function toggleOpen(key: string) {
+    const next = new Set(openKeys);
+    if (next.has(key)) next.delete(key);
+    else next.add(key);
+    setOpenKeys(next);
   }
 
   return (
@@ -191,7 +195,7 @@ export default function LookThrough({ report }: { report: Report }) {
       </div>
 
       {result.total !== 0 && (
-        <div className="pair" id="company-breakdown">
+        <div className="pair">
           <CompanyChart
             companies={result.companies}
             selectedKey={selected?.key}
@@ -315,21 +319,38 @@ export default function LookThrough({ report }: { report: Report }) {
               </tr>
             </thead>
             <tbody>
-              {companies.map((company) => (
-                <tr key={company.key} className={company.key === selected?.key ? "selected" : undefined}>
-                  <td>
-                    <button className="link" type="button" onClick={() => selectCompany(company.key)}>
-                      {shortName(company.name)}
-                    </button>{" "}
-                    <span className="muted">{company.symbol}</span>
-                    {company.viaFunds.length > 0 && <div className="muted small">via {company.viaFunds.join(", ")}</div>}
-                  </td>
-                  <td className="num">{company.direct > 0 ? money(company.direct) : "–"}</td>
-                  <td className="num">{company.throughFunds > 0 ? money(company.throughFunds) : "–"}</td>
-                  <td className="num">{money(company.total)}</td>
-                  <td className="num">{percentText(company.percent)}</td>
-                </tr>
-              ))}
+              {companies.map((company) => {
+                const isOpen = openKeys.has(company.key);
+                return (
+                  <Fragment key={company.key}>
+                    <tr className={isOpen ? "selected" : undefined}>
+                      <td>
+                        <button
+                          className="link"
+                          type="button"
+                          onClick={() => toggleOpen(company.key)}
+                          aria-expanded={isOpen}
+                        >
+                          {shortName(company.name)} <span aria-hidden="true">{isOpen ? "▾" : "▸"}</span>
+                        </button>{" "}
+                        <span className="muted">{company.symbol}</span>
+                        {company.viaFunds.length > 0 && <div className="muted small">via {company.viaFunds.join(", ")}</div>}
+                      </td>
+                      <td className="num">{company.direct > 0 ? money(company.direct) : "–"}</td>
+                      <td className="num">{company.throughFunds > 0 ? money(company.throughFunds) : "–"}</td>
+                      <td className="num">{money(company.total)}</td>
+                      <td className="num">{percentText(company.percent)}</td>
+                    </tr>
+                    {isOpen && (
+                      <tr className="open-row">
+                        <td colSpan={5}>
+                          <SourceRows company={company} money={money} />
+                        </td>
+                      </tr>
+                    )}
+                  </Fragment>
+                );
+              })}
             </tbody>
             <tfoot>
               <tr>

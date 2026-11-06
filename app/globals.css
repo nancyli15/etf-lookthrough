@@ -129,6 +129,10 @@ pre {
 }
 .link:hover { color: var(--accent); }
 tr.selected td { background: var(--selected); }
+/* A company's breakdown, opened inside the combined table under its row. */
+tr.open-row > td { background: var(--selected); padding: 0 6px 8px 28px; }
+tr.open-row table { font-size: 0.85rem; }
+tr.open-row table td { border-bottom: none; padding: 4px 6px; }
 
 /* Line chart */
 .line-chart { position: relative; }

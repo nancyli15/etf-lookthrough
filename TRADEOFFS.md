@@ -66,6 +66,7 @@ The parts of the API the app depends on, and what happens if they change. SnapTr
 | Charts in pairs beside what they explain, in one page scroll | A sticky chart column needed its own scrollbar, and two scroll areas felt awkward. Net worth now sits beside its history, and the company bars beside the breakdown they select. On a phone each pair stacks | — |
 | A bar chart of the 10 biggest companies, split into direct and through funds | The page's main question is "how much of each company do I own, and how?" Ten bars stay readable | — |
 | Clicking a company shows where its money comes from, fund by fund | Answers "why is Apple so big?" without reading three tables | Click a fund to see its own top companies |
+| In the combined table, a company's breakdown opens under its row | Scrolling up to the chart's card lost the reader's place in a long table. Opening in place keeps it, and several can be open to compare | Click a fund to see its own top companies |
 | Plain HTML, CSS and SVG charts, no chart library | Every line can be explained, and the page stays small | A library if charts need zooming or many series |
 | Chart colors checked for colorblind separation and contrast, in light and dark mode | Blue and orange stay distinct for the most common kinds of colorblindness, and every chart also has a table | — |
 | Share percentages only: no dollar amounts, net worth or account names | People share this with friends and online, and the percentages are the interesting part | A share image, made the same way |

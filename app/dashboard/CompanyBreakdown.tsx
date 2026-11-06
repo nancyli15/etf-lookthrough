@@ -9,12 +9,31 @@ type Props = {
   money: (value: number) => string;
 };
 
-export default function CompanyBreakdown({ company, money }: Props) {
+// Shared by the card beside the bar chart and the rows that open inside the table.
+export function SourceRows({ company, money }: Props) {
   const sources = [
     ...(company.direct > 0 ? [{ label: "Bought directly", value: company.direct, kind: "direct" }] : []),
     ...company.byFund.map((fund) => ({ label: `Through ${fund.symbol}`, value: fund.value, kind: "funds" })),
   ];
 
+  return (
+    <table>
+      <tbody>
+        {sources.map((source) => (
+          <tr key={source.label}>
+            <td>
+              <i className={`swatch ${source.kind}`} aria-hidden="true" /> {source.label}
+            </td>
+            <td className="num">{money(source.value)}</td>
+            <td className="num muted">{percentText(company.total ? source.value / company.total : 0)}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+}
+
+export default function CompanyBreakdown({ company, money }: Props) {
   return (
     <div className="card">
       <p className="muted small">Where it comes from</p>
@@ -25,19 +44,7 @@ export default function CompanyBreakdown({ company, money }: Props) {
         <strong>{money(company.total)}</strong>{" "}
         <span className="muted">· {percentText(company.percent)} of your holdings</span>
       </p>
-      <table>
-        <tbody>
-          {sources.map((source) => (
-            <tr key={source.label}>
-              <td>
-                <i className={`swatch ${source.kind}`} aria-hidden="true" /> {source.label}
-              </td>
-              <td className="num">{money(source.value)}</td>
-              <td className="num muted">{percentText(company.total ? source.value / company.total : 0)}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      <SourceRows company={company} money={money} />
     </div>
   );
 }
