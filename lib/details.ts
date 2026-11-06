@@ -27,7 +27,7 @@ export function ownershipText(company: CompanyExposure, money: Money): string {
   const name = shortName(company.name);
   if (company.direct > 0 && company.throughFunds > 0) {
     const extra = company.direct ? company.throughFunds / company.direct : 0;
-    return `Your brokerage shows ${money(company.direct)} (${units(company.directUnits)}). Counting your funds, you own ${money(company.total)}, which is ${percentText(extra)} more.`;
+    return `Your brokerage shows you bought ${money(company.direct)} (${units(company.directUnits)}) directly. Adding your funds, you own ${money(company.total)}, which is ${percentText(extra)} more.`;
   }
   if (company.direct > 0) {
     return `You own ${units(company.directUnits)} directly, worth ${money(company.direct)}. None of the funds we can see hold ${name}.`;
@@ -58,10 +58,16 @@ export function whatIf(company: CompanyExposure, holdingsTotal: number, move: nu
 
 // The slider picks the size of the move, 0% to 100%. A fall and a rise of the same
 // size move the same dollars, so one sentence covers both directions.
+// Both parts move together: a stock's price is the same whether you hold it
+// yourself or through a fund. The sentence says so, and names each part.
 export function movesText(company: CompanyExposure, holdingsTotal: number, move: number, money: Money): string {
   if (move === 0) return "No move, no change.";
   const { change, share } = whatIf(company, holdingsTotal, move);
-  return `Up or down, your holdings move about ${money(change)} (${percentText(share)}).`;
+  const parts = [
+    ...(company.direct > 0 ? [`${money(company.direct * move)} on the shares you bought`] : []),
+    ...(company.throughFunds > 0 ? [`${money(company.throughFunds * move)} inside ${company.viaFunds.join(" and ")}`] : []),
+  ];
+  return `Up or down, that's ${parts.join(" and ")}. Together, your holdings move about ${money(change)} (${percentText(share)}).`;
 }
 
 // 4. Which part do I control? Shares you hold change when you trade them. The
@@ -90,25 +96,34 @@ export function activityNote(
     : undefined;
   // How far back the brokerage's history goes, from each account's sync_status.
   const span = since ? `since ${date(since)}` : "in the history SnapTrade has";
-
-  if (activityCount > 0) return { note: since ? `History from ${date(since)}.` : undefined, warning };
-  if (company.direct > 0) {
-    const where = since ? `, the earliest date SnapTrade has for your accounts` : "";
-    return { note: `No trades or dividends for ${name} ${span}${where}.`, warning };
-  }
+  // These are only trades you made yourself. A fund's own trades aren't yours, so
+  // when the company is also inside your funds, say so instead of leaving it to guess.
   const funds = company.viaFunds.join(" and ");
   const itself = company.viaFunds.length > 1 ? "buy and sell inside themselves" : "buys and sells inside itself";
-  return { note: `You haven't traded ${name} directly ${span}. What ${funds} ${itself} isn't shown.`, warning };
+  const fundsNote = company.viaFunds.length ? ` What ${funds} ${itself} isn't shown.` : "";
+
+  if (activityCount > 0) {
+    const history = since ? `History from ${date(since)}.` : "";
+    return { note: `${history}${fundsNote}`.trim() || undefined, warning };
+  }
+  if (company.direct > 0) {
+    const where = since ? `, the earliest date SnapTrade has for your accounts` : "";
+    return { note: `No trades or dividends for ${name} ${span}${where}.${fundsNote}`, warning };
+  }
+  return { note: `You haven't traded ${name} directly ${span}.${fundsNote}`, warning };
 }
 
 // What have I done with it lately? From /activities.
 export function activityText(activity: Activity, money: Money): string {
   const price = money(activity.price, activity.currency);
+  // The cash amount is what you'd recognize as "what I paid", so it comes first. It's
+  // SnapTrade's `amount`, which can differ from shares × price (fees, exchange rates).
+  const cash = money(activity.amount || activity.units * activity.price, activity.currency);
   switch (activity.kind) {
     case "buy":
-      return `Bought ${units(activity.units)} at ${price}`;
+      return `Bought ${units(activity.units)} for ${cash} (${price} each)`;
     case "sell":
-      return `Sold ${units(activity.units)} at ${price}`;
+      return `Sold ${units(activity.units)} for ${cash} (${price} each)`;
     case "dividend":
       return `Dividend of ${money(activity.amount, activity.currency)}`;
     case "reinvested":
