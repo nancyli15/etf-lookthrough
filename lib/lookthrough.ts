@@ -15,6 +15,7 @@ export type CompanyExposure = {
   total: number;
   percent: number; // Fraction of the portfolio total.
   viaFunds: string[]; // The funds you hold that contain it, not the funds nested inside them.
+  byFund: { symbol: string; value: number }[]; // How much comes through each of those funds, largest first.
 };
 
 // A stock you bought yourself. Value is in the report's currency.
@@ -216,11 +217,17 @@ export function lookThrough(holdings: Holding[], options: Options = {}): LookThr
       total: 0,
       percent: 0,
       viaFunds: [],
+      byFund: [],
     };
     exposure.direct += direct;
     exposure.throughFunds += through;
     exposure.total += direct + through;
-    if (via && !exposure.viaFunds.includes(via)) exposure.viaFunds.push(via);
+    if (via) {
+      if (!exposure.viaFunds.includes(via)) exposure.viaFunds.push(via);
+      const fromFund = exposure.byFund.find((entry) => entry.symbol === via);
+      if (fromFund) fromFund.value += through;
+      else exposure.byFund.push({ symbol: via, value: through });
+    }
     companies.set(key, exposure);
   }
 
@@ -304,7 +311,11 @@ export function lookThrough(holdings: Holding[], options: Options = {}): LookThr
   }
 
   result.companies = [...companies.values()]
-    .map((company) => ({ ...company, percent: result.total ? company.total / result.total : 0 }))
+    .map((company) => ({
+      ...company,
+      percent: result.total ? company.total / result.total : 0,
+      byFund: [...company.byFund].sort((first, second) => second.value - first.value),
+    }))
     .sort((first, second) => second.total - first.total);
   result.directHoldings.sort((first, second) => second.value - first.value);
   result.funds = [...summaries.values()].sort((first, second) => second.value - first.value);

@@ -6,6 +6,9 @@
   --border: #e4e4df;
   --accent: #1f5eff;
   --danger: #b42318;
+  /* Chart colors, checked for colorblind separation and 3:1 contrast on the card. */
+  --series-direct: #2a78d6;
+  --series-funds: #eb6834;
 }
 @media (prefers-color-scheme: dark) {
   :root {
@@ -16,6 +19,8 @@
     --border: #2e2e2b;
     --accent: #6e95ff;
     --danger: #ff8a7a;
+    --series-direct: #3987e5;
+    --series-funds: #d95926;
   }
 }
 * { box-sizing: border-box; }
@@ -73,4 +78,90 @@ pre {
   padding: 12px;
   border-radius: 8px;
   max-height: 360px;
+}
+
+/* Two columns on wide screens: summary and tables left, charts right. On a phone
+   the areas stack in order: summary, charts, details. */
+.container:has(.layout) { max-width: 1240px; }
+.layout { display: grid; grid-template-areas: "top" "side" "rest"; }
+.layout-top { grid-area: top; min-width: 0; }
+.layout-side { grid-area: side; min-width: 0; }
+.layout-rest { grid-area: rest; min-width: 0; }
+@media (min-width: 1000px) {
+  .layout {
+    grid-template-columns: minmax(0, 1fr) 420px;
+    grid-template-areas: "top side" "rest side";
+    grid-template-rows: auto 1fr;
+    column-gap: 24px;
+    align-items: start;
+  }
+  .layout-side { position: sticky; top: 0; max-height: 100vh; overflow-y: auto; }
+}
+
+/* Bar chart */
+.legend { display: flex; gap: 16px; color: var(--muted); margin-bottom: 8px; }
+.swatch { display: inline-block; width: 10px; height: 10px; border-radius: 2px; vertical-align: baseline; }
+.swatch.direct { background: var(--series-direct); }
+.swatch.funds { background: var(--series-funds); }
+.bars { list-style: none; margin: 0; padding: 0; }
+.bar-row {
+  display: grid;
+  grid-template-columns: 110px 1fr 52px;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 6px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 0.9rem;
+  text-align: left;
+  cursor: pointer;
+}
+.bar-row:hover, .bar-row.selected { background: var(--bg); }
+.bar-row.selected .bar-label { font-weight: 600; }
+.bar-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bar-value { text-align: right; font-variant-numeric: tabular-nums; }
+/* 2px gap between the two parts of a bar; rounded only at the end, square at the start. */
+.bar-track { display: flex; gap: 2px; height: 14px; }
+.bar { height: 100%; min-width: 2px; }
+.bar.direct { background: var(--series-direct); }
+.bar.funds { background: var(--series-funds); }
+.bar:last-child { border-radius: 0 4px 4px 0; }
+
+/* A company name in a table that selects it in the charts */
+.link {
+  padding: 0;
+  border: none;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-decoration: underline dotted var(--muted);
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+.link:hover { color: var(--accent); }
+tr.selected td { background: var(--bg); }
+
+/* Line chart */
+.line-chart { position: relative; }
+.line-chart svg { display: block; width: 100%; height: auto; touch-action: pan-y; }
+.line-chart .grid { stroke: var(--border); stroke-width: 1; }
+.line-chart .axis { fill: var(--muted); font-size: 16px; } /* SVG units: about 11px once the chart is scaled to the card. */
+.line-chart .series-line { fill: none; stroke: var(--series-direct); stroke-width: 2; stroke-linejoin: round; }
+.line-chart .series-dot { fill: var(--series-direct); }
+.line-chart .crosshair { stroke: var(--muted); stroke-width: 1; stroke-dasharray: 3 3; }
+.line-chart .hover-dot { fill: var(--series-direct); stroke: var(--card); stroke-width: 2; }
+.tooltip {
+  position: absolute;
+  top: 0;
+  transform: translateX(-50%);
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--card);
+  white-space: nowrap;
+  pointer-events: none;
 }

@@ -35,6 +35,18 @@ describe("LookThrough screen", () => {
     expect(html).toContain("don&#x27;t include cash");
   });
 
+  it("shows the company chart, where the biggest company comes from, and a share button", () => {
+    const html = render([ok([position("AAPL", "stock", 500), position("SPY", "etf", 1000)])]);
+    expect(html).toContain("Your biggest companies");
+    expect(html).toContain("Where it comes from");
+    expect(html).toContain("Bought directly");
+    expect(html).toContain("Through SPY");
+    expect(html).toContain("Account value");
+    expect(html).toContain("Share my top companies");
+    // The charts come between the summary and the details, so a phone shows them early.
+    expect(html.indexOf("Your biggest companies")).toBeLessThan(html.indexOf("The details"));
+  });
+
   it("opens with a net worth summary, then the biggest company, then the details", () => {
     const html = render([
       {

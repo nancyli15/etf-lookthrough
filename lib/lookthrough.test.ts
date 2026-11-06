@@ -26,6 +26,14 @@ describe("exposure", () => {
     expect(r.companies[0].percent).toBeCloseTo(570 / 1500);
   });
 
+  it("says how much comes through each fund: 7% of $1,000 SPY = $70, 5% of $2,000 QQQ = $100", () => {
+    const qqq = fund("QQQ", [stock("AAPL", 0.05)]);
+    const r = lookThrough([holding("SPY", "etf", 1000), holding("QQQ", "etf", 2000)], { funds: { SPY: spy, QQQ: qqq } });
+    expect(r.companies[0].byFund.map((entry) => entry.symbol)).toEqual(["QQQ", "SPY"]);
+    expect(r.companies[0].byFund[0].value).toBeCloseTo(100);
+    expect(r.companies[0].byFund[1].value).toBeCloseTo(70);
+  });
+
   it("follows funds that hold funds: $1,000 × 40% × 90% × 10% = $36", () => {
     const funds = {
       TOP: fund("TOP", [stock("MID", 0.4)]),

@@ -40,30 +40,7 @@ Requires Node.js 20 or newer.
 
 ## Decisions and tradeoffs
 
-| Decision | Why | What I'd change with more time or users |
-|---|---|---|
-| Scopes `openid email read` only | No trading, no notifications needed. Asking for less builds trust. | Add `webhook` if holdings should update in the background |
-| Tokens in an encrypted cookie, no database | Fewer moving parts for v1; nothing stored server-side | Encrypted database row keyed on the id_token `sub` |
-| API calls only in Route Handlers | Server Components can't set cookies, so rotated refresh tokens would be lost | — |
-| Email kept only if `email_verified` | Per SnapTrade guidance | — |
-| Raw-data download | Look at real API responses before designing the UI | Remove or hide behind a debug flag |
-| Merge a security across accounts only within one currency | Adding CAD and USD values together would give a wrong total | Convert with a dated FX rate first, then merge |
-| Skip positions with unusable numbers and list them | Counting a blank price as $0 would quietly understate the portfolio | Show the reason per position, and report it to error tracking |
-| Dated snapshot of each fund's top 25 holdings, plus an "other" share | Simple to build and check for v1, and the largest holdings carry the story | Refresh the files on a schedule and keep every holding |
-| Identify a company by ticker plus market | The same ticker can be two companies: ROP is Roche in Switzerland and Roper in the US | Match on FIGI through OpenFIGI |
-| Mixed portfolios report in CAD, at a dated Bank of Canada rate | One rate is simple to check and explain. Other currencies are listed, not guessed | Daily rates and more currencies |
-| Net worth adds cash from `/balances`, but percentages exclude it | Net worth without cash would be wrong, while company percentages answer "of what I've invested" | — |
-| Money market funds count as cash, not holdings | SnapTrade reports them as a position and inside the cash balance, so counting both overstated net worth by $3,500 in the Sandbox | — |
-| Build net worth from its parts, and warn if it's over 1% from SnapTrade's account totals | The parts explain the number, and the check catches brokerages that behave differently. 1% allows for prices moving between calls | Compare per account, to say which one differs |
-| One short name per company, with a list of spellings capitalization can't work out | SnapTrade and fund files name the same company differently, and identical companies shouldn't look like two | Use a company reference source, matched on FIGI |
-| Separate tables for direct stocks, fund contents and both combined | Showing where each dollar comes from is easier to follow than one table with a blank column | Show each fund's amount per company |
-| Open with net worth, then the biggest company, then the details | People want the total first, and one clear finding gives the tables a reason to be read | Let the user choose the finding, such as most overlap |
-| Fund overlap adds the smaller weight of each shared company, from top holdings only | A standard measure that's easy to check by hand, but it's a minimum | Use every holding, for the true figure |
-| Calculate the look-through in the browser from `/api/raw` | No new endpoint, and the fund snapshot is small | Move it to the server if the fund data grows to every holding |
-| Show what the numbers can't see, on the main screen | A confident total that's missing money is worse than an honest gap | Close the gaps with more fund files |
-| Turn off Next's request log | It prints full URLs, and the OAuth callback's URL holds the authorization code. Testing with a fake code caught this | Keep it off, and add structured logs that leave out query strings |
-| Override PostCSS instead of moving to Next 16 | Next 15 pins a version with known flaws. The override clears the audit, and the build passes, without a major upgrade | Upgrade Next and remove the override |
-| FXAIX uses SPY's holdings list | Both track the S&P 500, so the weights should be very close, and the UI can say it's a stand-in | Add Fidelity's own file |
+Every choice I made, why, and what I'd change, grouped by topic, is in [TRADEOFFS.md](TRADEOFFS.md). It starts with the parts of SnapTrade's API the app depends on, and the risk if they change.
 
 ## Known limitations
 
@@ -84,3 +61,5 @@ Notes for SnapTrade, written as I hit them:
 - OAuth guide: it says to test an expired code and refresh-token rotation, but doesn't document what the server returns for an expired code, a reused refresh token or a revoke. In testing, an invalid code returned `400 invalid_grant`. Documenting these errors would let apps handle them on purpose.
 - Money market funds: they appear in `/positions/all` and inside `cash` in `/balances`, flagged by `cash_equivalent: true`. The docs do say this, but adding positions and cash is the obvious way to get a total, so it's easy to count them twice. A note in the positions guide would help. Comparing with `balance.total` on `/accounts` is what confirmed it.
 - OAuth guide's sample code: it puts the token endpoint's whole response body into a thrown error. The guide also says never to log tokens, so a note about not logging that error would help.
+- Balance history (beta): the reference documents `/accounts/{id}/balanceHistory` only with `userId` and `userSecret`, not OAuth. It does work with an OAuth Bearer token (tested 2026-11-05), so saying so in the reference would save apps a test.
+- Balance history (beta): the schema says `date` is a date, but the example shows a full timestamp (`2026-01-01T00:00:00.000Z`), so the app accepts both. `total_value` is a string, like positions.
