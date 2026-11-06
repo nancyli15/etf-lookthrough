@@ -251,7 +251,7 @@ describe("company dropdown", () => {
     expect(html).toContain("Inside SPY:");
     expect(html).toContain("your holdings move about");
     expect(html).toContain("You control the $500.00 in your own shares");
-    expect(html).toContain("Sold 5 shares at $180.50");
+    expect(html).toContain("Sold 5 shares for $902.50 ($180.50 each)");
   });
 
   it("shows the activity section even with nothing to list, with how far back history goes", () => {
@@ -275,7 +275,7 @@ describe("company dropdown", () => {
         money={(value) => `$${value.toFixed(2)}`}
       />,
     );
-    expect(markup).toContain("Your recent activity");
+    expect(markup).toContain("Your own trades in");
     expect(markup).toContain("directly since");
     expect(markup).toContain("2026");
   });
@@ -285,11 +285,21 @@ describe("company dropdown", () => {
     expect(html).toContain('min="0"');
     expect(html).toContain('max="100"');
     expect(html).toContain('value="10"');
-    expect(html).toContain("Up or down, your holdings move about");
+    expect(html).toContain("on the shares you bought and");
+    expect(html).toContain("Together, your holdings move about");
   });
 });
 
 describe("long company tables", () => {
+  it("says what the company total leaves out, so it doesn't seem to disagree with the summary", () => {
+    const html = render([ok([position("AAPL", "stock", 500), position("SPY", "etf", 1000), position("BTC", "crypto", 100)])]);
+    expect(html).toContain("traced to companies");
+    expect(html).toContain("of your holdings");
+    expect(html).toContain("The rest of your holdings:");
+    expect(html).toContain("$100.00 in holdings with no companies inside, like crypto");
+    expect(html).not.toContain(" total (");
+  });
+
   it("has a search box and a count, and no page buttons for one page", () => {
     const html = render([ok([position("AAPL", "stock", 500)])]);
     expect(html).toContain("Search all companies");

@@ -46,6 +46,11 @@ export default function CompanyTable({ report, money }: Props) {
   // Totals cover every company, whatever the page, filter or search, so the money never seems to move.
   const directTotal = sumOf(result.companies, (company) => company.direct);
   const fundsTotal = sumOf(result.companies, (company) => company.throughFunds);
+  // Holdings that aren't in any company: a fund's cash and futures, funds we can't
+  // open yet, and things like crypto. Companies + these = holdings in the summary.
+  const insideFundsNotCompanies =
+    result.otherInFunds + result.insideUnopenedFunds.reduce((sum, fund) => sum + fund.value, 0);
+  const notCompanies = result.notLookedThrough.reduce((sum, holding) => sum + holding.value, 0);
 
   // Whole dollars read faster in the line under each bar. Small amounts keep their cents.
   function brief(value: number): string {
@@ -187,7 +192,7 @@ export default function CompanyTable({ report, money }: Props) {
         onPage={setPageNumber}
       />
       <p className="totals small">
-        In all {result.companies.length} companies:{" "}
+        In all {result.companies.length.toLocaleString()} companies:{" "}
         {directTotal > 0 && (
           <span>
             <i className="swatch direct" aria-hidden="true" /> {money(directTotal)} you bought
@@ -199,9 +204,19 @@ export default function CompanyTable({ report, money }: Props) {
           </span>
         )}
         <strong>
-          {money(directTotal + fundsTotal)} total ({percentText(result.total ? (directTotal + fundsTotal) / result.total : 0)})
+          {money(directTotal + fundsTotal)} traced to companies ({percentText(result.total ? (directTotal + fundsTotal) / result.total : 0)} of
+          your holdings)
         </strong>
       </p>
+      {/* The rest of holdings, so this total doesn't look like it disagrees with the summary's. */}
+      {(insideFundsNotCompanies > 0 || notCompanies > 0) && (
+        <p className="muted small">
+          The rest of your holdings:
+          {insideFundsNotCompanies > 0 && <> {money(insideFundsNotCompanies)} of cash and other non-stock holdings inside your funds</>}
+          {insideFundsNotCompanies > 0 && notCompanies > 0 && <>, and</>}
+          {notCompanies > 0 && <> {money(notCompanies)} in holdings with no companies inside, like crypto</>}.
+        </p>
+      )}
     </div>
   );
 }

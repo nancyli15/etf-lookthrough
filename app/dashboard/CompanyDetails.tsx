@@ -86,7 +86,7 @@ export default function CompanyDetails({
         </div>
         <p>{result}</p>
 
-        <p className="small details-heading">Your recent activity</p>
+        <p className="small details-heading">Your own trades in {name}</p>
         {activities.length > 0 && (
           <ul className="details-list small">
             {activities.map((activity, index) => (
