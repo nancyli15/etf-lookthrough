@@ -32,6 +32,16 @@ export function pageNumbers(current: number, total: number): (number | "…")[] 
   return result;
 }
 
+// The filter buttons above the company table. "Bought directly" is the old direct
+// stocks table, "Through funds" the old fund contents table.
+export type CompanyView = "all" | "direct" | "funds";
+
+export function inView(view: CompanyView, company: { direct: number; throughFunds: number }): boolean {
+  if (view === "direct") return company.direct > 0;
+  if (view === "funds") return company.throughFunds > 0;
+  return true;
+}
+
 // Matches the ticker or any part of the name, ignoring case: "tes" finds Tesla.
 export function matchesSearch(query: string, ...fields: string[]): boolean {
   const needle = query.trim().toLowerCase();

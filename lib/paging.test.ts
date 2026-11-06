@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { matchesSearch, pageCount, pageNumbers, pageOf } from "./paging";
+import { inView, matchesSearch, pageCount, pageNumbers, pageOf } from "./paging";
 
 const rows = Array.from({ length: 502 }, (_, index) => index + 1);
 
@@ -21,6 +21,15 @@ describe("paging", () => {
     expect(pageNumbers(1, 51)).toEqual([1, 2, 3, 4, "…", 51]);
     expect(pageNumbers(51, 51)).toEqual([1, "…", 48, 49, 50, 51]);
     expect(pageNumbers(2, 5)).toEqual([1, 2, 3, 4, 5]);
+  });
+
+  it("filters to what you bought, or what's in your funds", () => {
+    const both = { direct: 100, throughFunds: 10 };
+    const fundOnly = { direct: 0, throughFunds: 10 };
+    const directOnly = { direct: 100, throughFunds: 0 };
+    expect([both, fundOnly, directOnly].filter((company) => inView("direct", company))).toEqual([both, directOnly]);
+    expect([both, fundOnly, directOnly].filter((company) => inView("funds", company))).toEqual([both, fundOnly]);
+    expect([both, fundOnly, directOnly].filter((company) => inView("all", company))).toHaveLength(3);
   });
 
   it("searches the ticker and the name, ignoring case", () => {
