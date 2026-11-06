@@ -5,7 +5,7 @@
 // estimates that may have gaps, so this reads defensively and reports what it
 // couldn't use instead of guessing.
 import { toNumber } from "./holdings";
-import { convertCurrency } from "./lookthrough";
+import { convertCurrency } from "./currency";
 
 // One account's /balanceHistory result, as packaged by /api/history.
 export type HistoryResponse = { name: string; status: number; ok: boolean; data: unknown };

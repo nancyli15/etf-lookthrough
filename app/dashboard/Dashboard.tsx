@@ -1,8 +1,8 @@
 "use client";
 // Loads the signed-in user's data, then shows the look-through. The raw API
 // responses stay available in the Developer view, at the bottom.
-import { useEffect, useMemo, useState } from "react";
-import { buildReport } from "@/lib/report";
+import { useEffect, useState } from "react";
+import type { Report } from "@/lib/report";
 import DeveloperView from "./DeveloperView";
 import LookThrough from "./LookThrough";
 
@@ -28,6 +28,7 @@ export type DashboardData = {
   accountsCall: { status: number; ok: boolean }; // Result of the request for the user's accounts
   accounts: AccountData[];
   accountsRaw?: unknown; // Original accounts response, for debugging failed requests
+  report: Report | null; // The look-through, calculated on the server from the data above
 };
 
 export default function Dashboard({ email }: { email?: string }) {
@@ -47,10 +48,7 @@ export default function Dashboard({ email }: { email?: string }) {
       .catch((error) => setErrorMessage(error instanceof Error ? error.message : "Something went wrong"));
   }, []);
 
-  const report = useMemo(
-    () => (dashboardData?.accountsCall.ok ? buildReport(dashboardData.accounts) : null),
-    [dashboardData],
-  );
+  const report = dashboardData?.report ?? null;
 
   return (
     <>

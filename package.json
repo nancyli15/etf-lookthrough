@@ -3,9 +3,12 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "predev": "node scripts/fetch_fund_data.mjs",
     "dev": "next dev",
+    "prebuild": "node scripts/fetch_fund_data.mjs",
     "build": "next build",
     "start": "next start",
+    "pretest": "node scripts/fetch_fund_data.mjs",
     "test": "vitest run"
   },
   "dependencies": {

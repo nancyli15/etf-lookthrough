@@ -7,7 +7,7 @@
 // server to make it.
 import { useEffect, useRef, useState } from "react";
 import type { LookThroughResult } from "../../lib/lookthrough";
-import { shareText } from "../../lib/report";
+import { shareText } from "../../lib/format";
 import { CARD_SIZE, shareCardSvg } from "../../lib/shareCard";
 
 const FILE_NAME = "what-i-actually-own.png";

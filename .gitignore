@@ -3,6 +3,10 @@ PLAN.md
 CLAUDE.md
 FUTURE_PLANS.md
 
+# Fund holdings: BlackRock's and State Street's terms don't allow republishing them.
+# Vercel downloads them from a private repo at build time (scripts/fetch_fund_data.mjs).
+data/fund-data.ts
+
 # dependencies
 /node_modules
 /.pnp

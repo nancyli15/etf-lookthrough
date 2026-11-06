@@ -5,7 +5,7 @@
 // Privacy: like shareText, no dollar amounts, net worth or account names.
 import type { LookThroughResult } from "./lookthrough";
 import { shortName } from "./names";
-import { percentText } from "./report";
+import { percentText } from "./format";
 
 export const CARD_SIZE = 1080; // Square, so it fits chats, posts and stories.
 
