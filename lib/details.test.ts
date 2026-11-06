@@ -29,7 +29,7 @@ const spy: FundSummary = { symbol: "SPY", name: "SPDR", value: 8373.75, asOf: "2
 describe("company dropdown", () => {
   it("says how much more you own than your brokerage shows", () => {
     expect(ownershipText(tesla, money)).toBe(
-      "Your brokerage shows $1920.00 (8 shares). Counting your funds, you own $2057.04, which is 7.1% more.",
+      "Your brokerage shows you bought $1920.00 (8 shares) directly. Adding your funds, you own $2057.04, which is 7.1% more.",
     );
     expect(ownershipText(nvidia, money)).toBe(
       "You don't own NVIDIA directly, so your brokerage doesn't list it. All $611.44 is inside your funds.",

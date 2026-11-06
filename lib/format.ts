@@ -3,6 +3,24 @@
 import type { LookThroughResult } from "./lookthrough";
 import { shortName } from "./names";
 
+// Always "US$" or "CA$", never a bare "$". Browsers write their own country's
+// currency as "$", so in Canada CA$ showed as "$" and US$ as "US$", and switching
+// accounts looked like the symbol disappeared. Same text on every computer.
+const PREFIX: Record<string, string> = { USD: "US$", CAD: "CA$" };
+
+export function formatMoney(value: number, currency: string, options: { compact?: boolean } = {}): string {
+  const prefix = PREFIX[currency];
+  const number = Math.abs(value).toLocaleString(
+    "en-US",
+    options.compact
+      ? { notation: "compact", maximumFractionDigits: 1 }
+      : { minimumFractionDigits: 2, maximumFractionDigits: 2 },
+  );
+  const sign = value < 0 ? "-" : "";
+  // Other currencies are rare here (they're listed as unconverted), so the code is clearest.
+  return prefix ? `${sign}${prefix}${number}` : `${sign}${number} ${currency}`;
+}
+
 // Below this share, an unopened fund barely moves the numbers. Above it, a company's
 // total could be noticeably understated, so the screen says so up front.
 const UNOPENED_WARNING_ABOVE = 0.05;

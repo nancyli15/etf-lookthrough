@@ -68,6 +68,7 @@ type Options = {
   funds?: Record<string, Fund>;
   fundsWithoutData?: Set<string>;
   fx?: typeof FX;
+  currency?: string; // Report in this currency. Without it, the holdings decide.
 };
 
 const FUND_KINDS = new Set(["etf", "mutualfund"]);
@@ -185,10 +186,10 @@ export function lookThrough(holdings: Holding[], options: Options = {}): LookThr
   const withoutData = options.fundsWithoutData ?? FUNDS_WITHOUT_DATA;
   const fx = options.fx ?? FX;
 
-  const currency = chooseCurrency(holdings);
+  const currency = options.currency ?? chooseCurrency(holdings);
 
   const result: LookThroughResult = {
-    currency: holdings.length ? currency : "USD",
+    currency: options.currency ?? (holdings.length ? currency : "USD"),
     total: 0,
     companies: [],
     directHoldings: [],

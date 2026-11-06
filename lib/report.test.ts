@@ -197,8 +197,26 @@ describe("buildReport", () => {
       { positions: positions([aapl]), balances: { ok: true, data: [{ currency: { code: "USD" }, cash: 100 }] } },
       { positions: positions([]), balances: { ok: true, data: [{ currency: { code: "CAD" }, cash: 139.78 }] } },
     ]);
-    expect(r.cash).toBeCloseTo(200); // 139.78 CAD is 100 USD at 1.3978.
+    // Canadian cash makes the report CAD: US$100 is CA$139.78, plus CA$139.78.
+    expect(r.result.currency).toBe("CAD");
+    expect(r.cash).toBeCloseTo(279.56);
     expect(r.result.fxAsOf).toBeDefined();
+  });
+
+  it("reports an account with only CA$ cash in CAD, with no conversion, like an empty FHSA", () => {
+    const r = buildReport([{ positions: positions([]), balances: { ok: true, data: [{ currency: { code: "CAD" }, cash: 18.59 }] } }]);
+    expect(r.result.currency).toBe("CAD");
+    expect(r.cash).toBeCloseTo(18.59);
+    expect(r.result.fxAsOf).toBeUndefined();
+  });
+
+  it("reports in the currency the switch chose: US$100 is CA$139.78", () => {
+    const r = buildReport([{ positions: positions([aapl]), balances: { ok: true, data: [{ currency: { code: "USD" }, cash: 100 }] } }], {
+      currency: "CAD",
+    });
+    expect(r.result.currency).toBe("CAD");
+    expect(r.cash).toBeCloseTo(139.78);
+    expect(r.result.total).toBeCloseTo(500 * 1.3978);
   });
 
   it("lists cash it can't count instead of treating it as zero", () => {

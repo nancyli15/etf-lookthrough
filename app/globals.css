@@ -42,7 +42,11 @@ p { margin: 0 0 12px; }
   border: none;
   border-radius: 8px;
   padding: 10px 16px;
+  /* <button> doesn't inherit the page's font or line height, so it came out shorter
+     than a link or summary styled the same way. Set both, so they line up. */
+  font-family: inherit;
   font-size: 1rem;
+  line-height: 1.5;
   text-decoration: none;
   cursor: pointer;
 }
@@ -88,7 +92,10 @@ pre {
 
 /* Charts sit in pairs beside what they explain, inside one page scroll. Each pair
    stacks on a phone, and a pair with one card left uses the full width. */
-.container:has(.pair) { max-width: 1100px; }
+/* The dashboard is wider than the sign-in page. Keyed on the page header, which is on
+   the dashboard in every state: keyed on the chart pair, the page narrowed whenever
+   the pair wasn't shown, like with no account chosen. */
+.container:has(.page-header) { max-width: 1100px; }
 .pair { display: grid; gap: 16px; margin: 16px 0; }
 .pair > .card { margin: 0; }
 @media (min-width: 900px) {
@@ -123,8 +130,21 @@ pre {
 }
 .view-button:hover { background: var(--bg); }
 .view-button.current { border-color: var(--accent); background: var(--selected); color: var(--accent); font-weight: 600; }
-.companies td { vertical-align: top; }
-.companies td.sources { width: 45%; padding-top: 12px; }
+/* table-layout: fixed sizes the columns from the <col> widths alone, so the content
+   can't move them: opening a dropdown or changing page keeps every bar in place. */
+.companies { table-layout: fixed; }
+.companies .col-company { width: 26%; }
+.companies .col-sources { width: 44%; }
+.companies .col-total { width: 16%; }
+.companies .col-percent { width: 14%; }
+.companies td { vertical-align: top; overflow-wrap: anywhere; }
+.companies td.sources { padding-top: 12px; }
+/* On a phone, the bar column gets less room so the numbers still fit. */
+@media (max-width: 600px) {
+  .companies .col-company { width: 34%; }
+  .companies .col-sources { width: 30%; }
+  .companies .col-total { width: 22%; }
+}
 .source-line { display: flex; flex-wrap: wrap; gap: 2px 14px; margin-top: 6px; }
 .totals { display: flex; flex-wrap: wrap; gap: 4px 16px; align-items: center; margin: 12px 0 0; color: var(--muted); }
 .totals strong { color: var(--text); }
@@ -241,3 +261,53 @@ html { scrollbar-gutter: stable; }
   background: var(--bg);
 }
 .button:disabled { opacity: 0.5; cursor: default; }
+
+/* Account picker: a dropdown of checkboxes beside Disconnect. */
+.picker { position: relative; }
+/* Block, not inline: inline left a few pixels of text-line space under it, which
+   pushed it lower than the buttons beside it. */
+.picker > summary { display: block; list-style: none; }
+.picker > summary::-webkit-details-marker { display: none; }
+.picker-menu {
+  position: absolute;
+  right: 0;
+  z-index: 10;
+  width: min(360px, calc(100vw - 32px));
+  margin: 8px 0 0;
+  padding: 12px 16px;
+  box-shadow: 0 8px 24px rgba(17, 24, 39, 0.12);
+}
+.picker-row { display: flex; gap: 10px; align-items: center; padding: 5px 0; cursor: pointer; }
+.picker-row input { accent-color: var(--accent); }
+.picker-all { border-bottom: 1px solid var(--border); padding-bottom: 8px; margin-bottom: 4px; font-weight: 600; }
+.picker-brokerage { font-weight: 600; margin-top: 6px; }
+.picker-account { padding-left: 24px; font-size: 0.9rem; }
+.picker-account .num { margin-left: auto; font-variant-numeric: tabular-nums; }
+
+/* US$ / CA$ switch: two halves of one pill, like a light/dark toggle. */
+.switch { display: inline-flex; border: 1px solid var(--border); border-radius: 999px; background: var(--card); padding: 2px; }
+.switch-option {
+  padding: 6px 12px;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.switch-option.current { background: var(--accent); color: #fff; }
+.switch-option:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* Page header: the title on the left, the controls on the right. The controls never
+   wrap under the title on a wide screen, so changing accounts can't make it jump. */
+.page-header { display: flex; gap: 16px 24px; align-items: flex-start; justify-content: space-between; }
+.page-title { flex: 1 1 auto; min-width: 0; }
+.page-title p { margin: 0 0 4px; }
+.page-controls { display: flex; flex: none; flex-wrap: nowrap; gap: 12px; align-items: center; }
+/* On a phone there isn't room, so the controls go under the title, the same way every time. */
+@media (max-width: 760px) {
+  .page-header { flex-direction: column; }
+  .page-controls { flex-wrap: wrap; }
+}

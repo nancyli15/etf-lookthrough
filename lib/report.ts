@@ -135,11 +135,32 @@ function readBrokerageTotal(accounts: AccountData[], reportCurrency: string): nu
   return total;
 }
 
-export function buildReport(accounts: AccountData[]): Report {
+export type ReportCurrency = "USD" | "CAD";
+
+// The currency to report in, if the user hasn't chosen one with the switch. It
+// looks at cash and SnapTrade's account totals as well as holdings: an FHSA with
+// only CA$ cash used to fall back to USD and get converted for no reason.
+export function naturalCurrency(accounts: AccountData[], holdingCurrencies: string[]): ReportCurrency {
+  const currencies = new Set(holdingCurrencies);
+  for (const accountData of accounts) {
+    const total = accountData.account?.balance?.total?.currency;
+    if (typeof total === "string") currencies.add(total);
+    const rows = accountData.balances?.ok && Array.isArray(accountData.balances.data) ? accountData.balances.data : [];
+    for (const row of rows) {
+      const code = row?.currency?.code ?? row?.currency;
+      if (typeof code === "string") currencies.add(code);
+    }
+  }
+  // Any Canadian money means a Canadian user, so CAD. Otherwise USD.
+  return currencies.has("CAD") ? "CAD" : "USD";
+}
+
+export function buildReport(accounts: AccountData[], options: { currency?: ReportCurrency } = {}): Report {
   const loaded = accounts.filter((accountData) => accountData.positions.ok);
   const responses = loaded.map((accountData) => accountData.positions.data);
   const { holdings, skipped } = toHoldings(responses);
-  const result = lookThrough(holdings);
+  const currency = options.currency ?? naturalCurrency(accounts, holdings.map((holding) => holding.currency));
+  const result = lookThrough(holdings, { currency });
   const { cash, converted, cashNotLoaded, cashUnconverted } = readCash(accounts, result.currency);
   if (converted) result.fxAsOf = FX.asOf;
 

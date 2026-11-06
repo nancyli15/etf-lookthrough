@@ -3,6 +3,7 @@
 // /balanceHistory endpoint. Dashboard.tsx loads /api/history and passes it in, so
 // if the beta fails, only this card shows an error.
 import { useMemo, useRef, useState } from "react";
+import { formatMoney } from "../../lib/format";
 import { combineHistory, splitAtGaps, type HistoryLoad, type ValuePoint } from "../../lib/history";
 
 const WIDTH = 560;
@@ -34,8 +35,7 @@ export default function AccountValueChart({ history: load, currency, money }: Pr
     [load, currency],
   );
 
-  const compactMoney = (value: number) =>
-    value.toLocaleString(undefined, { style: "currency", currency, notation: "compact", maximumFractionDigits: 1 });
+  const compactMoney = (value: number) => formatMoney(value, currency, { compact: true });
 
   let body: React.ReactNode;
   if (error) {
@@ -105,12 +105,16 @@ function LineChart({ points, hoverIndex, setHoverIndex, svgRef, money, compactMo
   const yMin = low - padding;
   const yMax = high + padding;
 
+  const gridValues = [0, 0.5, 1].map((share) => low + (high - low) * share);
+  // The left margin fits the longest axis label. A fixed 72 cut off "CA$165.4K".
+  // About 9.5 units per character at the axis's 16-unit font, plus a gap before the line.
+  const longestLabel = Math.max(...gridValues.map((value) => compactMoney(value).length));
+  const left = Math.max(PAD.left, Math.ceil(longestLabel * 9.5) + 14);
+
   const firstTime = Date.parse(points[0].date);
   const span = Date.parse(points[points.length - 1].date) - firstTime || 1;
-  const x = (date: string) => PAD.left + ((Date.parse(date) - firstTime) / span) * (WIDTH - PAD.left - PAD.right);
+  const x = (date: string) => left + ((Date.parse(date) - firstTime) / span) * (WIDTH - left - PAD.right);
   const y = (value: number) => PAD.top + (1 - (value - yMin) / (yMax - yMin)) * (HEIGHT - PAD.top - PAD.bottom);
-
-  const gridValues = [0, 0.5, 1].map((share) => low + (high - low) * share);
   const dateLabels = [points[0], points[Math.floor(points.length / 2)], points[points.length - 1]];
   const hovered = hoverIndex === null ? null : points[hoverIndex];
 
@@ -138,8 +142,8 @@ function LineChart({ points, hoverIndex, setHoverIndex, svgRef, money, compactMo
       >
         {gridValues.map((value) => (
           <g key={value}>
-            <line className="grid" x1={PAD.left} x2={WIDTH - PAD.right} y1={y(value)} y2={y(value)} />
-            <text className="axis" x={PAD.left - 8} y={y(value)} textAnchor="end" dominantBaseline="middle">
+            <line className="grid" x1={left} x2={WIDTH - PAD.right} y1={y(value)} y2={y(value)} />
+            <text className="axis" x={left - 8} y={y(value)} textAnchor="end" dominantBaseline="middle">
               {compactMoney(value)}
             </text>
           </g>
