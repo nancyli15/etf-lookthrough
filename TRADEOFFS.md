@@ -19,6 +19,7 @@ The parts of the API the app depends on, and what happens if they change. SnapTr
 | Load history from its own route, `/api/history` | If the beta fails or changes, only the chart shows an error and the rest of the page loads | — |
 | Start the history call only after `/api/raw` finishes | Refresh tokens can be used once. Two calls refreshing at the same moment would sign the user out | Keep one shared session store on the server, so calls can't race |
 | Chart only the dates every account reports | Adding accounts on a date only some of them report would show a fake drop | Fill short gaps from the nearest day, and label them |
+| Leave out $0 days at the start of the history | They're before the account had money, and they stretched the chart to $0 so the first deposit looked like a huge jump. A $0 later on could be real, so it stays | — |
 | Break the line after more than 5 days without data | Weekends and holidays are normal, but a straight line across weeks would hide missing data | — |
 | Label the chart "Account value", not returns | Deposits and withdrawals move the line too, so a rise isn't a return | Calculate time-weighted returns from activities |
 | Convert history in other currencies at today's rate | We have one dated rate, not daily history | Daily exchange rates |
@@ -70,7 +71,11 @@ The parts of the API the app depends on, and what happens if they change. SnapTr
 | Plain HTML, CSS and SVG charts, no chart library | Every line can be explained, and the page stays small | A library if charts need zooming or many series |
 | Chart colors checked for colorblind separation and contrast, in light and dark mode | Blue and orange stay distinct for the most common kinds of colorblindness, and every chart also has a table | — |
 | Share percentages only: no dollar amounts, net worth or account names | People share this with friends and online, and the percentages are the interesting part | A share image, made the same way |
-| The phone's share menu when there is one, otherwise copy to clipboard | Desktop browsers mostly don't have a share menu | — |
+| Share image of the top 5 companies, made in the browser | A picture travels further than text in chats and posts. Drawing it in the browser means holdings never go to a server to make it | — |
+| Build the image as an SVG, then convert it to a PNG | The SVG is plain text, so tests can check it has no dollar amounts. Chats and social apps accept PNGs, but often not SVGs | — |
+| Share opens a card showing the exact image, with Copy image, Download and Copy as text | You see what you're sharing before it leaves the page, and copying is quicker than saving a file. The system share menu is one more button, only where it works, instead of popping up by itself | — |
+| Copied text has no link | Chat apps turn a pasted link into their own preview image, which looked like extra images | Let the user choose to include the link |
+| Link preview is one generic image, with no holdings | Anyone can fetch a link's preview, so it must never show a user's data | — |
 | One light theme, styled like SnapTrade's dashboard, instead of following the system's dark mode | It feels at home next to SnapTrade's own screens, and one theme is half the colors to check | Add a dark theme back, with its own checked chart colors |
 
 ## Tooling

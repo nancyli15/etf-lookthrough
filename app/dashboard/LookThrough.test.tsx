@@ -43,6 +43,7 @@ describe("LookThrough screen", () => {
     expect(html).toContain("Through SPY");
     expect(html).toContain("Account value");
     expect(html).toContain("Share my top companies");
+    expect(html).toContain("Copy image");
     // The charts come between the summary and the details, so a phone shows them early.
     expect(html.indexOf("Your biggest companies")).toBeLessThan(html.indexOf("The details"));
   });
