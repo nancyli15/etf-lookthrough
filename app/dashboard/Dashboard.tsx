@@ -7,6 +7,7 @@
 // refresh and the second would sign the user out. Waiting for /api/raw means its
 // refreshed token is already saved when /api/history starts.
 import { useEffect, useState } from "react";
+import { emptyAccountsMessage } from "@/lib/connections";
 import type { HistoryLoad } from "@/lib/history";
 import type { Report } from "@/lib/report";
 import DeveloperView from "./DeveloperView";
@@ -33,7 +34,8 @@ export type DashboardData = {
   fetchedAt: string; // When the data was retrieved
   accountsCall: { status: number; ok: boolean }; // Result of the request for the user's accounts
   accounts: AccountData[];
-  accountsRaw?: unknown; // Original accounts response, for debugging failed requests
+  accountsRaw?: unknown; // Original /accounts response, when it failed or held no accounts we could read
+  connectionsCall?: ApiResponse; // /authorizations, only when there are no accounts: says why
   report: Report | null; // The look-through, calculated on the server from the data above
 };
 
@@ -96,9 +98,7 @@ export default function Dashboard({ email }: { email?: string }) {
       {dashboardData && dashboardData.accountsCall.ok && dashboardData.accounts.length === 0 && (
         <div className="card">
           <h2>No accounts yet</h2>
-          <p className="muted">
-            Connect a brokerage in your SnapTrade Dashboard, then refresh this page.
-          </p>
+          <p className="muted">{emptyAccountsMessage(dashboardData.accountsRaw, dashboardData.connectionsCall)}</p>
         </div>
       )}
 

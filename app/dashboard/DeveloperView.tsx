@@ -124,8 +124,10 @@ export default function DeveloperView({ data, history }: { data: DashboardData; 
   ];
   const accounts = data.accounts.length;
   // /api/raw: /accounts, then 3 per account. /api/history: /accounts again, then 1 per account.
-  const historyCalls = history.state === "loading" || !data.accountsCall.ok ? 0 : 1 + accounts;
-  const totalCalls = 1 + 3 * accounts + historyCalls;
+  // /api/history only runs when there are accounts (see Dashboard.tsx).
+  const historyCalls = history.state === "loading" || !data.accountsCall.ok || accounts === 0 ? 0 : 1 + accounts;
+  const connectionsCalls = data.connectionsCall ? 1 : 0;
+  const totalCalls = 1 + 3 * accounts + historyCalls + connectionsCalls;
   const perAccount = 3 + (historyCalls ? 1 : 0);
 
   return (
@@ -143,20 +145,48 @@ export default function DeveloperView({ data, history }: { data: DashboardData; 
             share it.
           </span>
         </div>
-        <p className="small spaced">
-          This page made <strong>{totalCalls} calls</strong> to SnapTrade: /accounts {historyCalls ? "twice" : "once"}, and{" "}
-          {perAccount} per account. Where SnapTrade's per-account limit applies, it's {ACCOUNT_LIMIT_PER_MINUTE} a minute,
-          so refreshing more than twice a minute can hit it.
-        </p>
+        {accounts > 0 ? (
+          <p className="small spaced">
+            This page made <strong>{countOf(totalCalls, "call")}</strong> to SnapTrade: /accounts{" "}
+            {historyCalls ? "twice" : "once"}, and {perAccount} per account. Where SnapTrade's per-account limit
+            applies, it's {ACCOUNT_LIMIT_PER_MINUTE} a minute, so refreshing more than twice a minute can hit it.
+          </p>
+        ) : (
+          <p className="small spaced">
+            This page made <strong>{countOf(totalCalls, "call")}</strong> to SnapTrade: /accounts
+            {connectionsCalls ? ", then /authorizations to see why there are no accounts" : ""}.
+          </p>
+        )}
         <p className="muted small">
           /api/raw fetched {new Date(data.fetchedAt).toLocaleString()}
           {history.state === "loaded" && <>, /api/history fetched {new Date(history.fetchedAt).toLocaleString()}</>}.
         </p>
       </div>
 
-      {!data.accountsCall.ok && (
+      {(!data.accountsCall.ok || data.accounts.length === 0) && (
         <div className="card">
-          <CallRow path="/accounts" status={data.accountsCall.status} ok={false} summary="" data={data.accountsRaw} />
+          <h2>This sign-in</h2>
+          <CallRow
+            path="/accounts"
+            status={data.accountsCall.status}
+            ok={data.accountsCall.ok}
+            summary={Array.isArray(data.accountsRaw) ? countOf(data.accountsRaw.length, "account") : "Not a list"}
+            data={data.accountsRaw}
+          />
+          {data.connectionsCall && (
+            <CallRow
+              path="/authorizations"
+              status={data.connectionsCall.status}
+              ok={data.connectionsCall.ok}
+              summary={
+                Array.isArray(data.connectionsCall.data)
+                  ? `${countOf(data.connectionsCall.data.length, "connection")} shared with this sign-in`
+                  : "Not a list"
+              }
+              data={data.connectionsCall.data}
+              note="Called only because there are no accounts, to show why."
+            />
+          )}
         </div>
       )}
 

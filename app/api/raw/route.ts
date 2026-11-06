@@ -39,12 +39,21 @@ export async function GET(req: NextRequest) {
       });
     }
 
+    // No accounts we can read: keep what SnapTrade sent, and ask which connections
+    // this sign-in has, so the page can say why (see lib/connections.ts). One extra
+    // call, and only in this case.
+    const noAccounts = accounts.ok && perAccount.length === 0;
+    const connections = noAccounts ? await client.get("/authorizations") : undefined;
+
     const body = {
       fetchedAt: new Date().toISOString(),
       apiBase: API_BASE,
       accountsCall: { path: accounts.path, status: accounts.status, ok: accounts.ok },
       accounts: perAccount,
-      accountsRaw: accounts.ok ? undefined : accounts.data,
+      accountsRaw: accounts.ok && !noAccounts ? undefined : accounts.data,
+      connectionsCall: connections
+        ? { path: connections.path, status: connections.status, ok: connections.ok, data: connections.data }
+        : undefined,
     };
 
     const download = req.nextUrl.searchParams.get("download") === "1";
