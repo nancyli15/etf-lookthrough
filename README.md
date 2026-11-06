@@ -1,6 +1,6 @@
 # ETF Look-Through
 
-Your brokerage app shows a few ETF tickers. This app shows the companies inside them, and how much of your money really sits in each one.
+Your brokerage app shows a few ETF tickers. This app shows the companies inside them, and how much of your money really sits in each one. For self-directed DIY investors who hold several ETFs and some stocks, often across accounts (TFSA, FHSA, RRSP, IRA, taxable), and who suspect they're less diversified than they think. Typical case: holding XEQT, XQQ and SPY and assuming three funds means three different things.
 
 Built on [SnapTrade OAuth](https://docs.snaptrade.com/docs/oauth-apps): you sign in with SnapTrade, approve read-only access, and the app reads your holdings across connected brokerages.
 
