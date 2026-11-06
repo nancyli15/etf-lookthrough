@@ -114,6 +114,14 @@ export default function CompanyTable({ report, money }: Props) {
       </div>
 
       <table className="companies">
+        {/* Fixed column widths. Without them, opening a dropdown (one wide cell across
+            all four columns) made the browser re-share the widths, and every bar shifted. */}
+        <colgroup>
+          <col className="col-company" />
+          <col className="col-sources" />
+          <col className="col-total" />
+          <col className="col-percent" />
+        </colgroup>
         <thead>
           <tr>
             <th>Company</th>

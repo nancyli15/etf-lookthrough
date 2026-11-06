@@ -127,8 +127,21 @@ pre {
 }
 .view-button:hover { background: var(--bg); }
 .view-button.current { border-color: var(--accent); background: var(--selected); color: var(--accent); font-weight: 600; }
-.companies td { vertical-align: top; }
-.companies td.sources { width: 45%; padding-top: 12px; }
+/* table-layout: fixed sizes the columns from the <col> widths alone, so the content
+   can't move them: opening a dropdown or changing page keeps every bar in place. */
+.companies { table-layout: fixed; }
+.companies .col-company { width: 26%; }
+.companies .col-sources { width: 44%; }
+.companies .col-total { width: 16%; }
+.companies .col-percent { width: 14%; }
+.companies td { vertical-align: top; overflow-wrap: anywhere; }
+.companies td.sources { padding-top: 12px; }
+/* On a phone, the bar column gets less room so the numbers still fit. */
+@media (max-width: 600px) {
+  .companies .col-company { width: 34%; }
+  .companies .col-sources { width: 30%; }
+  .companies .col-total { width: 22%; }
+}
 .source-line { display: flex; flex-wrap: wrap; gap: 2px 14px; margin-top: 6px; }
 .totals { display: flex; flex-wrap: wrap; gap: 4px 16px; align-items: center; margin: 12px 0 0; color: var(--muted); }
 .totals strong { color: var(--text); }
