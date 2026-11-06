@@ -208,12 +208,6 @@ describe("fund overlap", () => {
     expect(r.overlaps[0].basis).toBe("holdings");
   });
 
-  it("says how much money is duplicated: $1,000 of A and $500 of B", () => {
-    const r = lookThrough([holding("A", "etf", 1000), holding("B", "etf", 500)], { funds });
-    // AAPL: min($100 in A, $20 in B) = $20. MSFT: min($50 in A, $40 in B) = $40. Total $60.
-    expect(r.overlaps[0].sharedValue).toBeCloseTo(60);
-  });
-
   it("calls two funds on the same list a 100% overlap", () => {
     const list = { SPY: spy, FXAIX: { ...spy, symbol: "FXAIX", approximatedBy: "SPY" } };
     const r = lookThrough([holding("SPY", "etf", 100), holding("FXAIX", "mutualfund", 100)], { funds: list });

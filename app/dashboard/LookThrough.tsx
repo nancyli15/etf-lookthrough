@@ -2,9 +2,9 @@
 // live in lib/ where they're tested.
 //
 // Top to bottom: the summary (net worth, split into stocks, funds, crypto and cash)
-// beside the account value chart, the biggest-company finding, your funds and their overlap,
-// every company, and what couldn't be looked through. Clicking a fund's name shows
-// its companies in the table below it. One page scroll; on a phone, the top pair stacks.
+// beside the account value chart, the biggest-company finding, every company, your
+// funds and their overlap, and what couldn't be looked through. Clicking a fund's name
+// shows its companies in the table above it. One page scroll; on a phone, the top pair stacks.
 import { useState } from "react";
 import { FX } from "../../data/fx";
 import { formatMoney, hasLargeGap, percentText } from "../../lib/format";
@@ -17,6 +17,7 @@ import CompanyTable from "./CompanyTable";
 import FundsCard from "./FundsCard";
 import InfoPopover from "./InfoPopover";
 import ShareButton from "./ShareButton";
+import BiggestCompany from "./BiggestCompany";
 
 function sumOf<T>(rows: T[], valueOf: (row: T) => number): number {
   return rows.reduce((sum, row) => sum + valueOf(row), 0);
@@ -187,6 +188,7 @@ export default function LookThrough({ report, history = { state: "loading" }, in
       <div className="card">
         <p className="headline">{headline?.title ?? "There's nothing to look through in these accounts yet."}</p>
         {headline && <p className="muted">{headline.detail}</p>}
+        <BiggestCompany company={result.companies[0]} money={money} />
         {hasLargeGap(result) && (
           <p className="error">
             {shareOf(unopened)} of your portfolio sits inside funds we can't open yet (
@@ -196,11 +198,11 @@ export default function LookThrough({ report, history = { state: "loading" }, in
         <ShareButton result={result} />
       </div>
 
-      {/* Funds before companies: the funds are what you bought, and clicking one filters
-          the company table below it to what's inside. */}
-      <FundsCard result={result} money={money} onFundClick={showFund} />
-
+      {/* Companies first: what you own through everything is the point of the page.
+          Your funds come after, and clicking one jumps back up to its companies. */}
       <CompanyTable report={report} money={money} view={view} onViewChange={setView} />
+
+      <FundsCard result={result} money={money} onFundClick={showFund} />
 
       {(result.notLookedThrough.length > 0 || result.insideUnopenedFunds.length > 0) && (
         <div className="card">

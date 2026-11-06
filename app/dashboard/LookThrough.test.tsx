@@ -52,7 +52,7 @@ describe("LookThrough screen", () => {
     expect(html).toContain("Share my top companies");
     expect(html).toContain("Copy image");
     // The old chart, breakdown card and separate tables are gone.
-    expect(html).not.toContain("Your biggest companies");
+    expect(html).not.toContain("Your biggest companies"); // An old card, and a top-5 chart that repeated this table.
     expect(html).not.toContain("<h2>Companies inside your funds</h2>");
     expect(html).not.toContain("Both combined");
     // A company held only through funds shows no direct amount, not a dash.
@@ -79,9 +79,9 @@ describe("LookThrough screen", () => {
     const funds = html.indexOf("Your funds");
     expect(summary).toBeGreaterThan(-1);
     expect(finding).toBeGreaterThan(summary);
-    // Funds come before companies: clicking a fund filters the company table below it.
-    expect(funds).toBeGreaterThan(finding);
-    expect(companies).toBeGreaterThan(funds);
+    // Companies come before funds: what you own is the point of the page.
+    expect(companies).toBeGreaterThan(finding);
+    expect(funds).toBeGreaterThan(companies);
     expect(html).not.toContain("This total is incomplete");
   });
 
@@ -303,21 +303,42 @@ describe("your funds card", () => {
     expect(html).toContain("is cash, futures or currency contracts inside the");
   });
 
-  it("shows each fund's share of your funds, with a donut of fund sizes", () => {
+  // Needs XEQT, which the sample data for a fresh clone doesn't have.
+  it.skipIf(FUND_DATA_IS_SAMPLE)("shows each fund's share of your funds, with a donut of fund sizes", () => {
     expect(html).toContain("Of your funds");
     expect(html).toContain("in funds"); // The donut's centre label.
   });
 
-  it("links each fund's name to its companies, and adds a filter button per fund", () => {
+  // Needs XEQT, which the sample data for a fresh clone doesn't have.
+  it.skipIf(FUND_DATA_IS_SAMPLE)("links each fund's name to its companies, and adds a filter button per fund", () => {
     expect(html).toContain('title="Show the companies inside SPY">SPY</button>');
     expect(html).toContain('title="Show the companies inside XEQT">XEQT</button>');
     // In the company table, after All / Bought directly / Through funds.
     expect(html).toMatch(/Through funds<\/button><button[^>]*>SPY<\/button>/);
   });
 
-  it("shows overlap as a grid of pairs, with the duplicated money in dollars", () => {
-    expect(html).toContain("overlap-grid");
-    expect(html).toContain("of your money is in the same companies through both");
+  // Needs XEQT, which the sample data for a fresh clone doesn't have.
+  it.skipIf(FUND_DATA_IS_SAMPLE)("shows overlap as a ranked list of pairs, led by the biggest pair in dollars", () => {
+    expect(html).toContain("Your biggest overlap");
+    expect(html).toContain('<span class="overlap-pair">SPY + XEQT</span>');
+    expect(html).toContain("How overlap is measured"); // The ⓘ that defines the percentage.
+    // The old grid, and the "duplicated money" figure that read like money wasted.
+    expect(html).not.toContain("overlap-grid");
+    expect(html).not.toContain("of your money is in the same companies through both");
+  });
+});
+
+describe("your biggest company, under the headline", () => {
+  it("gives the total and the part through funds, and doesn't repeat the company table", () => {
+    const html = render([ok([position("AAPL", "stock", 500), position("SPY", "etf", 1000)])]);
+    expect(html).toContain("so you own "); // "…so you own 15% more of it than your shares alone."
+    expect(html).toContain("through your funds</p>");
+    expect(html).toMatch(/\d+\.\d% of your AAPL name/); // The test data names Apple "AAPL name".
+    expect(html).not.toContain("Your biggest companies"); // The top-5 chart that repeated the table.
+  });
+
+  it("isn't shown for a company you only bought yourself", () => {
+    expect(render([ok([position("AAPL", "stock", 500)])])).not.toContain("insight-tiles");
   });
 });
 

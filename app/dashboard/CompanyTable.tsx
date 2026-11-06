@@ -143,9 +143,12 @@ export default function CompanyTable({ report, money, view, onViewChange }: Prop
             }${company.throughFunds > 0 ? `${money(company.throughFunds)} via ${company.viaFunds.join(" and ")}` : ""}`;
             return (
               <Fragment key={company.key}>
-                <tr className={isOpen ? "selected" : undefined}>
+                {/* Clicking anywhere on the row opens it, not only the name. The name stays a
+                    button, so the keyboard and screen readers still have something to press:
+                    its click bubbles up to the row, which does the toggling. */}
+                <tr className={`company-row${isOpen ? " selected" : ""}`} onClick={() => toggleOpen(company.key)}>
                   <td>
-                    <button className="link" type="button" onClick={() => toggleOpen(company.key)} aria-expanded={isOpen}>
+                    <button className="link" type="button" aria-expanded={isOpen}>
                       {shortName(company.name)} <span aria-hidden="true">{isOpen ? "▾" : "▸"}</span>
                     </button>{" "}
                     <span className="muted">{company.symbol}</span>

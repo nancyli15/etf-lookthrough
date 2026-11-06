@@ -56,9 +56,12 @@ export function headlineFor(companies: CompanyExposure[]): Headline | undefined 
   const funds = listOf(company.viaFunds);
   const title = `${shortName(company.name)} is your biggest company, at ${percentText(company.percent)} of your holdings.`;
   if (company.direct > 0 && funds) {
+    // What look-through found, as one number: how much more you own than your own shares.
+    // CA$5,731 bought plus CA$2,866 through funds is 50% more than the shares alone.
+    const more = Math.round((company.throughFunds / company.direct) * 100);
     return {
       title,
-      detail: `You own it directly and through ${funds}, so it's a bigger part of your money than your brokerage's list suggests.`,
+      detail: `You own it directly and through ${funds}, so you own ${more}% more of it than your shares alone.`,
     };
   }
   if (funds) {
