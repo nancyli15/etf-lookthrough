@@ -10,7 +10,8 @@ import { displayName, shortName } from "../../lib/names";
 import { hasLargeGap, percentText } from "../../lib/format";
 import type { Report } from "../../lib/report";
 import AccountValueChart from "./AccountValueChart";
-import CompanyBreakdown, { SourceRows } from "./CompanyBreakdown";
+import CompanyBreakdown from "./CompanyBreakdown";
+import CompanyDetails from "./CompanyDetails";
 import CompanyChart from "./CompanyChart";
 import ShareButton from "./ShareButton";
 
@@ -344,7 +345,15 @@ export default function LookThrough({ report }: { report: Report }) {
                     {isOpen && (
                       <tr className="open-row">
                         <td colSpan={5}>
-                          <SourceRows company={company} money={money} />
+                          <CompanyDetails
+                            company={company}
+                            funds={result.funds}
+                            holdingsTotal={result.total}
+                            activities={report.recentActivity[company.symbol.toUpperCase()] ?? []}
+                            activitySince={report.activitySince}
+                            activityNotLoaded={report.activityNotLoaded}
+                            money={money}
+                          />
                         </td>
                       </tr>
                     )}

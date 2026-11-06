@@ -2,6 +2,7 @@
 // No UI here, so the wording and the failure handling can be tested directly.
 import { FX } from "../data/fx";
 import { toHoldings, toNumber } from "./holdings";
+import { recentActivity, type Activity } from "./activities";
 import { convertCurrency } from "./currency";
 import { hasLargeGap, listOf, percentText, shareText } from "./format";
 import { lookThrough, type CompanyExposure, type LookThroughResult } from "./lookthrough";
@@ -11,9 +12,14 @@ import { shortName } from "./names";
 export { hasLargeGap, percentText, shareText };
 
 export type AccountData = {
-  account?: { name?: string; balance?: { total?: { amount?: unknown; currency?: unknown } } };
+  account?: {
+    name?: string;
+    balance?: { total?: { amount?: unknown; currency?: unknown } };
+    sync_status?: { transactions?: { first_transaction_date?: unknown } };
+  };
   positions: { ok: boolean; status: number; data: unknown };
   balances?: { ok: boolean; data: unknown };
+  activities?: { ok: boolean; data: unknown };
 };
 
 export type Headline = {
@@ -33,6 +39,9 @@ export type Report = {
   netWorth: number;
   brokerageTotal?: number; // SnapTrade's own account totals, when every account reports one.
   differsFromBrokerage: boolean; // Our total and SnapTrade's disagree by more than timing could explain.
+  recentActivity: Record<string, Activity[]>; // Your latest trades and dividends, by ticker.
+  activitySince?: string; // YYYY-MM-DD. Every account's history covers at least this far back.
+  activityNotLoaded: string[]; // Accounts whose /activities call failed.
 };
 
 // Prices can move between API calls, so a small difference isn't a real disagreement.
@@ -56,6 +65,17 @@ export function headlineFor(companies: CompanyExposure[]): Headline | undefined 
     return { title, detail: `You own it only through ${funds}, so it doesn't appear on your brokerage's list.` };
   }
   return { title, detail: "You own it directly, and none of the funds we can see hold it." };
+}
+
+// How far back activity goes, from each account's sync_status. With several
+// accounts, the latest start is the honest one: every account covers it. If any
+// account doesn't say, there's no date we can promise.
+function activitySince(accounts: AccountData[]): string | undefined {
+  const starts = accounts.map((accountData) => accountData.account?.sync_status?.transactions?.first_transaction_date);
+  if (starts.length === 0 || !starts.every((date): date is string => typeof date === "string" && /^\d{4}-\d{2}-\d{2}/.test(date))) {
+    return undefined;
+  }
+  return starts.map((date) => date.slice(0, 10)).sort().at(-1);
 }
 
 // With several accounts, the oldest date is the honest one for the whole page.
@@ -147,6 +167,13 @@ export function buildReport(accounts: AccountData[]): Report {
     cashUnconverted,
     netWorth,
     brokerageTotal,
+    recentActivity: recentActivity(
+      accounts.filter((accountData) => accountData.activities?.ok).map((accountData) => accountData.activities!.data),
+    ),
+    activitySince: activitySince(accounts),
+    activityNotLoaded: accounts
+      .filter((accountData) => accountData.activities && !accountData.activities.ok)
+      .map((accountData) => accountData.account?.name ?? "An account"),
     differsFromBrokerage:
       isComplete &&
       brokerageTotal !== undefined &&

@@ -9,7 +9,7 @@ type Props = {
   money: (value: number) => string;
 };
 
-// Shared by the card beside the bar chart and the rows that open inside the table.
+// The rows of the card beside the bar chart: one per source, with its share.
 export function SourceRows({ company, money }: Props) {
   const sources = [
     ...(company.direct > 0 ? [{ label: "Bought directly", value: company.direct, kind: "direct" }] : []),

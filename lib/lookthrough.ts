@@ -14,6 +14,7 @@ export type CompanyExposure = {
   symbol: string;
   name: string;
   direct: number;
+  directUnits: number; // Shares held directly, across accounts.
   throughFunds: number;
   total: number;
   percent: number; // Fraction of the portfolio total.
@@ -205,12 +206,21 @@ export function lookThrough(holdings: Holding[], options: Options = {}): LookThr
   const flattened = new Map<string, Flattened>();
   const unopened = new Map<string, { symbol: string; name: string; value: number }>();
 
-  function addToCompany(key: string, symbol: string, name: string, direct: number, through: number, via?: string) {
+  function addToCompany(
+    key: string,
+    symbol: string,
+    name: string,
+    direct: number,
+    through: number,
+    via?: string,
+    directUnits = 0,
+  ) {
     const exposure = companies.get(key) ?? {
       key,
       symbol,
       name: COMPANY_BY_SYMBOL[symbol] && !key.includes("|") ? COMPANY_BY_SYMBOL[symbol] : name,
       direct: 0,
+      directUnits: 0,
       throughFunds: 0,
       total: 0,
       percent: 0,
@@ -218,6 +228,7 @@ export function lookThrough(holdings: Holding[], options: Options = {}): LookThr
       byFund: [],
     };
     exposure.direct += direct;
+    exposure.directUnits += directUnits;
     exposure.throughFunds += through;
     exposure.total += direct + through;
     if (via) {
@@ -264,7 +275,7 @@ export function lookThrough(holdings: Holding[], options: Options = {}): LookThr
 
     const ticker = cleanTicker(holding);
     if (!FUND_KINDS.has(holding.kind)) {
-      addToCompany(companyKey(ticker, holding.exchange, holding.currency), ticker, holding.name, value, 0);
+      addToCompany(companyKey(ticker, holding.exchange, holding.currency), ticker, holding.name, value, 0, undefined, holding.units);
       result.directHoldings.push({ symbol: ticker, name: holding.name, units: holding.units, value });
       continue;
     }

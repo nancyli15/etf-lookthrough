@@ -2,6 +2,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { FUND_DATA_IS_SAMPLE } from "../../data/funds";
 import { buildReport, type AccountData } from "../../lib/report";
+import CompanyDetails from "./CompanyDetails";
 import LookThrough from "./LookThrough";
 
 function position(symbol: string, kind: string, value: number, currency = "USD") {
@@ -201,5 +202,76 @@ describe("LookThrough screen", () => {
   it("doesn't warn about understated totals when nothing large is unopened", () => {
     const html = render([ok([position("SPY", "etf", 1000)])]);
     expect(html).not.toContain("likely understated");
+  });
+});
+
+describe("company dropdown", () => {
+  const sell = {
+    type: "SELL",
+    symbol: { symbol: "AAPL", raw_symbol: "AAPL" },
+    trade_date: "2026-10-10T15:00:00Z",
+    units: -5,
+    price: 180.5,
+    amount: 902.5,
+    currency: { code: "USD" },
+  };
+  const report = buildReport([
+    {
+      positions: { ok: true, status: 200, data: { results: [position("AAPL", "stock", 500), position("SPY", "etf", 1000)] } },
+      activities: { ok: true, data: { data: [sell] } },
+    },
+  ]);
+  const apple = report.result.companies.find((company) => company.symbol === "AAPL")!;
+  const html = renderToStaticMarkup(
+    <CompanyDetails
+      company={apple}
+      funds={report.result.funds}
+      holdingsTotal={report.result.total}
+      activities={report.recentActivity.AAPL}
+      activitySince={report.activitySince}
+      activityNotLoaded={report.activityNotLoaded}
+      money={(value) => `$${value.toFixed(2)}`}
+    />,
+  );
+
+  it("answers all five: more than shown, inside each fund, what if, which part you control, recent", () => {
+    expect(html).toContain("Your brokerage shows $500.00 (1 share)");
+    expect(html).toContain("Inside SPY:");
+    expect(html).toContain("moves?");
+    expect(html).toContain("You control the $500.00 in your own shares");
+    expect(html).toContain("Sold 5 shares at $180.50");
+  });
+
+  it("shows the activity section even with nothing to list, with how far back history goes", () => {
+    const spyOnly = buildReport([
+      {
+        account: { name: "Individual", sync_status: { transactions: { first_transaction_date: "2026-09-16" } } },
+        positions: { ok: true, status: 200, data: { results: [position("SPY", "etf", 1000)] } },
+        activities: { ok: true, data: { data: [] } },
+      },
+    ]);
+    expect(spyOnly.activitySince).toBe("2026-09-16");
+    const company = spyOnly.result.companies[0];
+    const markup = renderToStaticMarkup(
+      <CompanyDetails
+        company={company}
+        funds={spyOnly.result.funds}
+        holdingsTotal={spyOnly.result.total}
+        activities={[]}
+        activitySince={spyOnly.activitySince}
+        activityNotLoaded={[]}
+        money={(value) => `$${value.toFixed(2)}`}
+      />,
+    );
+    expect(markup).toContain("Your recent activity");
+    expect(markup).toContain("directly since");
+    expect(markup).toContain("2026");
+  });
+
+  it("starts the slider at a 10% fall, on a scale from a 50% fall to a 50% rise", () => {
+    expect(html).toContain('min="-50"');
+    expect(html).toContain('max="50"');
+    expect(html).toContain('value="-10"');
+    expect(html).toContain("Your holdings would fall");
   });
 });

@@ -1,0 +1,95 @@
+import { describe, expect, it } from "vitest";
+import type { Activity } from "./activities";
+import { activityNote, activityText, controlText, insideFunds, ownershipText, weightText, whatIf, whatIfText } from "./details";
+import type { CompanyExposure, FundSummary } from "./lookthrough";
+
+const money = (value: number) => `$${value.toFixed(2)}`;
+
+function company(direct: number, directUnits: number, byFund: [string, number][]): CompanyExposure {
+  const throughFunds = byFund.reduce((sum, [, value]) => sum + value, 0);
+  return {
+    key: "TSLA|US",
+    symbol: "TSLA",
+    name: "Tesla, Inc.",
+    direct,
+    directUnits,
+    throughFunds,
+    total: direct + throughFunds,
+    percent: 0,
+    viaFunds: byFund.map(([symbol]) => symbol),
+    byFund: byFund.map(([symbol, value]) => ({ symbol, value })),
+  };
+}
+
+// Your Sandbox: 8 Tesla shares at $240, plus Tesla inside $8,373.75 of SPY.
+const tesla = company(1920, 8, [["SPY", 137.04]]);
+const nvidia = { ...company(0, 0, [["SPY", 611.44]]), name: "NVIDIA Corp" };
+const spy: FundSummary = { symbol: "SPY", name: "SPDR", value: 8373.75, asOf: "2026-11-04", otherWeight: 0, unopenedWeight: 0 };
+
+describe("company dropdown", () => {
+  it("says how much more you own than your brokerage shows", () => {
+    expect(ownershipText(tesla, money)).toBe(
+      "Your brokerage shows $1920.00 (8 shares). Counting your funds, you own $2057.04, which is 7.1% more.",
+    );
+    expect(ownershipText(nvidia, money)).toBe(
+      "You don't own NVIDIA directly, so your brokerage doesn't list it. All $611.44 is inside your funds.",
+    );
+    expect(ownershipText(company(500, 1, []), money)).toContain("You own 1 share directly");
+  });
+
+  it("works out the weight inside each fund from the dollars: $137.04 of $8,373.75 is 1.64%", () => {
+    const [inSpy] = insideFunds(tesla, [spy]);
+    expect(inSpy.symbol).toBe("SPY");
+    expect(weightText(inSpy.weight)).toBe("1.64%");
+    expect(weightText(0.25)).toBe("25.0%");
+    expect(weightText(0.00004)).toBe("under 0.01%");
+  });
+
+  it("moves every dollar of the company: a 20% fall on $2,057.04 is $411.41", () => {
+    expect(whatIf(tesla, 43851.25, -0.2).change).toBeCloseTo(-411.41, 2);
+    expect(whatIfText(tesla, 43851.25, -0.2, money)).toBe("Your holdings would fall $411.41 (0.9%).");
+    expect(whatIfText(tesla, 43851.25, 0.1, money)).toBe("Your holdings would rise $205.70 (0.5%).");
+    expect(whatIfText(tesla, 43851.25, 0, money)).toBe("No change.");
+  });
+
+  it("says which part you control, without telling you what to do", () => {
+    expect(controlText(tesla, money)).toBe(
+      "You control the $1920.00 in your own shares. The $137.04 inside SPY changes only when you buy or sell SPY.",
+    );
+    expect(controlText(nvidia, money)).toBe("It changes only when you buy or sell SPY, or when it changes what it holds.");
+    for (const text of [controlText(tesla, money), controlText(nvidia, money)]) {
+      expect(text).not.toMatch(/should|recommend|consider/i);
+    }
+  });
+
+  it("always says something about activity, with how far back the history goes", () => {
+    const date = (iso: string) => iso;
+    expect(activityNote(tesla, 0, "2026-09-16", [], date).note).toBe(
+      "No trades or dividends for Tesla since 2026-09-16, the earliest date SnapTrade has for your accounts.",
+    );
+    expect(activityNote(nvidia, 0, "2026-09-16", [], date).note).toBe(
+      "You haven't traded NVIDIA directly since 2026-09-16. What SPY buys and sells inside itself isn't shown.",
+    );
+    expect(activityNote(tesla, 1, "2026-09-16", [], date).note).toBe("History from 2026-09-16.");
+    // No date from SnapTrade: don't invent one.
+    expect(activityNote(tesla, 0, undefined, [], date).note).toBe(
+      "No trades or dividends for Tesla in the history SnapTrade has.",
+    );
+    expect(activityNote(tesla, 1, undefined, [], date).note).toBeUndefined();
+  });
+
+  it("warns when an account's activity didn't load", () => {
+    expect(activityNote(tesla, 0, "2026-09-16", ["IRA"], (iso) => iso).warning).toBe(
+      "Couldn't load activity for IRA, so some trades may be missing.",
+    );
+  });
+
+  it("describes trades and dividends in plain words", () => {
+    const base: Activity = { date: "2026-10-10", kind: "sell", units: 5, price: 240, amount: 1200, currency: "USD" };
+    expect(activityText(base, money)).toBe("Sold 5 shares at $240.00");
+    expect(activityText({ ...base, kind: "buy", units: 1 }, money)).toBe("Bought 1 share at $240.00");
+    expect(activityText({ ...base, kind: "dividend", amount: 12.5 }, money)).toBe("Dividend of $12.50");
+    expect(activityText({ ...base, kind: "reinvested", units: 0.0692 }, money)).toBe("Reinvested a dividend in 0.0692 shares");
+    expect(activityText({ ...base, kind: "stockDividend", units: 2 }, money)).toBe("Stock dividend of 2 shares");
+  });
+});
