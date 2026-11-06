@@ -1,27 +1,19 @@
+/* One light theme, styled like SnapTrade's dashboard: light gray page, white cards,
+   thin borders, teal accent. Every text color is at least 4.5:1 on its background. */
 :root {
-  --bg: #f7f7f5;
+  color-scheme: light;
+  --bg: #f8f9fb;
   --card: #ffffff;
-  --text: #1c1c1a;
-  --muted: #6b6b66;
-  --border: #e4e4df;
-  --accent: #1f5eff;
+  --text: #111827;
+  --muted: #6b7280;
+  --border: #e5e7eb;
+  --accent: #0e7c86;
+  --accent-soft: #5ec4c8; /* Decorative border only, never text. */
+  --selected: #eef7f7;
   --danger: #b42318;
-  /* Chart colors, checked for colorblind separation and 3:1 contrast on the card. */
+  /* Chart colors, checked for colorblind separation and 3:1 contrast on white. */
   --series-direct: #2a78d6;
   --series-funds: #eb6834;
-}
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #141413;
-    --card: #1e1e1c;
-    --text: #ececea;
-    --muted: #9a9a94;
-    --border: #2e2e2b;
-    --accent: #6e95ff;
-    --danger: #ff8a7a;
-    --series-direct: #3987e5;
-    --series-funds: #d95926;
-  }
 }
 * { box-sizing: border-box; }
 body {
@@ -68,7 +60,7 @@ th { color: var(--muted); font-weight: 500; }
 tfoot td { font-weight: 600; border-bottom: none; }
 tfoot tr.subtotal td { font-weight: 400; color: var(--muted); }
 .section-title { font-size: 1.35rem; margin: 32px 0 0; }
-.net-worth { border-color: var(--accent); }
+.net-worth { border-color: var(--accent-soft); }
 .net-worth-value { font-size: 2.2rem; font-weight: 700; line-height: 1.2; margin-bottom: 4px; }
 td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
 pre {
@@ -112,7 +104,8 @@ pre {
   text-align: left;
   cursor: pointer;
 }
-.bar-row:hover, .bar-row.selected { background: var(--bg); }
+.bar-row:hover { background: var(--bg); }
+.bar-row.selected { background: var(--selected); }
 .bar-row.selected .bar-label { font-weight: 600; }
 .bar-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .bar-value { text-align: right; font-variant-numeric: tabular-nums; }
@@ -135,7 +128,7 @@ pre {
   cursor: pointer;
 }
 .link:hover { color: var(--accent); }
-tr.selected td { background: var(--bg); }
+tr.selected td { background: var(--selected); }
 
 /* Line chart */
 .line-chart { position: relative; }

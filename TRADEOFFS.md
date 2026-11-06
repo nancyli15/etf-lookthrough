@@ -70,6 +70,7 @@ The parts of the API the app depends on, and what happens if they change. SnapTr
 | Chart colors checked for colorblind separation and contrast, in light and dark mode | Blue and orange stay distinct for the most common kinds of colorblindness, and every chart also has a table | — |
 | Share percentages only: no dollar amounts, net worth or account names | People share this with friends and online, and the percentages are the interesting part | A share image, made the same way |
 | The phone's share menu when there is one, otherwise copy to clipboard | Desktop browsers mostly don't have a share menu | — |
+| One light theme, styled like SnapTrade's dashboard, instead of following the system's dark mode | It feels at home next to SnapTrade's own screens, and one theme is half the colors to check | Add a dark theme back, with its own checked chart colors |
 
 ## Tooling
 
