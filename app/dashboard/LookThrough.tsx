@@ -1,13 +1,12 @@
 // The look-through screen. Only displays a Report: all the math and wording rules
 // live in lib/ where they're tested.
 //
-// Top to bottom: the summary (net worth and one donut of where it all is) beside the
-// account value chart, the biggest-company finding, your funds and their overlap,
+// Top to bottom: the summary (net worth, split into stocks, funds, crypto and cash)
+// beside the account value chart, the biggest-company finding, your funds and their overlap,
 // every company, and what couldn't be looked through. Clicking a fund's name shows
 // its companies in the table below it. One page scroll; on a phone, the top pair stacks.
 import { useState } from "react";
 import { FX } from "../../data/fx";
-import { netWorthBreakdown } from "../../lib/breakdown";
 import { formatMoney, hasLargeGap, percentText } from "../../lib/format";
 import type { HistoryLoad } from "../../lib/history";
 import { displayName } from "../../lib/names";
@@ -16,20 +15,8 @@ import type { Report } from "../../lib/report";
 import AccountValueChart from "./AccountValueChart";
 import CompanyTable from "./CompanyTable";
 import FundsCard from "./FundsCard";
-import Donut, { type DonutSlice } from "./Donut";
 import InfoPopover from "./InfoPopover";
 import ShareButton from "./ShareButton";
-
-// Blue and orange match the bars in the company table. The parts that aren't companies
-// are greys (light for cash inside funds, dark for crypto), and the cash in your
-// accounts is aqua. The funds donut uses none of these, so a colour means one thing.
-const SLICE_COLORS: Record<string, string> = {
-  direct: "var(--series-direct)",
-  funds: "var(--series-funds)",
-  fundOther: "var(--series-neutral)",
-  notLooked: "var(--series-none)",
-  cash: "var(--series-cash)",
-};
 
 function sumOf<T>(rows: T[], valueOf: (row: T) => number): number {
   return rows.reduce((sum, row) => sum + valueOf(row), 0);
@@ -43,10 +30,11 @@ function formatDate(iso: string): string {
 type Props = {
   report: Report;
   history?: HistoryLoad; // Defaults to "loading" so tests and previews can render without it.
+  includes?: string; // "Includes all 4 accounts: …", when there's more than one account.
   title?: string; // The summary's heading: what's shown, like "Wealthsimple · TFSA".
 };
 
-export default function LookThrough({ report, history = { state: "loading" }, title }: Props) {
+export default function LookThrough({ report, history = { state: "loading" }, includes, title }: Props) {
   const {
     result,
     headline,
@@ -73,28 +61,16 @@ export default function LookThrough({ report, history = { state: "loading" }, ti
     document.getElementById("companies")?.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
-  // One donut for everything in the net worth figure: what you bought, the companies in
-  // your funds, the cash inside them, crypto, and the cash in your accounts.
-  const parts = netWorthBreakdown(result, cash);
-  const inFunds = parts.find((part) => part.key === "funds")?.value ?? 0;
+  const directTotal = sumOf(result.directHoldings, (holding) => holding.value);
+  const fundsTotal = sumOf(result.funds, (fund) => fund.value);
+  // Crypto and anything else with no companies inside, in one row.
+  const notLookedTotal = sumOf(result.notLookedThrough, (holding) => holding.value);
   const unopened = sumOf(result.insideUnopenedFunds, (fund) => fund.value);
+  // The part of your funds that isn't companies: cash, futures and currency lines, plus funds we can't open.
+  const cashInsideFunds = result.otherInFunds + unopened;
   const cashEquivalentsText = result.cashEquivalents
     .map((holding) => `${money(holding.value)} in ${holding.symbol}`)
     .join(", ");
-  // The slices that need explaining get an ⓘ note, instead of sentences under the chart.
-  const notes: Record<string, string | undefined> = {
-    funds:
-      inFunds > 0 && result.total > 0
-        ? `${percentText(inFunds / result.total)} of your holdings is in companies you didn't buy yourself, held through your funds.`
-        : undefined,
-    fundOther:
-      "The cash, futures and currency contracts your funds hold, and any funds inside them we can't open yet.",
-    cash:
-      cashEquivalentsText && cashNotLoaded.length === 0
-        ? `Includes ${cashEquivalentsText}, a money market fund.`
-        : undefined,
-  };
-  const slices: DonutSlice[] = parts.map((part) => ({ ...part, color: SLICE_COLORS[part.key], note: notes[part.key] }));
   const shareOf = (value: number) => percentText(result.total ? value / result.total : 0);
   const fundDates = [...new Set(result.funds.map((fund) => fund.asOf))].map(formatDate).join(", ");
 
@@ -121,27 +97,68 @@ export default function LookThrough({ report, history = { state: "loading" }, ti
         {netWorth !== 0 && (
           <div className="card net-worth">
             <h2>{title ?? "Your summary"}</h2>
+            <p className="muted small">Total net worth</p>
+            <p className="net-worth-value">{money(netWorth)}</p>
             <p className="muted small">
-              Total net worth
-              {/* Mixing a USD and a CAD account converts one into the other. */}
+              {includes ?? "Across your connected brokerage accounts only."}
+              {/* Mixing a USD and a CAD account converts one into the other. Said up here,
+                  not only in the small print, because otherwise the total looks wrong. */}
               {result.fxAsOf && (
                 <>
                   {" "}
-                  <InfoPopover label="About the exchange rate">
-                    {result.currency === "CAD" ? "US$" : "CA$"} amounts are converted to {result.currency} at{" "}
-                    {FX.cadPerUsd} CAD per USD ({formatDate(result.fxAsOf)}).
-                  </InfoPopover>
+                  {result.currency === "CAD" ? "US$" : "CA$"} amounts are converted to{" "}
+                  {result.currency === "CAD" ? "CA$" : "US$"} at {FX.cadPerUsd} CAD per USD ({formatDate(result.fxAsOf)}).
                 </>
               )}
             </p>
-            <p className="net-worth-value">{money(netWorth)}</p>
-            <Donut
-              slices={slices}
-              money={money}
-              centerValue={formatMoney(netWorth, result.currency, { compact: true })}
-              centerLabel="net worth"
-              ariaLabel={`Your net worth: ${parts.map((part) => `${part.label} ${money(part.value)}`).join(", ")}`}
-            />
+            <table>
+              <tbody>
+                {directTotal !== 0 && (
+                  <tr>
+                    <td>Stocks you bought directly</td>
+                    <td className="num">{money(directTotal)}</td>
+                  </tr>
+                )}
+                {fundsTotal !== 0 && (
+                  <tr>
+                    <td>
+                      Funds
+                      {cashInsideFunds > 0 && (
+                        <>
+                          {" "}
+                          <InfoPopover label="About the cash inside your funds">
+                            Includes {money(cashInsideFunds)} of cash inside your funds: the cash, futures and currency
+                            contracts they hold
+                            {unopened > 0 && ", and funds inside them we can't open yet"}.
+                          </InfoPopover>
+                        </>
+                      )}
+                    </td>
+                    <td className="num">{money(fundsTotal)}</td>
+                  </tr>
+                )}
+                {notLookedTotal !== 0 && (
+                  <tr>
+                    <td>Crypto and other</td>
+                    <td className="num">{money(notLookedTotal)}</td>
+                  </tr>
+                )}
+                <tr>
+                  <td>
+                    Cash
+                    {cashEquivalentsText && cashNotLoaded.length === 0 && (
+                      <>
+                        {" "}
+                        <InfoPopover label="About the cash in your accounts">
+                          Includes {cashEquivalentsText}, a money market fund.
+                        </InfoPopover>
+                      </>
+                    )}
+                  </td>
+                  <td className="num">{money(cash)}</td>
+                </tr>
+              </tbody>
+            </table>
             {(failedAccounts.length > 0 ||
               cashNotLoaded.length > 0 ||
               cashUnconverted.length > 0 ||

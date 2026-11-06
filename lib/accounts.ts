@@ -65,6 +65,11 @@ export function groupAccounts(accounts: { account?: RawAccount }[], connections:
   return [...groups.values()];
 }
 
+function listOf(names: string[]): string {
+  if (names.length < 2) return names.join("");
+  return `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}`;
+}
+
 // The page title: what's being shown, in the words SnapTrade uses.
 export function selectionTitle(groups: AccountGroup[], selected: Set<string>): string {
   const all = groups.flatMap((group) => group.accounts);
@@ -78,4 +83,14 @@ export function selectionTitle(groups: AccountGroup[], selected: Set<string>): s
   const fullGroups = groups.filter((group) => group.accounts.every((account) => selected.has(account.id)));
   if (fullGroups.length === 1 && fullGroups[0].accounts.length === chosen.length) return fullGroups[0].name;
   return `${chosen.length} of ${all.length} accounts`;
+}
+
+// The summary's "what's counted" line, so the page always says which accounts it adds up.
+export function includesText(groups: AccountGroup[], selected: Set<string>): string {
+  const all = groups.flatMap((group) => group.accounts);
+  const chosen = all.filter((account) => selected.has(account.id)).map((account) => account.name);
+  if (chosen.length === all.length) {
+    return all.length === 1 ? `Includes ${chosen[0]}.` : `Includes all ${all.length} accounts: ${listOf(chosen)}.`;
+  }
+  return `Includes ${chosen.length} of ${all.length} accounts: ${listOf(chosen)}.`;
 }

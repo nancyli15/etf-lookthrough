@@ -15,7 +15,6 @@
   --series-direct: #2a78d6;
   --series-funds: #eb6834;
   --series-none: #6b7280; /* Holdings with no companies inside, like crypto. Grey, like cash: not a company. */
-  --series-cash: #1baf7a; /* Cash in your accounts, in the net worth donut. */
   --series-neutral: #b8bcc4; /* Not a company: cash inside funds, "Other". Always labelled. */
 }
 * { box-sizing: border-box; }

@@ -102,10 +102,10 @@ describe("LookThrough screen", () => {
         balances: { ok: true, data: [{ currency: { code: "USD" }, cash: 300 }] },
       },
     ]);
-    // In the ⓘ next to "Cash in your accounts", not a sentence under the chart.
-    expect(html).toContain('aria-label="About &quot;Cash in your accounts&quot;"');
+    // In the ⓘ next to "Cash", not a line under it.
+    expect(html).toContain('aria-label="About the cash in your accounts"');
     expect(html).toContain("Includes US$200.00 in SPAXX, a money market fund.");
-    // Crypto and a fund we can't open share one part of the net worth donut.
+    // Crypto and a fund we can't open share one row of the summary.
     expect(html).toContain("Crypto and other");
     expect(html).toContain("$450.00"); // 100 + 50 + 300, with SPAXX inside the cash.
     expect(html).not.toContain("Not looked through</td>");
@@ -322,14 +322,15 @@ describe("your funds card", () => {
 });
 
 describe("long company tables", () => {
-  it("gives the company total in one line, with the rest of holdings in the donut above", () => {
+  it("gives the company total in one line, with the rest of holdings in the summary above", () => {
     const html = render([ok([position("AAPL", "stock", 500), position("SPY", "etf", 1000), position("BTC", "crypto", 100)])]);
     expect(html).toContain("in companies (");
     expect(html).toContain("of your holdings)");
-    // The rest of holdings is in the summary's net worth donut, not a sentence.
+    // The rest of holdings is in the summary's rows, not a sentence.
     expect(html).not.toContain("The rest of your holdings:");
-    expect(html).toContain("net worth");
-    expect(html).toContain("Crypto and other");
+    expect(html).toContain("<td>Crypto and other</td>");
+    // The cash, futures and currency lines inside SPY are in an ⓘ on the Funds row.
+    expect(html).toContain('aria-label="About the cash inside your funds"');
     expect(html).toContain("US$100.00");
   });
 

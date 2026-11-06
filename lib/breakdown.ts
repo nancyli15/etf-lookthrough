@@ -29,8 +29,8 @@ export function holdingsBreakdown(result: LookThroughResult): Slice[] {
   return slices.filter((slice) => slice.value > 0);
 }
 
-// Net worth, the same way: the holdings parts plus the cash in your accounts. The
-// summary card shows this one, so the parts add up to the net worth figure above it.
+// Net worth, the same way: the holdings parts plus the cash in your accounts, so the
+// parts add up to the net worth figure. Not on the page yet; planned for the account value card.
 // "Cash in your accounts" and "Cash inside your funds" are different money, so they
 // have different names.
 export function netWorthBreakdown(result: LookThroughResult, cash: number): Slice[] {
