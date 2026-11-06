@@ -3,8 +3,8 @@ import type { CompanyExposure } from "./lookthrough";
 import { displayName, shortName } from "./names";
 import { buildReport, headlineFor, shareText } from "./report";
 
-function company(name: string, direct: number, viaFunds: string[], percent: number): CompanyExposure {
-  return { key: name, symbol: name, name, direct, throughFunds: 0, total: 0, percent, viaFunds, byFund: [], directUnits: 0 };
+function company(name: string, direct: number, viaFunds: string[], percent: number, throughFunds = 0): CompanyExposure {
+  return { key: name, symbol: name, name, direct, throughFunds, total: direct + throughFunds, percent, viaFunds, byFund: [], directUnits: 0 };
 }
 
 function positions(results: unknown[], asOf?: string) {
@@ -31,9 +31,10 @@ describe("headlineFor", () => {
     expect(headlineFor(companies)?.detail).toBe("You own it only through SPY, so it doesn't appear on your brokerage's list.");
   });
 
-  it("names the funds when a company is held both ways", () => {
-    expect(headlineFor([company("Apple", 100, ["SPY", "FXAIX"], 0.5)])?.detail).toContain(
-      "directly and through SPY and FXAIX",
+  it("names the funds when a company is held both ways, and how much more you own than your shares", () => {
+    // $5,731 bought directly and $2,866 through funds: 50% more than the shares alone.
+    expect(headlineFor([company("Microsoft", 5731, ["SPY", "FXAIX"], 0.5, 2866)])?.detail).toBe(
+      "You own it directly and through SPY and FXAIX, so you own 50% more of it than your shares alone.",
     );
   });
 

@@ -6,7 +6,7 @@ import { formatMoney, percentText } from "../../lib/format";
 import type { LookThroughResult } from "../../lib/lookthrough";
 import Donut, { type DonutSlice } from "./Donut";
 import InfoPopover from "./InfoPopover";
-import OverlapMatrix from "./OverlapMatrix";
+import OverlapList from "./OverlapList";
 
 // Not blue, orange or aqua: those mean "you bought", "via funds" and "cash in your
 // accounts" elsewhere on the page. Four checked colours, then grey for "Other". Red was
@@ -119,13 +119,7 @@ export default function FundsCard({ result, money, onFundClick }: Props) {
         )}
       </div>
 
-      {result.overlaps.length > 0 && (
-        <>
-          <h3 className="subheading">Where your funds overlap</h3>
-          <p className="muted small">Each cell is a pair of your funds. Darker means more of the same companies. Click one for the details.</p>
-          <OverlapMatrix funds={result.funds} overlaps={result.overlaps} money={money} />
-        </>
-      )}
+      <OverlapList funds={result.funds} overlaps={result.overlaps} money={money} />
     </div>
   );
 }

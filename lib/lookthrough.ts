@@ -44,9 +44,6 @@ export type FundOverlap = {
   fundA: string;
   fundB: string;
   sharedWeight: number; // Fraction of each fund in common.
-  // Your money that's duplicated: for each company both funds hold, the smaller of
-  // the dollars you have in it through each fund, added up. In the report's currency.
-  sharedValue: number;
   sharedCompanies: string[]; // Largest few.
   basis: "holdings" | "same-list";
   incomplete: boolean; // Enough sits in unopened funds that the true overlap could be much higher.
@@ -155,15 +152,12 @@ function fundOverlap(
 ): FundOverlap {
   const incomplete = Math.max(summaryA.unopenedWeight, summaryB.unopenedWeight) > OVERLAP_INCOMPLETE_ABOVE;
 
-  // The overlap is the smaller weight of each company both funds hold. In dollars,
-  // it's the smaller of what you hold of that company through each fund.
+  // The overlap is the smaller weight of each company both funds hold, added up.
   const shared: { name: string; weight: number }[] = [];
-  let sharedValue = 0;
   for (const [key, companyInA] of flattenedA.companies) {
     const companyInB = flattenedB.companies.get(key);
     if (!companyInB) continue;
     shared.push({ name: companyInA.name, weight: Math.min(companyInA.weight, companyInB.weight) });
-    sharedValue += Math.min(summaryA.value * companyInA.weight, summaryB.value * companyInB.weight);
   }
   shared.sort((first, second) => second.weight - first.weight);
 
@@ -174,7 +168,6 @@ function fundOverlap(
       fundA: summaryA.symbol,
       fundB: summaryB.symbol,
       sharedWeight: 1,
-      sharedValue,
       sharedCompanies: [],
       basis: "same-list",
       incomplete,
@@ -184,7 +177,6 @@ function fundOverlap(
     fundA: summaryA.symbol,
     fundB: summaryB.symbol,
     sharedWeight: shared.reduce((sum, company) => sum + company.weight, 0),
-    sharedValue,
     sharedCompanies: shared.slice(0, 5).map((company) => company.name),
     basis: "holdings",
     incomplete,

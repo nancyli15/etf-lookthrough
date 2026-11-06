@@ -93,7 +93,8 @@ The parts of the API the app depends on, and what happens if they change. SnapTr
 | Bars are scaled to your biggest company on every page | A bar on page 3 compares with Microsoft's on page 1, instead of filling the width again | — |
 | One "Your funds" card: each fund's size, a donut of the funds, and where they overlap | All of it is about funds rather than companies, so it sits together | — |
 | How much of a fund is matched to companies is in an ⓘ note per fund, not a column | It's 99%+ for nearly every fund, so a column of 99.9%s was noise. The note gives the exact leftover in dollars (cash, futures, currency) for anyone who wants it | — |
-| Overlap as a grid of fund pairs, darker blue for more, with the duplicated money in dollars | Six rows that all said "Mostly Apple, NVIDIA, Microsoft" hid which pairs matter. A grid shows every pair at once, and the dollars (the smaller of what you hold of each shared company through each fund, added up) say what the overlap means for you | Show the cost of holding both, once fees are known |
+| Overlap as a ranked list of pairs, led by the biggest pair in dollars | A grid made people cross-reference rows and columns, and "39.8%" alone didn't say what it meant. The list reads top to bottom, an ⓘ defines the percentage, and the top line says how much of your money is in that pair. Past six pairs, the rest wait behind "Show all" | A grid again for people with many funds |
+| No "duplicated money" figure | "CA$11,694 of your money is in the same companies through both" read like money wasted or counted twice. It isn't: you own separate units of two funds that hold similar companies. The amount in the pair is clearer | — |
 | Donuts for the funds card, with every slice labelled with its amount and share | The dataviz guide prefers a segmented bar, because small slices are hard to see in a donut, so every amount is written out in the table beside it | A segmented bar, if small slices turn out hard to read |
 | Fund colours avoid blue and orange | Those mean "you bought" and "via funds" on the page, and one colour should mean one thing. Red was dropped from the funds' colours: next to green or pink it failed the colourblind check. Past four funds, the rest fold into "Other" | — |
 | One filter button per fund in the company table, and each fund's name in the Funds card links to it | "What's inside SPY?" is the question a look-through answers. A fund's view shows only its companies, sorted by how much you hold through that fund, not by their total | — |
@@ -101,7 +102,7 @@ The parts of the API the app depends on, and what happens if they change. SnapTr
 | In the Funds card, the table is the donut's legend: each row has its slice's colour | A separate legend listed every fund's amount a second time, right beside the table | — |
 | The ⓘ notes are a `<span>` and a `<button>`, not `<details>` like the Accounts dropdown, so they don't share `useDismiss` | A `<details>` isn't allowed inside a paragraph, so the browser breaks the line before it. The note also needs hover, which `<details>` doesn't do | — |
 | Show what the numbers can't see, on the main screen | A confident total that's missing money is worse than an honest gap | Close the gaps with more fund files |
-| Funds come before companies | Clicking a fund filters the company table below it | — |
+| Companies come before funds | What you own through everything is the point of the page. Clicking a fund still filters the company table, and scrolls up to it | — |
 | A company's details open under its row | Scrolling up to a separate card lost the reader's place in a long table. Opening in place keeps it, and several can be open to compare | Click a fund to see its own top companies |
 | The dropdown answers five questions instead of repeating the row's dollars: more than your brokerage shows, its weight inside each fund, what if it moves, which part you control, and your recent activity | The row already shows direct and through-fund dollars, so repeating them added nothing | — |
 | Facts, not advice: "You control the $1,920 in your own shares", never "consider selling" | A read-only app shouldn't sound like it recommends trades. A test checks the wording | — |
@@ -126,6 +127,8 @@ The parts of the API the app depends on, and what happens if they change. SnapTr
 | Copied text has no link | Chat apps turn a pasted link into their own preview image, which looked like extra images | Let the user choose to include the link |
 | Link preview is one generic image, with no holdings | Anyone can fetch a link's preview, so it must never show a user's data | — |
 | One light theme, styled like SnapTrade's dashboard, instead of following the system's dark mode | It feels at home next to SnapTrade's own screens, and one theme is half the colors to check | Add a dark theme back, with its own checked chart colors |
+| Under the headline, two figures about the biggest company: its total, and how much of it comes through funds. The sentence says "you own 50% more of it than your shares alone" | A top-5 chart was tried, but it repeated the first rows of the company table right below it. The summary says what look-through found; the table shows why | Let the user pick the company |
+| The whole company row opens its details, not only the name | A bigger target. The name stays a button, so the keyboard and screen readers still work | — |
 
 ## Tooling
 
