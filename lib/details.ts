@@ -40,7 +40,13 @@ export function ownershipText(company: CompanyExposure, money: Money): string {
 export function insideFunds(company: CompanyExposure, funds: FundSummary[]) {
   return company.byFund.map((entry) => {
     const fund = funds.find((summary) => summary.symbol === entry.symbol);
-    return { symbol: entry.symbol, value: entry.value, weight: fund?.value ? entry.value / fund.value : 0 };
+    return {
+      symbol: entry.symbol,
+      value: entry.value,
+      weight: fund?.value ? entry.value / fund.value : 0,
+      // FXAIX uses SPY's list, so both show the same weight. Saying so stops that looking like a bug.
+      approximatedBy: fund?.approximatedBy,
+    };
   });
 }
 
