@@ -39,11 +39,11 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    // No accounts we can read: keep what SnapTrade sent, and ask which connections
-    // this sign-in has, so the page can say why (see lib/connections.ts). One extra
-    // call, and only in this case.
+    // The connections this sign-in shares: their brokerage names ("SnapTrade Sandbox",
+    // "Wealthsimple") label the account picker, and with no accounts they say why
+    // (see lib/connections.ts). One call per page, not per account.
     const noAccounts = accounts.ok && perAccount.length === 0;
-    const connections = noAccounts ? await client.get("/authorizations") : undefined;
+    const connections = accounts.ok ? await client.get("/authorizations") : undefined;
 
     const body = {
       fetchedAt: new Date().toISOString(),

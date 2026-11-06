@@ -148,8 +148,10 @@ export default function DeveloperView({ data, history }: { data: DashboardData; 
         {accounts > 0 ? (
           <p className="small spaced">
             This page made <strong>{countOf(totalCalls, "call")}</strong> to SnapTrade: /accounts{" "}
-            {historyCalls ? "twice" : "once"}, and {perAccount} per account. Where SnapTrade's per-account limit
-            applies, it's {ACCOUNT_LIMIT_PER_MINUTE} a minute, so refreshing more than twice a minute can hit it.
+            {historyCalls ? "twice" : "once"}
+            {connectionsCalls ? ", /authorizations once" : ""}, and {perAccount} per account. Where SnapTrade's
+            per-account limit applies, it's {ACCOUNT_LIMIT_PER_MINUTE} a minute, so refreshing more than twice a minute
+            can hit it. Changing which accounts are shown doesn't call SnapTrade again.
           </p>
         ) : (
           <p className="small spaced">
@@ -163,16 +165,19 @@ export default function DeveloperView({ data, history }: { data: DashboardData; 
         </p>
       </div>
 
-      {(!data.accountsCall.ok || data.accounts.length === 0) && (
+      {(!data.accountsCall.ok || data.accounts.length === 0 || data.connectionsCall) && (
         <div className="card">
           <h2>This sign-in</h2>
-          <CallRow
-            path="/accounts"
-            status={data.accountsCall.status}
-            ok={data.accountsCall.ok}
-            summary={Array.isArray(data.accountsRaw) ? countOf(data.accountsRaw.length, "account") : "Not a list"}
-            data={data.accountsRaw}
-          />
+          {/* With accounts, each one's /accounts row is in its own card below. */}
+          {(!data.accountsCall.ok || data.accounts.length === 0) && (
+            <CallRow
+              path="/accounts"
+              status={data.accountsCall.status}
+              ok={data.accountsCall.ok}
+              summary={Array.isArray(data.accountsRaw) ? countOf(data.accountsRaw.length, "account") : "Not a list"}
+              data={data.accountsRaw}
+            />
+          )}
           {data.connectionsCall && (
             <CallRow
               path="/authorizations"
@@ -184,7 +189,7 @@ export default function DeveloperView({ data, history }: { data: DashboardData; 
                   : "Not a list"
               }
               data={data.connectionsCall.data}
-              note="Called only because there are no accounts, to show why."
+              note="The brokerage connections this sign-in shares. Their names label the account picker."
             />
           )}
         </div>

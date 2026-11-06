@@ -6,10 +6,12 @@
 // be used once, so if both ran at the same moment with an expiring token, both would
 // refresh and the second would sign the user out. Waiting for /api/raw means its
 // refreshed token is already saved when /api/history starts.
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { groupAccounts, includesText, selectionTitle } from "@/lib/accounts";
 import { emptyAccountsMessage } from "@/lib/connections";
 import type { HistoryLoad } from "@/lib/history";
 import type { Report } from "@/lib/report";
+import AccountPicker from "./AccountPicker";
 import DeveloperView from "./DeveloperView";
 import LookThrough from "./LookThrough";
 
@@ -35,7 +37,7 @@ export type DashboardData = {
   accountsCall: { status: number; ok: boolean }; // Result of the request for the user's accounts
   accounts: AccountData[];
   accountsRaw?: unknown; // Original /accounts response, when it failed or held no accounts we could read
-  connectionsCall?: ApiResponse; // /authorizations, only when there are no accounts: says why
+  connectionsCall?: ApiResponse; // /authorizations: brokerage names, and why there are no accounts
   report: Report | null; // The look-through, calculated on the server from the data above
 };
 
@@ -70,16 +72,81 @@ export default function Dashboard({ email }: { email?: string }) {
     }
   }, []);
 
-  const report = dashboardData?.report ?? null;
+  // The account picker. null means every account, which is what /api/raw already
+  // calculated, so the default view needs no extra request.
+  const [selected, setSelected] = useState<Set<string> | null>(null);
+  const [selectedReport, setSelectedReport] = useState<Report | null>(null);
+  const [recalculating, setRecalculating] = useState(false);
+  const latestRequest = useRef(0);
+
+  const groups = useMemo(
+    () => (dashboardData ? groupAccounts(dashboardData.accounts, dashboardData.connectionsCall?.data) : []),
+    [dashboardData],
+  );
+  const allIds = useMemo(() => groups.flatMap((group) => group.accounts.map((account) => account.id)), [groups]);
+  const chosen = selected ?? new Set(allIds);
+  const showingAll = selected === null || selected.size === allIds.length;
+
+  // A different mix of accounts: send just those back to /api/report to recalculate.
+  // It doesn't call SnapTrade, so switching often can't hit SnapTrade's rate limit.
+  function choose(next: Set<string>) {
+    if (!dashboardData) return;
+    if (next.size === allIds.length) {
+      setSelected(null);
+      setSelectedReport(null);
+      return;
+    }
+    setSelected(next);
+    setRecalculating(true);
+    // Quick clicks can send several requests. Only the newest one's answer is used.
+    const request = ++latestRequest.current;
+    fetch("/api/report", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ accounts: dashboardData.accounts.filter((account) => next.has(account.account?.id)) }),
+    })
+      .then(async (response) => {
+        if (!response.ok) throw new Error(`status ${response.status}`);
+        const body = await response.json();
+        if (request === latestRequest.current) setSelectedReport(body.report);
+      })
+      .catch((error) => {
+        if (request === latestRequest.current) setErrorMessage(error instanceof Error ? error.message : "Something went wrong");
+      })
+      .finally(() => {
+        if (request === latestRequest.current) setRecalculating(false);
+      });
+  }
+
+  const report = showingAll ? (dashboardData?.report ?? null) : selectedReport;
+  // The chart adds up only the chosen accounts' history.
+  const shownHistory: HistoryLoad =
+    history.state === "loaded" && !showingAll
+      ? { ...history, accounts: history.accounts.filter((account) => account.id && chosen.has(account.id)) }
+      : history;
+
+  function moneyIn(value: number, currency: string): string {
+    try {
+      return value.toLocaleString(undefined, { style: "currency", currency });
+    } catch {
+      return `${value.toFixed(2)} ${currency}`;
+    }
+  }
 
   return (
     <>
       <div className="row" style={{ justifyContent: "space-between" }}>
         <div>
-          <h1>What you actually own</h1>
-          {email && <p className="muted">Signed in as {email}</p>}
+          {/* The title says what's being added up, in SnapTrade's names: "Wealthsimple · TFSA". */}
+          <h1>{groups.length ? selectionTitle(groups, chosen) : "What you actually own"}</h1>
+          <p className="muted">
+            {groups.length ? "What you actually own" : null}
+            {groups.length && email ? " · " : null}
+            {email && <>Signed in as {email}</>}
+          </p>
         </div>
         <div className="row">
+          <AccountPicker groups={groups} selected={chosen} onChange={choose} money={moneyIn} />
           <form action="/api/disconnect" method="post">
             <button className="button secondary" type="submit">Disconnect</button>
           </form>
@@ -102,7 +169,10 @@ export default function Dashboard({ email }: { email?: string }) {
         </div>
       )}
 
-      {report && dashboardData && dashboardData.accounts.length > 0 && <LookThrough report={report} history={history} />}
+      {recalculating && <div className="card muted small">Recalculating for these accounts…</div>}
+      {report && dashboardData && dashboardData.accounts.length > 0 && (
+        <LookThrough report={report} history={shownHistory} includes={groups.length > 1 || allIds.length > 1 ? includesText(groups, chosen) : undefined} />
+      )}
 
       {dashboardData && <DeveloperView data={dashboardData} history={history} />}
     </>

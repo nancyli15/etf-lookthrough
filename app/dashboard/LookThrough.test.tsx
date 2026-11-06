@@ -247,7 +247,7 @@ describe("company dropdown", () => {
   );
 
   it("answers all five: more than shown, inside each fund, what if, which part you control, recent", () => {
-    expect(html).toContain("Your brokerage shows $500.00 (1 share)");
+    expect(html).toContain("Your brokerage shows you bought $500.00 (1 share) directly");
     expect(html).toContain("Inside SPY:");
     expect(html).toContain("your holdings move about");
     expect(html).toContain("You control the $500.00 in your own shares");

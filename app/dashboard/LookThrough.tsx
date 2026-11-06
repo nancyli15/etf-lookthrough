@@ -23,8 +23,13 @@ function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString(undefined, { dateStyle: "medium", timeZone: "UTC" });
 }
 
-// history defaults to "loading" so tests and previews can render without it.
-export default function LookThrough({ report, history = { state: "loading" } }: { report: Report; history?: HistoryLoad }) {
+type Props = {
+  report: Report;
+  history?: HistoryLoad; // Defaults to "loading" so tests and previews can render without it.
+  includes?: string; // "Includes all 4 accounts: …", when there's more than one account.
+};
+
+export default function LookThrough({ report, history = { state: "loading" }, includes }: Props) {
   const {
     result,
     headline,
@@ -90,7 +95,18 @@ export default function LookThrough({ report, history = { state: "loading" } }: 
             <h2>Your summary</h2>
             <p className="muted small">Total net worth</p>
             <p className="net-worth-value">{money(netWorth)}</p>
-            <p className="muted small">Across your connected brokerage accounts only.</p>
+            <p className="muted small">
+              {includes ?? "Across your connected brokerage accounts only."}
+              {/* Mixing a USD and a CAD account converts one into the other. Said up here,
+                  not only in the small print, because otherwise the total looks wrong. */}
+              {result.fxAsOf && (
+                <>
+                  {" "}
+                  {result.currency === "CAD" ? "US$" : "CA$"} amounts are converted to{" "}
+                  {result.currency === "CAD" ? "CA$" : "US$"} at {FX.cadPerUsd} CAD per USD ({formatDate(result.fxAsOf)}).
+                </>
+              )}
+            </p>
             <table>
               <tbody>
                 {directTotal !== 0 && (

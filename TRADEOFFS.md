@@ -51,6 +51,12 @@ The parts of the API the app depends on, and what happens if they change. SnapTr
 | Net worth adds cash from `/balances`, but percentages exclude it | Net worth without cash would be wrong, while company percentages answer "of what I've invested" | — |
 | Build net worth from its parts, and warn if it's over 1% from SnapTrade's account totals | The parts explain the number, and the check catches brokerages that behave differently. 1% allows for prices moving between calls | Compare per account, to say which one differs |
 | Mixed portfolios report in CAD, at a dated Bank of Canada rate | One rate is simple to check and explain. Other currencies are listed, not guessed | Daily rates and more currencies |
+| Say the conversion next to the total, not only in the small print | With the US$105,626 Sandbox and a CAD account, net worth showed CA$154,198, which looked like a calculation error. It was US$105,626 × 1.3978 plus the CAD accounts | Let the user choose the report currency |
+| An account picker with checkboxes, everything ticked by default | One sign-in can share several brokerages, and adding them all together mixed test and real money. Checkboxes allow one account, one brokerage, or any mix, and "all" keeps the combined view | — |
+| The page title is what's shown, in SnapTrade's names: "Wealthsimple · TFSA" | "What you actually own" didn't say whose accounts were on screen | — |
+| The summary says which accounts it includes | An account with no money, like an empty FHSA, was counted but invisible | — |
+| Changing accounts recalculates through `/api/report`, without calling SnapTrade | The browser already has every account's raw data, so it sends back only the ticked ones. Switching often can't hit SnapTrade's rate limit. The math still runs on the server, where the fund data is | — |
+| `/authorizations` on every load | The brokerage names for the picker ("SnapTrade Sandbox", not "sandbox") come from it. One call per page, not per account | Cache it, since connections rarely change |
 
 ## Look-through math and fund data
 
