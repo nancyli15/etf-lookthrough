@@ -21,8 +21,9 @@ export async function GET() {
     for (const account of list as { id?: string; name?: string }[]) {
       if (!account.id) continue;
       const result = await client.get(`/accounts/${encodeURIComponent(account.id)}/balanceHistory`);
-      // Only the name goes back to the browser, not the account ID or number.
-      responses.push({ name: account.name ?? "Account", status: result.status, ok: result.ok, data: result.data });
+      // The ID lets the Developer view match this to the account from /api/raw, which
+      // already sends it. The account number isn't included.
+      responses.push({ id: account.id, name: account.name ?? "Account", status: result.status, ok: result.ok, data: result.data });
     }
 
     return NextResponse.json({ fetchedAt: new Date().toISOString(), accounts: responses });

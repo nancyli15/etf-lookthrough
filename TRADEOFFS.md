@@ -18,6 +18,7 @@ The parts of the API the app depends on, and what happens if they change. SnapTr
 | Account value chart from `/accounts/{id}/balanceHistory` | It's the only account history SnapTrade offers | It's a **beta**: it can change without notice, is off by default (`403` until turned on under Add-ons), covers one year at most, and its values are estimates that can have gaps. Its reference only shows the non-OAuth sign-in (`userId` and `userSecret`), but it worked with an OAuth Bearer token in testing on 2026-11-05, and its latest value matched our net worth. If SnapTrade drops it, only the chart goes |
 | Load history from its own route, `/api/history` | If the beta fails or changes, only the chart shows an error and the rest of the page loads | — |
 | Start the history call only after `/api/raw` finishes | Refresh tokens can be used once. Two calls refreshing at the same moment would sign the user out | Keep one shared session store on the server, so calls can't race |
+| `Dashboard.tsx` loads both routes and shares the history with the chart and the Developer view | One place owns the loading order above, and the Developer view shows the history responses without a second call to SnapTrade | — |
 | Chart only the dates every account reports | Adding accounts on a date only some of them report would show a fake drop | Fill short gaps from the nearest day, and label them |
 | Leave out $0 days at the start of the history | They're before the account had money, and they stretched the chart to $0 so the first deposit looked like a huge jump. A $0 later on could be real, so it stays | — |
 | Break the line after more than 5 days without data | Weekends and holidays are normal, but a straight line across weeks would hide missing data | — |
@@ -34,6 +35,9 @@ The parts of the API the app depends on, and what happens if they change. SnapTr
 | Email kept only if `email_verified` | Per SnapTrade guidance | — |
 | Turn off Next's request log | It prints full URLs, and the OAuth callback's URL holds the authorization code. Testing with a fake code caught this | Keep it off, and add structured logs that leave out query strings |
 | Developer view: one row per API call with its status, and a download of everything | Checking a number against what SnapTrade sent is how the money market double count was found. A row per call shows which one failed without reading JSON | Hide behind a debug flag for real users, since the download includes account numbers |
+| The Developer view includes `/balanceHistory`, matched to each account by ID | It's a beta endpoint, so it's the response most worth checking. `/api/history` now returns the account ID, which `/api/raw` already sends | — |
+| The Developer view counts the page's calls against the per-account limit | 2 + 4 per account, against a limit of 10 a minute where it applies, explains why refreshing three times a minute can fail | Read SnapTrade's rate-limit headers and show what's left |
+| "Our calculation" sits in the Developer view, labelled "not from SnapTrade" | Seeing the report next to the raw responses shows how one became the other. It's limited to the first 10 companies, because the full report can hold thousands | — |
 
 ## Reading holdings
 

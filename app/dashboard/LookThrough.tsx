@@ -6,6 +6,7 @@
 // One page scroll; on a phone, the top pair stacks.
 import { FX } from "../../data/fx";
 import { hasLargeGap, percentText } from "../../lib/format";
+import type { HistoryLoad } from "../../lib/history";
 import { displayName } from "../../lib/names";
 import type { Report } from "../../lib/report";
 import AccountValueChart from "./AccountValueChart";
@@ -22,7 +23,8 @@ function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString(undefined, { dateStyle: "medium", timeZone: "UTC" });
 }
 
-export default function LookThrough({ report }: { report: Report }) {
+// history defaults to "loading" so tests and previews can render without it.
+export default function LookThrough({ report, history = { state: "loading" } }: { report: Report; history?: HistoryLoad }) {
   const {
     result,
     headline,
@@ -148,7 +150,7 @@ export default function LookThrough({ report }: { report: Report }) {
             )}
           </div>
         )}
-        {result.total !== 0 && <AccountValueChart currency={result.currency} money={money} />}
+        {result.total !== 0 && <AccountValueChart history={history} currency={result.currency} money={money} />}
       </div>
 
       <div className="card">

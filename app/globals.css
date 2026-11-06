@@ -62,7 +62,10 @@ p { margin: 0 0 12px; }
 /* The flex layout hides the usual arrow, so draw it back. */
 .call > summary::before { content: "▸"; color: var(--muted); }
 .call[open] > summary::before { content: "▾"; }
-.call-path { min-width: 130px; font-size: 0.9rem; }
+/* A row that can't open yet (still loading, or failed): same layout, no arrow.
+   The left padding lines it up with rows that have one. */
+.call-plain { display: flex; gap: 12px; align-items: baseline; padding: 8px 0 8px 1em; }
+.call-path { min-width: 170px; font-size: 0.9rem; }
 .call-status { min-width: 70px; font-size: 0.85rem; font-variant-numeric: tabular-nums; }
 .call pre { margin: 0 0 12px; }
 table { width: 100%; border-collapse: collapse; font-size: 0.95rem; }

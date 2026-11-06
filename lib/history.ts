@@ -7,8 +7,16 @@
 import { toNumber } from "./holdings";
 import { convertCurrency } from "./currency";
 
-// One account's /balanceHistory result, as packaged by /api/history.
-export type HistoryResponse = { name: string; status: number; ok: boolean; data: unknown };
+// One account's /balanceHistory result, as packaged by /api/history. The id matches
+// the account in /api/raw, so the Developer view can put each response with its account.
+export type HistoryResponse = { id?: string; name: string; status: number; ok: boolean; data: unknown };
+
+// /api/history as the page sees it. Dashboard.tsx loads it once and hands it to both
+// the chart and the Developer view, so there's no second call.
+export type HistoryLoad =
+  | { state: "loading" }
+  | { state: "failed"; message: string }
+  | { state: "loaded"; fetchedAt: string; accounts: HistoryResponse[] };
 
 export type ValuePoint = { date: string; value: number }; // date is YYYY-MM-DD.
 
