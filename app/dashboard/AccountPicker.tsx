@@ -89,7 +89,6 @@ export default function AccountPicker({ groups, selected, onChange, money }: Pro
             </div>
           );
         })}
-        <p className="muted small">Totals are SnapTrade's, in each account's own currency.</p>
       </div>
     </details>
   );

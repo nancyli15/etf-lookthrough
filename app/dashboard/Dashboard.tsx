@@ -134,7 +134,10 @@ export default function Dashboard({ email }: { email?: string }) {
 
   const report = noneChosen ? null : isDefault ? (dashboardData?.report ?? null) : customReport;
   // What the switch shows: the chosen currency, or the one the page is in.
-  const shownCurrency: ReportCurrency = currency ?? (report?.result.currency === "CAD" ? "CAD" : "USD");
+  // With no account chosen there's no report, so fall back to the full report's currency
+  // rather than US$: unticking everything shouldn't flip the switch.
+  const pageCurrency = report?.result.currency ?? dashboardData?.report?.result.currency;
+  const shownCurrency: ReportCurrency = currency ?? (pageCurrency === "CAD" ? "CAD" : "USD");
   const showingAll = selected === null || selected.size === allIds.length;
   // The chart adds up only the chosen accounts' history.
   const shownHistory: HistoryLoad =

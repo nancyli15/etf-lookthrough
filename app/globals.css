@@ -92,7 +92,10 @@ pre {
 
 /* Charts sit in pairs beside what they explain, inside one page scroll. Each pair
    stacks on a phone, and a pair with one card left uses the full width. */
-.container:has(.pair) { max-width: 1100px; }
+/* The dashboard is wider than the sign-in page. Keyed on the page header, which is on
+   the dashboard in every state: keyed on the chart pair, the page narrowed whenever
+   the pair wasn't shown, like with no account chosen. */
+.container:has(.page-header) { max-width: 1100px; }
 .pair { display: grid; gap: 16px; margin: 16px 0; }
 .pair > .card { margin: 0; }
 @media (min-width: 900px) {
