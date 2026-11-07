@@ -40,7 +40,7 @@ export type FundSummary = {
   value: number;
   asOf: string;
   approximatedBy?: string;
-  otherWeight: number;
+  nonCompanyWeight: number;
   unopenedWeight: number;
 };
 
@@ -60,7 +60,7 @@ export type LookThroughResult = {
   directHoldings: DirectHolding[]; // Largest first.
   funds: FundSummary[];
   overlaps: FundOverlap[]; // Largest first.
-  otherInFunds: number; // Cash, futures and other non-stock lines inside funds.
+  nonCompanyInFunds: number; // Cash, futures and other non-stock lines inside funds.
   insideUnopenedFunds: { symbol: string; name: string; value: number }[];
   notLookedThrough: { symbol: string; name: string; kind: string; value: number; reason: string }[];
   cashEquivalents: { symbol: string; name: string; value: number }[]; // Already inside the cash balance.
@@ -101,7 +101,7 @@ export function lookThrough(holdings: Holding[], options: Options = {}): LookThr
     directHoldings: [],
     funds: [],
     overlaps: [],
-    otherInFunds: 0,
+    nonCompanyInFunds: 0,
     insideUnopenedFunds: [],
     notLookedThrough: [],
     cashEquivalents: [],
@@ -218,13 +218,13 @@ export function lookThrough(holdings: Holding[], options: Options = {}): LookThr
       value: 0,
       asOf: fund.asOf,
       approximatedBy: fund.approximatedBy,
-      otherWeight: flattenedFund.other,
+      nonCompanyWeight: flattenedFund.nonCompanyWeight,
       unopenedWeight,
     };
     summary.value += value;
     fundSummaries.set(fund.symbol, summary);
 
-    result.otherInFunds += value * flattenedFund.other;
+    result.nonCompanyInFunds += value * flattenedFund.nonCompanyWeight;
     for (const [key, company] of flattenedFund.companies) {
       addThroughFund(key, company.symbol, company.name, value * company.weight, fund.symbol);
     }

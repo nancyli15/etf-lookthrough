@@ -20,7 +20,7 @@ export const API_BASE =
 export const SCOPES = "openid email read";
 
 // This app's own address, without a trailing slash: http://localhost:3000 or the Vercel URL.
-export function appUrl(): string {
+function appUrl(): string {
   return requireEnv("APP_URL").replace(/\/$/, "");
 }
 

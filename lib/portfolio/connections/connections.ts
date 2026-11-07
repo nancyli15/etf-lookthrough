@@ -6,15 +6,16 @@
 //   - SnapTrade sent accounts in a shape this app doesn't read
 // /api/raw calls /authorizations only in this case, to tell them apart.
 import { listOf } from "../../display/format/format";
+import { rowsIn, type SnapTradeConnection } from "../../snaptrade/responses/responses";
+import { toText } from "../holdings/holdings";
 
 export type CallResult = { status: number; ok: boolean; data: unknown };
 
 type Connection = { name: string; disabled: boolean };
 
 function connectionsOf(data: unknown): Connection[] {
-  const list = Array.isArray(data) ? data : [];
-  return list.map((row) => ({
-    name: String(row?.brokerage?.display_name ?? row?.brokerage?.name ?? row?.name ?? "A brokerage"),
+  return rowsIn<SnapTradeConnection>(data).map((row) => ({
+    name: toText(row?.brokerage?.display_name) ?? toText(row?.brokerage?.name) ?? toText(row?.name) ?? "A brokerage",
     disabled: row?.disabled === true,
   }));
 }

@@ -6,19 +6,19 @@ import { companyKey } from "./identity";
 export type Flattened = {
   companies: Map<string, { symbol: string; name: string; weight: number }>; // Keyed by companyKey.
   unopened: Map<string, { name: string; weight: number }>; // Funds inside it we have no file for.
-  other: number; // Cash, futures and currency lines, from every level.
+  nonCompanyWeight: number; // Cash, futures and currency lines, from every level.
 };
 
 // Opens a fund all the way down, turning it into a weight for each company.
 // Recursive because funds hold funds, like XEF holding IEFA. Each level multiplies
 // the weights. (XEQT's file is already looked through by BlackRock, so it's flat.)
 export function flatten(root: Fund, funds: Record<string, Fund>, withoutData: Set<string>): Flattened {
-  const flattened: Flattened = { companies: new Map(), unopened: new Map(), other: 0 };
+  const flattened: Flattened = { companies: new Map(), unopened: new Map(), nonCompanyWeight: 0 };
 
   // fundWeight: how much of the top fund this fund makes up (1 for the top fund).
   // fundsAbove: the funds already opened on the way down, to catch a fund that holds itself.
   function visit(fund: Fund, fundWeight: number, fundsAbove: string[]) {
-    flattened.other += fundWeight * fund.other;
+    flattened.nonCompanyWeight += fundWeight * fund.nonCompanyWeight;
     for (const holding of fund.holdings) {
       const weight = fundWeight * holding.weight;
       const nestedFund = funds[holding.symbol];

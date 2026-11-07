@@ -3,6 +3,7 @@
 // Wealthsimple), and each connection can hold several accounts (Individual, IRA).
 // No UI here, so the naming rules are tested.
 import { listOf } from "../../display/format/format";
+import { rowsIn, type SnapTradeAccount, type SnapTradeConnection } from "../../snaptrade/responses/responses";
 import { toNumber, toText } from "../holdings/holdings";
 
 export type AccountChoice = {
@@ -17,16 +18,6 @@ export type AccountGroup = {
   accounts: AccountChoice[];
 };
 
-type RawAccount = {
-  id?: unknown;
-  name?: unknown;
-  institution_name?: unknown;
-  brokerage_authorization?: unknown;
-  balance?: { total?: { amount?: unknown; currency?: unknown } };
-};
-
-type RawConnection = { id?: unknown; brokerage?: { display_name?: unknown; name?: unknown } };
-
 // Brokerages often repeat their own name in the account's: "Wealthsimple Trade TFSA"
 // under "Wealthsimple Trade". The picker shows the brokerage once, as the group.
 function shortAccountName(name: string, institution: string | undefined): string {
@@ -36,8 +27,9 @@ function shortAccountName(name: string, institution: string | undefined): string
   return name;
 }
 
-export function groupAccounts(accounts: { account?: RawAccount }[], connections: unknown): AccountGroup[] {
-  const connectionList: RawConnection[] = Array.isArray(connections) ? connections : [];
+// `connections` is the /authorizations response: it names each brokerage.
+export function groupAccounts(accounts: { account?: SnapTradeAccount }[], connections: unknown): AccountGroup[] {
+  const connectionList = rowsIn<SnapTradeConnection>(connections);
   const groups = new Map<string, AccountGroup>();
 
   for (const { account } of accounts) {

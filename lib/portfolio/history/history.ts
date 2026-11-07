@@ -4,7 +4,8 @@
 // /balanceHistory is a beta endpoint. SnapTrade's reference says its values are
 // estimates that may have gaps, so this reads defensively and reports what it
 // couldn't use instead of guessing.
-import { toNumber } from "../holdings/holdings";
+import { rowsIn, type SnapTradeBalanceHistory, type SnapTradeBalanceHistoryDay } from "../../snaptrade/responses/responses";
+import { toNumber, toText } from "../holdings/holdings";
 import { convertCurrency } from "../currency/currency";
 
 // One account's /balanceHistory result, as packaged by /api/history. The id matches
@@ -30,7 +31,7 @@ export type AccountValueHistory = {
 
 // Markets close on weekends and holidays, so a few days without a point is normal.
 // A longer gap means missing data, and the chart shows a break instead of a straight line.
-export const MAX_GAP_DAYS = 5;
+const MAX_GAP_DAYS = 5;
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -57,9 +58,9 @@ export function combineHistory(responses: HistoryResponse[], reportCurrency: str
       result.missing.push({ name: response.name, reason: reasonFor(response) });
       continue;
     }
-    const body = response.data as { history?: unknown; currency?: unknown };
-    const rows = Array.isArray(body?.history) ? body.history : [];
-    const currency = typeof body?.currency === "string" ? body.currency : reportCurrency;
+    const body = response.data as SnapTradeBalanceHistory | null;
+    const rows = rowsIn<SnapTradeBalanceHistoryDay>(body?.history);
+    const currency = toText(body?.currency) ?? reportCurrency;
     if (convertCurrency(1, currency, reportCurrency) === null) {
       result.missing.push({ name: response.name, reason: `No exchange rate for ${currency}` });
       continue;

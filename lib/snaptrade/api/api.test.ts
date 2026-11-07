@@ -3,7 +3,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { tokenRequest } from "../oauth/oauth";
 import { clearSession, getSession, saveSession } from "../session/session";
-import { NotSignedInError, createClient } from "./api";
+import { NotSignedInError, createSnapTradeClient } from "./api";
 
 vi.mock("../session/session", () => ({ getSession: vi.fn(), saveSession: vi.fn(), clearSession: vi.fn() }));
 vi.mock("../oauth/oauth", () => ({ tokenRequest: vi.fn() }));
@@ -35,17 +35,17 @@ beforeEach(() => {
   vi.mocked(tokenRequest).mockResolvedValue(newTokens as never);
 });
 
-describe("createClient", () => {
+describe("createSnapTradeClient", () => {
   it("doesn't refresh when the token works", async () => {
     respond(200);
-    const result = await (await createClient()).get("/accounts");
+    const result = await (await createSnapTradeClient()).get("/accounts");
     expect(result.ok).toBe(true);
     expect(tokenRequest).not.toHaveBeenCalled();
   });
 
   it("refreshes once and retries once with the new token on a 401", async () => {
     const fetchMock = respond(401, 200);
-    const result = await (await createClient()).get("/accounts");
+    const result = await (await createSnapTradeClient()).get("/accounts");
     expect(result.ok).toBe(true);
     expect(tokenRequest).toHaveBeenCalledTimes(1);
     expect(fetchMock).toHaveBeenCalledTimes(2);
@@ -54,13 +54,13 @@ describe("createClient", () => {
 
   it("saves the rotated refresh token, because the old one is now invalid", async () => {
     respond(401, 200);
-    await (await createClient()).get("/accounts");
+    await (await createSnapTradeClient()).get("/accounts");
     expect(saveSession).toHaveBeenCalledWith(expect.objectContaining({ refreshToken: "new-refresh" }));
   });
 
   it("signs out instead of looping when the retry is also a 401", async () => {
     const fetchMock = respond(401, 401);
-    const client = await createClient();
+    const client = await createSnapTradeClient();
     await expect(client.get("/accounts")).rejects.toBeInstanceOf(NotSignedInError);
     expect(fetchMock).toHaveBeenCalledTimes(2);
     expect(tokenRequest).toHaveBeenCalledTimes(1);
@@ -70,7 +70,7 @@ describe("createClient", () => {
   it("signs out when the refresh itself fails, such as after a revoke", async () => {
     respond(401);
     vi.mocked(tokenRequest).mockRejectedValue(new Error("Token request failed: 400 invalid_grant"));
-    const client = await createClient();
+    const client = await createSnapTradeClient();
     await expect(client.get("/accounts")).rejects.toBeInstanceOf(NotSignedInError);
     expect(clearSession).toHaveBeenCalled();
   });
@@ -78,14 +78,14 @@ describe("createClient", () => {
   it("refreshes before calling when the token is about to expire", async () => {
     vi.mocked(getSession).mockResolvedValue({ ...session, expiresAt: Date.now() + 1000 });
     const fetchMock = respond(200);
-    await (await createClient()).get("/accounts");
+    await (await createSnapTradeClient()).get("/accounts");
     expect(tokenRequest).toHaveBeenCalledTimes(1);
     expect(bearerOf(fetchMock.mock.calls[0])).toBe("Bearer new-access");
   });
 
   it("refreshes only once when several calls get a 401", async () => {
     respond(401, 200, 401, 200);
-    const client = await createClient();
+    const client = await createSnapTradeClient();
     await client.get("/accounts");
     await client.get("/accounts/1/positions/all");
     expect(tokenRequest).toHaveBeenCalledTimes(1);
@@ -93,13 +93,13 @@ describe("createClient", () => {
 
   it("passes other errors back, so one failed call doesn't sign the user out", async () => {
     respond(500);
-    const result = await (await createClient()).get("/accounts");
+    const result = await (await createSnapTradeClient()).get("/accounts");
     expect(result.status).toBe(500);
     expect(clearSession).not.toHaveBeenCalled();
   });
 
   it("reports not signed in when there's no session", async () => {
     vi.mocked(getSession).mockResolvedValue(null);
-    await expect(createClient()).rejects.toBeInstanceOf(NotSignedInError);
+    await expect(createSnapTradeClient()).rejects.toBeInstanceOf(NotSignedInError);
   });
 });

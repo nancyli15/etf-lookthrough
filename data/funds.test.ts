@@ -7,9 +7,9 @@ const realData = it.skipIf(FUND_DATA_IS_SAMPLE);
 describe("fund snapshot", () => {
   it("has weights that add up to 100% for every fund", () => {
     for (const fund of Object.values(FUNDS)) {
-      const total = fund.holdings.reduce((sum, h) => sum + h.weight, fund.other);
+      const total = fund.holdings.reduce((sum, h) => sum + h.weight, fund.nonCompanyWeight);
       expect(total, fund.symbol).toBeCloseTo(1, 6);
-      expect(fund.other, fund.symbol).toBeGreaterThanOrEqual(0);
+      expect(fund.nonCompanyWeight, fund.symbol).toBeGreaterThanOrEqual(0);
     }
   });
 
@@ -41,8 +41,8 @@ describe("fund snapshot", () => {
     expect(inXeqt / inXic).toBeLessThan(0.3);
   });
 
-  realData("keeps every holding, so almost nothing is left as other", () => {
+  realData("keeps every holding, so almost nothing is left as non-company lines", () => {
     expect(FUNDS.SPY.holdings.length).toBeGreaterThan(490);
-    for (const fund of Object.values(FUNDS)) expect(fund.other, fund.symbol).toBeLessThan(0.02);
+    for (const fund of Object.values(FUNDS)) expect(fund.nonCompanyWeight, fund.symbol).toBeLessThan(0.02);
   });
 });

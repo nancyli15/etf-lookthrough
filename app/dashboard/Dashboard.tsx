@@ -13,6 +13,8 @@ import { emptyAccountsMessage } from "@/lib/portfolio/connections/connections";
 import type { HistoryLoad } from "@/lib/portfolio/history/history";
 import type { Report, ReportCurrency } from "@/lib/analysis/report/report";
 import type { ApiResult } from "@/lib/snaptrade/api/api";
+import { toText } from "@/lib/portfolio/holdings/holdings";
+import type { SnapTradeAccount } from "@/lib/snaptrade/responses/responses";
 import AccountPicker from "./components/AccountPicker/AccountPicker";
 import CurrencySwitch from "./components/CurrencySwitch/CurrencySwitch";
 import DeveloperView from "./components/DeveloperView/DeveloperView";
@@ -22,7 +24,7 @@ import "./Dashboard.css";
 // One brokerage account and SnapTrade's answers about it, as /api/raw sends them.
 // Each ApiResult is { path, status, ok, data }, with `data` exactly as SnapTrade sent it.
 export type AccountResponses = {
-  account: any; // SnapTrade's account object: name, ID, institution, balance. Outside data, so read with care.
+  account: SnapTradeAccount; // Name, ID, institution, balance. Every field is checked before use.
   positions: ApiResult; // Stocks, ETFs and other investments held in the account
   balances: ApiResult; // Cash, one row per currency
   activities: ApiResult; // Trades, dividends and other account activity
@@ -114,7 +116,7 @@ export default function Dashboard({ email }: { email?: string }) {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        accounts: dashboardData.accounts.filter((accountResponses) => nextIds.has(accountResponses.account?.id)),
+        accounts: dashboardData.accounts.filter((accountResponses) => nextIds.has(toText(accountResponses.account?.id) ?? "")),
         currency: nextCurrency ?? undefined,
       }),
     })

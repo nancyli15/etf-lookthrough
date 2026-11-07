@@ -47,7 +47,7 @@ export function ownershipText(company: CompanyExposure, money: Money): string {
 
 // 2. Why do I own it? One row per fund, biggest first. Its weight in the fund is
 // worked out from the dollars: $137.04 of Tesla in $8,373.75 of SPY is 1.64%.
-// `part` is the fund's share of your whole exposure, which sets the bar's length.
+// `shareOfCompany` is the fund's share of your whole exposure, which sets the bar's length.
 export function insideFunds(company: CompanyExposure, funds: FundSummary[]) {
   return company.byFund
     .map((entry) => {
@@ -56,7 +56,7 @@ export function insideFunds(company: CompanyExposure, funds: FundSummary[]) {
         symbol: entry.symbol,
         value: entry.value,
         weight: fund?.value ? entry.value / fund.value : 0,
-        part: company.total ? entry.value / company.total : 0,
+        shareOfCompany: company.total ? entry.value / company.total : 0,
         // FXAIX uses SPY's list, so both show the same weight. Saying so stops that looking like a bug.
         approximatedBy: fund?.approximatedBy,
       };

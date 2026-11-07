@@ -1,5 +1,7 @@
 // Turns /positions/all responses from every account into one clean list of
 // holdings, with real numbers, ready for the look-through math.
+import { rowsIn, type SnapTradePosition } from "../../snaptrade/responses/responses";
+import { currencyCodeOf } from "../currency/currency";
 
 export type Holding = {
   symbol: string;
@@ -38,11 +40,9 @@ export function toText(value: unknown): string | undefined {
   return typeof value === "string" && value.trim() ? value.trim() : undefined;
 }
 
-// /positions/all returns { results: [...] }. Read defensively: this is outside data.
-export function positionsOf(data: unknown): any[] {
-  if (Array.isArray(data)) return data;
-  const results = (data as { results?: unknown })?.results;
-  return Array.isArray(results) ? results : [];
+// /positions/all returns { results: [...] }. Accept a bare list too.
+export function positionsOf(data: unknown): SnapTradePosition[] {
+  return rowsIn<SnapTradePosition>(data, "results");
 }
 
 
@@ -58,8 +58,10 @@ export function toHoldings(responses: unknown[]): HoldingsResult {
 
   for (const response of responses) {
     for (const position of positionsOf(response)) {
-      const symbol = position?.instrument?.symbol;
-      const currency = position?.currency ?? position?.instrument?.currency;
+      const instrument = position?.instrument;
+      const symbol = toText(instrument?.symbol);
+      // The position's own currency, or else the security's.
+      const currency = currencyCodeOf(position?.currency) ?? currencyCodeOf(instrument?.currency);
       const units = toNumber(position?.units);
       const price = toNumber(position?.price);
 
@@ -68,7 +70,7 @@ export function toHoldings(responses: unknown[]): HoldingsResult {
         continue;
       }
 
-      const figi: string | undefined = position.instrument.figi_instrument?.figi_code ?? undefined;
+      const figi = toText(instrument?.figi_instrument?.figi_code);
       // FIGI is the stable ID, but crypto has none, so fall back to the symbol.
       // Currency is part of the key because CAD and USD values can't be added yet.
       const key = `${figi ?? symbol}|${currency}`;
@@ -82,14 +84,14 @@ export function toHoldings(responses: unknown[]): HoldingsResult {
       }
 
       // Lowercased so "ETF" and "etf" aren't treated as different things.
-      const kind = String(position.instrument.kind ?? "").toLowerCase();
+      const kind = (toText(instrument?.kind) ?? "").toLowerCase();
       holdingsByKey.set(key, {
         symbol,
-        rawSymbol: toText(position.instrument.raw_symbol),
-        name: position.instrument.description ?? symbol,
+        rawSymbol: toText(instrument?.raw_symbol),
+        name: toText(instrument?.description) ?? symbol,
         kind,
         figi,
-        exchange: toText(position.instrument.exchange),
+        exchange: toText(instrument?.exchange),
         units,
         price,
         currency,

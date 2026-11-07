@@ -97,7 +97,7 @@ export default function CompanyDetails({
                   )}
                 </span>
                 <span className="source-track" aria-hidden="true">
-                  <span className="bar funds" style={{ width: `${fund.part * 100}%` }} />
+                  <span className="bar funds" style={{ width: `${fund.shareOfCompany * 100}%` }} />
                 </span>
                 <span className="num">{money(fund.value)}</span>
               </li>

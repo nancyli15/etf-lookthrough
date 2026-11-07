@@ -31,7 +31,7 @@ const UNOPENED_WARNING_ABOVE = 0.05;
 
 // True when enough of the portfolio sits in funds we can't open that company totals
 // are noticeably understated.
-export function hasLargeGap(result: LookThroughResult): boolean {
+export function muchIsInUnopenedFunds(result: LookThroughResult): boolean {
   const unopened = sumOf(result.insideUnopenedFunds, (fund) => fund.value);
   return result.total > 0 && unopened / result.total > UNOPENED_WARNING_ABOVE;
 }

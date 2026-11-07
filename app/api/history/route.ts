@@ -3,7 +3,7 @@
 // fails or changes, only the chart is affected and the rest of the page loads.
 import { NextResponse } from "next/server";
 import type { HistoryResponse } from "@/lib/portfolio/history/history";
-import { accountsIn, createClient } from "@/lib/snaptrade/api/api";
+import { accountsIn, createSnapTradeClient } from "@/lib/snaptrade/api/api";
 import { errorResponse } from "../errorResponse";
 
 // Run on every request, never from a cache: every user's data is different.
@@ -11,7 +11,7 @@ export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
-    const client = await createClient();
+    const client = await createSnapTradeClient();
     const accounts = await client.get("/accounts");
     if (!accounts.ok) {
       return NextResponse.json({ error: "accounts_failed", status: accounts.status }, { status: 502 });

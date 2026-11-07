@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { Fund, FundHolding } from "../../../data/fund-types";
 import { FUND_DATA_IS_SAMPLE, FUNDS } from "../../../data/funds";
 import type { Holding } from "../../portfolio/holdings/holdings";
-import { hasLargeGap } from "../../display/format/format";
+import { muchIsInUnopenedFunds } from "../../display/format/format";
 import { lookThrough } from "./lookthrough";
 
 function holding(symbol: string, kind: string, value: number, extra: Partial<Holding> = {}): Holding {
@@ -11,7 +11,7 @@ function holding(symbol: string, kind: string, value: number, extra: Partial<Hol
 
 function fund(symbol: string, holdings: FundHolding[], extra: Partial<Fund> = {}): Fund {
   const listed = holdings.reduce((sum, h) => sum + h.weight, 0);
-  return { symbol, name: symbol, asOf: "2026-11-02", source: "test", holdings, other: 1 - listed, ...extra };
+  return { symbol, name: symbol, asOf: "2026-11-02", source: "test", holdings, nonCompanyWeight: 1 - listed, ...extra };
 }
 
 const stock = (symbol: string, weight: number): FundHolding => ({ symbol, name: symbol, weight });
@@ -156,12 +156,12 @@ describe("what can't be looked through", () => {
     const companies = r.companies.reduce((sum, c) => sum + c.total, 0);
     const unopened = r.insideUnopenedFunds.reduce((sum, u) => sum + u.value, 0);
     const excluded = r.notLookedThrough.reduce((sum, n) => sum + n.value, 0);
-    expect(companies + unopened + excluded + r.otherInFunds).toBeCloseTo(r.total);
-    expect(r.otherInFunds).toBeCloseTo(500);
+    expect(companies + unopened + excluded + r.nonCompanyInFunds).toBeCloseTo(r.total);
+    expect(r.nonCompanyInFunds).toBeCloseTo(500);
   });
 
   it("returns zeros, not NaN, for an empty portfolio", () => {
-    expect(lookThrough([])).toMatchObject({ total: 0, companies: [], overlaps: [], otherInFunds: 0 });
+    expect(lookThrough([])).toMatchObject({ total: 0, companies: [], overlaps: [], nonCompanyInFunds: 0 });
   });
 });
 
@@ -235,13 +235,13 @@ describe("funds we can't open", () => {
     const funds = { F: fund("F", [stock("AAPL", 0.5), stock("HIDDEN", 0.5)]) };
     const big = lookThrough([holding("F", "etf", 1000)], { funds, fundsWithoutData: new Set(["HIDDEN"]) });
     expect(big.insideUnopenedFunds).toEqual([{ symbol: "HIDDEN", name: "HIDDEN", value: 500 }]);
-    expect(hasLargeGap(big)).toBe(true);
+    expect(muchIsInUnopenedFunds(big)).toBe(true);
 
     const small = lookThrough([holding("F", "etf", 1000), holding("AAPL", "stock", 20000)], {
       funds,
       fundsWithoutData: new Set(["HIDDEN"]),
     });
-    expect(hasLargeGap(small)).toBe(false); // $500 of $21,000 is 2.4%.
+    expect(muchIsInUnopenedFunds(small)).toBe(false); // $500 of $21,000 is 2.4%.
   });
 });
 

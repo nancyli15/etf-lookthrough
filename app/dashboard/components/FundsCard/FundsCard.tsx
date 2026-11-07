@@ -52,7 +52,7 @@ export default function FundsCard({ result, money, onFundClick }: Props) {
             {result.funds.map((fund, index) => {
               const color = index < MAX_SLICES ? FUND_COLORS[index] : OTHER_FUNDS_COLOR;
               // The share of the fund we could match to named companies.
-              const matchedWeight = 1 - fund.otherWeight - fund.unopenedWeight;
+              const matchedWeight = 1 - fund.nonCompanyWeight - fund.unopenedWeight;
               return (
                 <tr key={fund.symbol}>
                   <td>

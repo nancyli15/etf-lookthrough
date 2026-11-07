@@ -1,19 +1,17 @@
 // Prepares everything the look-through screen shows from the /api/raw response.
 // No UI here, so the wording and the failure handling can be tested directly.
 import { FX } from "../../../data/fx";
-import { toHoldings, toNumber } from "../../portfolio/holdings/holdings";
+import { toHoldings, toNumber, toText } from "../../portfolio/holdings/holdings";
+import { rowsIn, type SnapTradeAccount, type SnapTradeBalance } from "../../snaptrade/responses/responses";
 import { recentActivity, type Activity } from "../../portfolio/activities/activities";
 import { convertCurrency, currencyCodeOf } from "../../portfolio/currency/currency";
 import { listOf, percentText } from "../../display/format/format";
 import { lookThrough, type CompanyExposure, type LookThroughResult } from "../lookthrough/lookthrough";
 import { shortName } from "../../display/names/names";
 
+// One account and what SnapTrade answered about it. `data` is each response as sent.
 export type AccountData = {
-  account?: {
-    name?: string;
-    balance?: { total?: { amount?: unknown; currency?: unknown } };
-    sync_status?: { transactions?: { first_transaction_date?: unknown } };
-  };
+  account?: SnapTradeAccount;
   positions: { ok: boolean; status: number; data: unknown };
   balances?: { ok: boolean; data: unknown };
   activities?: { ok: boolean; data: unknown };
@@ -45,7 +43,7 @@ export type Report = {
 const TOTAL_MISMATCH_ABOVE = 0.01;
 
 // For lists of accounts that failed: SnapTrade's name, or a stand-in.
-const accountName = (accountData: AccountData) => accountData.account?.name ?? "An account";
+const accountName = (accountData: AccountData) => toText(accountData.account?.name) ?? "An account";
 
 // Answers "what's my biggest company, and why might that surprise me?"
 // Companies arrive largest first, so the first one is the biggest overall.
@@ -102,8 +100,7 @@ function readCash(accounts: AccountData[], reportCurrency: string) {
       cashNotLoaded.push(accountName(accountData));
       continue;
     }
-    const rows = Array.isArray(accountData.balances.data) ? accountData.balances.data : [];
-    for (const row of rows) {
+    for (const row of rowsIn<SnapTradeBalance>(accountData.balances.data)) {
       const amount = toNumber(row?.cash);
       const currency = currencyCodeOf(row?.currency);
       if (amount === null || !currency) continue;
@@ -143,12 +140,12 @@ export type ReportCurrency = "USD" | "CAD";
 // The currency to report in, if the user hasn't chosen one with the switch. It
 // looks at cash and SnapTrade's account totals as well as holdings: an FHSA with
 // only CAD cash used to fall back to USD and get converted for no reason.
-export function naturalCurrency(accounts: AccountData[], holdingCurrencies: string[]): ReportCurrency {
+function naturalCurrency(accounts: AccountData[], holdingCurrencies: string[]): ReportCurrency {
   const currencies = new Set(holdingCurrencies);
   for (const accountData of accounts) {
-    const total = accountData.account?.balance?.total?.currency;
-    if (typeof total === "string") currencies.add(total);
-    const rows = accountData.balances?.ok && Array.isArray(accountData.balances.data) ? accountData.balances.data : [];
+    const totalCurrency = toText(accountData.account?.balance?.total?.currency);
+    if (totalCurrency) currencies.add(totalCurrency);
+    const rows = accountData.balances?.ok ? rowsIn<SnapTradeBalance>(accountData.balances.data) : [];
     for (const row of rows) {
       const code = currencyCodeOf(row?.currency);
       if (code) currencies.add(code);

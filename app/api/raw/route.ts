@@ -8,7 +8,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { API_BASE } from "@/lib/snaptrade/config/config";
 import { buildReport, type AccountData } from "@/lib/analysis/report/report";
-import { NotSignedInError, accountsIn, createClient, type ApiResult } from "@/lib/snaptrade/api/api";
+import { NotSignedInError, accountsIn, createSnapTradeClient, type ApiResult } from "@/lib/snaptrade/api/api";
 import { errorResponse } from "../errorResponse";
 
 // Run on every request, never from a cache: every user's data is different.
@@ -26,7 +26,7 @@ export async function GET(req: NextRequest) {
   // ?download=1 saves the raw responses as a file, without our report.
   const isDownload = req.nextUrl.searchParams.get("download") === "1";
   try {
-    const client = await createClient();
+    const client = await createSnapTradeClient();
     const accounts = await client.get("/accounts");
 
     const perAccount: AccountResponses[] = [];

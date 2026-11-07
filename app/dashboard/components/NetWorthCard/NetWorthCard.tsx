@@ -23,7 +23,7 @@ export default function NetWorthCard({ report, money, title, includes }: Props) 
   const notLookedTotal = sumOf(result.notLookedThrough, (holding) => holding.value);
   const unopened = sumOf(result.insideUnopenedFunds, (fund) => fund.value);
   // The part of your funds that isn't companies: cash, futures and currency lines, plus funds we can't open.
-  const cashInsideFunds = result.otherInFunds + unopened;
+  const cashInsideFunds = result.nonCompanyInFunds + unopened;
   const cashEquivalentsText = result.cashEquivalents
     .map((holding) => `${money(holding.value)} in ${holding.symbol}`)
     .join(", ");

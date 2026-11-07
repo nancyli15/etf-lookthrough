@@ -3,6 +3,7 @@
 // "on 401, refresh once and retry once" from the OAuth guide.
 import { API_BASE } from "../config/config";
 import { tokenRequest } from "../oauth/oauth";
+import { rowsIn, type SnapTradeAccount } from "../responses/responses";
 import { clearSession, getSession, saveSession, type Session } from "../session/session";
 
 export class NotSignedInError extends Error {}
@@ -12,8 +13,7 @@ export type ApiResult = { path: string; status: number; ok: boolean; data: unkno
 // The accounts in a /accounts response that have an ID, with each one as SnapTrade
 // sent it (`raw`). Read defensively: it's outside data.
 export function accountsIn(result: ApiResult): { id: string; name?: string; raw: unknown }[] {
-  const list: { id?: unknown; name?: unknown }[] = Array.isArray(result.data) ? result.data : [];
-  return list
+  return rowsIn<SnapTradeAccount>(result.data)
     .filter((account) => typeof account?.id === "string" && account.id)
     .map((account) => ({
       id: account.id as string,
@@ -46,7 +46,7 @@ async function refreshSession(session: Session): Promise<Session> {
 }
 
 // Must be used from Route Handlers (not Server Components) so rotated tokens can be saved.
-export async function createClient() {
+export async function createSnapTradeClient() {
   const savedSession = await getSession();
   if (!savedSession) throw new NotSignedInError("Not signed in");
 

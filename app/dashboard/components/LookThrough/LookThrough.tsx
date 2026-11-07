@@ -8,7 +8,7 @@
 // shows its companies in the table above it. One page scroll; on a phone, the top pair stacks.
 import { useState } from "react";
 import { FX } from "@/data/fx";
-import { formatDate, formatMoney, hasLargeGap, percentText, sumOf } from "@/lib/display/format/format";
+import { formatDate, formatMoney, muchIsInUnopenedFunds, percentText, sumOf } from "@/lib/display/format/format";
 import type { HistoryLoad } from "@/lib/portfolio/history/history";
 import { fundView, type CompanyView } from "@/lib/display/paging/paging";
 import type { Report } from "@/lib/analysis/report/report";
@@ -74,7 +74,7 @@ export default function LookThrough({ report, history = { state: "loading" }, in
         <p className="headline">{headline?.title ?? "There's nothing to look through in these accounts yet."}</p>
         {headline && <p className="muted">{headline.detail}</p>}
         <BiggestCompany company={result.companies[0]} money={money} />
-        {hasLargeGap(result) && (
+        {muchIsInUnopenedFunds(result) && (
           <p className="error">
             {shareOf(unopened)} of your portfolio sits inside funds we can't open yet (
             {result.insideUnopenedFunds.map((fund) => fund.symbol).join(", ")}), so company totals are likely understated.

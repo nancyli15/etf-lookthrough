@@ -4,6 +4,7 @@
 // The one exception, "Our calculation", is labelled as ours.
 import type { HistoryLoad } from "@/lib/portfolio/history/history";
 import type { ApiResult } from "@/lib/snaptrade/api/api";
+import { toText } from "@/lib/portfolio/holdings/holdings";
 import type { DashboardData } from "../../Dashboard";
 import { CallRow, HistoryRow } from "./CallRow";
 import { COMPANIES_SHOWN, countOf, reportSummary, summaryOf } from "./summaries";
@@ -94,10 +95,10 @@ export default function DeveloperView({ data, history }: { data: DashboardData; 
       )}
 
       {data.accounts.map((accountData, accountIndex) => (
-        <div className="card" key={accountData.account?.id ?? accountIndex}>
+        <div className="card" key={toText(accountData.account?.id) ?? accountIndex}>
           <h2>
-            {accountData.account?.name ?? "Account"}{" "}
-            <span className="muted">{accountData.account?.institution_name ?? ""}</span>
+            {toText(accountData.account?.name) ?? "Account"}{" "}
+            <span className="muted">{toText(accountData.account?.institution_name) ?? ""}</span>
           </h2>
           <CallRow
             path="/accounts"
@@ -119,7 +120,7 @@ export default function DeveloperView({ data, history }: { data: DashboardData; 
               />
             );
           })}
-          <HistoryRow history={history} accountId={accountData.account?.id} />
+          <HistoryRow history={history} accountId={toText(accountData.account?.id)} />
         </div>
       ))}
 

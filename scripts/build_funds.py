@@ -6,7 +6,7 @@ Name each file after its fund: SPY.xlsx, and XEQT.csv or XEQT.xls for iShares.
 iShares offers a holdings CSV and a "_fund.xls" spreadsheet; both work.
 
 Standard library only. Keeps every stock each fund holds, largest first. Cash,
-futures and currency lines go in an "other" share, so the weights still add up
+futures and currency lines go in a "nonCompanyWeight" share, so the weights still add up
 to 100%.
 """
 import csv
@@ -85,7 +85,7 @@ def read_ishares(path):
     column_names = rows[header_rows[0]]
     # Each row becomes {"Ticker": "AAPL", "Name": "APPLE INC", ...}. Short rows are footnotes.
     table = [dict(zip(column_names, row)) for row in rows[header_rows[0] + 1 : end] if len(row) > 5]
-    # Stocks only: cash, futures and FX lines fall into "other".
+    # Stocks only: cash, futures and FX lines fall into "nonCompanyWeight".
     holdings = [
         {"symbol": row["Ticker"], "name": row["Name"], "exchange": row["Exchange"], "weight": percent_to_fraction(row["Weight (%)"])}
         for row in table
@@ -149,7 +149,7 @@ def build_fund(symbol, name, path, source):
         "asOf": as_of,
         "source": source,
         "holdings": ranked,
-        "other": round(1 - sum(holding["weight"] for holding in ranked), 6),
+        "nonCompanyWeight": round(1 - sum(holding["weight"] for holding in ranked), 6),
     }
 
 
@@ -179,7 +179,7 @@ def main():
         fund = build_fund(symbol, name, path, source) if path.exists() and path.stat().st_size else None
         if fund:
             funds.append(fund)
-            print(f"{symbol}: {fund['asOf']}, {len(fund['holdings'])} holdings, other {fund['other']:.4f}")
+            print(f"{symbol}: {fund['asOf']}, {len(fund['holdings'])} holdings, non-company {fund['nonCompanyWeight']:.4f}")
         else:
             skipped.append(symbol)
             print(f"{symbol}: SKIPPED, no valid {symbol}.xlsx, .csv or .xls", file=sys.stderr)

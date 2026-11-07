@@ -1,6 +1,6 @@
 // Paging and search for the long company tables. No UI, so the rules are tested.
 
-export const PAGE_SIZE = 10;
+const PAGE_SIZE = 10;
 
 export function pageCount(rows: number, size = PAGE_SIZE): number {
   return Math.max(1, Math.ceil(rows / size));
