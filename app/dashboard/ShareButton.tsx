@@ -6,9 +6,18 @@
 // The image is drawn in the browser from an SVG, so holdings never go to a
 // server to make it.
 import { useEffect, useRef, useState } from "react";
-import type { LookThroughResult } from "../../lib/lookthrough";
 import { shareText } from "../../lib/format";
-import { CARD_SIZE, shareCardSvg } from "../../lib/shareCard";
+import type { Report } from "../../lib/report";
+import { CARD_HEIGHT, CARD_WIDTH, shareCardSvg, type ShareOptions } from "../../lib/shareCard";
+
+// What the card shows. Dollar amounts are off unless ticked: a shared image shouldn't
+// show your money by accident.
+const DEFAULTS: Required<ShareOptions> = { amounts: false, insight: true, overlap: true };
+const CHOICES: { key: keyof ShareOptions; label: string }[] = [
+  { key: "amounts", label: "Show dollar amounts" },
+  { key: "insight", label: "Include biggest exposure" },
+  { key: "overlap", label: "Include ETF overlap" },
+];
 
 const FILE_NAME = "what-i-actually-own.png";
 
@@ -19,8 +28,8 @@ function svgToPng(svg: string): Promise<Blob> {
     const image = new Image();
     image.onload = () => {
       const canvas = document.createElement("canvas");
-      canvas.width = CARD_SIZE;
-      canvas.height = CARD_SIZE;
+      canvas.width = CARD_WIDTH;
+      canvas.height = CARD_HEIGHT;
       const context = canvas.getContext("2d");
       if (!context) return reject(new Error("No canvas"));
       context.drawImage(image, 0, 0);
@@ -31,12 +40,14 @@ function svgToPng(svg: string): Promise<Blob> {
   });
 }
 
-export default function ShareButton({ result }: { result: LookThroughResult }) {
+export default function ShareButton({ report }: { report: Report }) {
+  const { result } = report;
   const dialogRef = useRef<HTMLDialogElement>(null);
   const [png, setPng] = useState<Blob | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [status, setStatus] = useState<string | null>(null);
   const [canShareFiles, setCanShareFiles] = useState(false); // Known only in the browser.
+  const [options, setOptions] = useState(DEFAULTS);
 
   useEffect(() => {
     const test = new File([""], FILE_NAME, { type: "image/png" });
@@ -52,9 +63,14 @@ export default function ShareButton({ result }: { result: LookThroughResult }) {
   if (!text) return null;
 
   async function open() {
-    setStatus(null);
     dialogRef.current?.showModal();
-    const svg = shareCardSvg(result, window.location.origin);
+    await draw(options);
+  }
+
+  async function draw(next: Required<ShareOptions>) {
+    setStatus(null);
+    setOptions(next);
+    const svg = shareCardSvg(report, next);
     if (!svg) return;
     try {
       const image = await svgToPng(svg);
@@ -127,7 +143,19 @@ export default function ShareButton({ result }: { result: LookThroughResult }) {
               ✕
             </button>
           </div>
-          <p className="muted small">Only percentages. No dollar amounts, cash or account names.</p>
+          <p className="muted small">Account names and cash are never included.</p>
+          <div className="share-options">
+            {CHOICES.map((choice) => (
+              <label key={choice.key} className="small share-option">
+                <input
+                  type="checkbox"
+                  checked={options[choice.key]}
+                  onChange={(event) => draw({ ...options, [choice.key]: event.target.checked })}
+                />{" "}
+                {choice.label}
+              </label>
+            ))}
+          </div>
           {previewUrl ? (
             <img className="share-preview" src={previewUrl} alt={`Share image. ${text}`} />
           ) : (

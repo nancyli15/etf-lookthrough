@@ -195,7 +195,7 @@ export default function LookThrough({ report, history = { state: "loading" }, in
             {result.insideUnopenedFunds.map((fund) => fund.symbol).join(", ")}), so company totals are likely understated.
           </p>
         )}
-        <ShareButton result={result} />
+        <ShareButton report={report} />
       </div>
 
       {/* Companies first: what you own through everything is the point of the page.
@@ -245,6 +245,20 @@ export default function LookThrough({ report, history = { state: "loading" }, in
           {result.fxAsOf && <>Converted at {FX.cadPerUsd} CAD per USD ({FX.source}, {formatDate(result.fxAsOf)}). </>}
           Percentages are of your holdings, so they don't include cash.
         </p>
+      )}
+      {/* The full report: the browser's own print, which can also save a PDF. The print
+          styles in globals.css hide the buttons, so it reads as a report. */}
+      {result.total !== 0 && (
+        <div className="export-row">
+          <button
+            type="button"
+            className="link small"
+            onClick={() => window.print()}
+            title="Prints the page as it is now, including the page of companies you're on. For every company, use the CSV."
+          >
+            ⎙ Print or save as PDF
+          </button>
+        </div>
       )}
     </>
   );

@@ -258,7 +258,7 @@ html { scrollbar-gutter: stable; }
   align-items: center;
   justify-content: center;
   width: 100%;
-  aspect-ratio: 1;
+  aspect-ratio: 4 / 5; /* The card is 1080 × 1350. */
   border: 1px solid var(--border);
   border-radius: 10px;
   background: var(--bg);
@@ -395,3 +395,28 @@ html { scrollbar-gutter: stable; }
 .insight-value { font-size: 1.5rem; font-weight: 700; line-height: 1.3; }
 .company-row { cursor: pointer; }
 .company-row:hover { background: var(--bg); }
+.share-options { display: flex; flex-wrap: wrap; gap: 4px 16px; margin: 4px 0 10px; }
+.share-option { display: inline-flex; gap: 6px; align-items: center; cursor: pointer; }
+.share-option input { accent-color: var(--accent); }
+
+/* "Download CSV" and "Print": small links at the bottom-right of the card they belong to. */
+.export-row { display: flex; justify-content: flex-end; margin-top: 8px; }
+
+/* Print or save as PDF: the page as a report. Controls, buttons and the developer view
+   are hidden, and cards don't split across pages where it can be avoided. */
+@media print {
+  .page-controls,
+  .developer,
+  .share-dialog,
+  .export-row,
+  .views,
+  .search,
+  .pager-buttons,
+  .info-button,
+  .tooltip,
+  .button,
+  .page-title .small { display: none !important; }
+  body { background: #fff; }
+  .card { box-shadow: none; break-inside: avoid; }
+  .container { max-width: none; }
+}
