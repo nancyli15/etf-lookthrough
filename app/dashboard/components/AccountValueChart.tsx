@@ -5,6 +5,7 @@
 import { useMemo, useRef, useState } from "react";
 import { formatMoney } from "../../../lib/display/format";
 import { combineHistory, splitAtGaps, type HistoryLoad, type ValuePoint } from "../../../lib/portfolio/history";
+import "./AccountValueChart.css";
 
 const WIDTH = 560;
 const HEIGHT = 200;

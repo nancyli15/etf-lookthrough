@@ -5,6 +5,7 @@
 import type { ReactNode } from "react";
 import { percentText } from "../../../lib/display/format";
 import InfoPopover from "./InfoPopover";
+import "./Donut.css";
 
 export type DonutSlice = {
   key: string;

@@ -6,6 +6,7 @@
 // Built from a <span> and a <button>, not <details> like the Accounts dropdown: a
 // <details> isn't allowed inside a paragraph, so the browser broke the line before it.
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
+import "./InfoPopover.css";
 
 export default function InfoPopover({ label, children }: { label: string; children: ReactNode }) {
   const [open, setOpen] = useState(false);

@@ -17,6 +17,7 @@ import CompanyTable from "./CompanyTable";
 import FundsCard from "./FundsCard";
 import InfoPopover from "./InfoPopover";
 import BiggestCompany from "./BiggestCompany";
+import "./LookThrough.css";
 
 function sumOf<T>(rows: T[], valueOf: (row: T) => number): number {
   return rows.reduce((sum, row) => sum + valueOf(row), 0);

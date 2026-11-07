@@ -3,6 +3,7 @@
 // CAD if any Canadian money is shown, otherwise USD. Flipping it recalculates the
 // whole page in the chosen currency, at the one dated rate in data/fx.ts.
 import type { ReportCurrency } from "../../../lib/analysis/report";
+import "./CurrencySwitch.css";
 
 const OPTIONS: { currency: ReportCurrency; label: string }[] = [
   { currency: "USD", label: "USD" },

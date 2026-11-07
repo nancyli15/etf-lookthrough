@@ -1,6 +1,7 @@
 // Page buttons under a long table: "Showing 11–20 of 502" and ‹ Prev 1 … 4 5 6 … 51 Next ›.
 // The numbering rules are in lib/display/paging.ts, where they're tested.
 import { pageCount, pageNumbers } from "../../../lib/display/paging";
+import "./Pager.css";
 
 type Props = {
   page: number;

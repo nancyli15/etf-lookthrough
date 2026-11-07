@@ -71,7 +71,7 @@ data/            fund holdings and exchange rates
 scripts/         builds and downloads the fund data
 ```
 
-Each test file sits next to the file it checks.
+Each test file sits next to the file it checks, and each component's styles sit next to it (`CompanyTable.tsx` and `CompanyTable.css`). Shared styles are in `app/globals.css`.
 
 ## How sign-in works
 

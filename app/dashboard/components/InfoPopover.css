@@ -1,0 +1,35 @@
+/* ⓘ popup: a small round button, and a note card under it. */
+.info { position: relative; display: inline-block; vertical-align: middle; }
+.info-button {
+  background: none;
+  border: none;
+  font: inherit;
+  cursor: pointer;
+  color: var(--muted);
+  font-size: 0.95rem;
+  line-height: 1;
+  padding: 2px 4px;
+  border-radius: 999px;
+}
+.info-button:hover, .info-button[aria-expanded="true"] { color: var(--accent); }
+.info-button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.info-pop {
+  position: absolute;
+  left: 0;
+  top: calc(100% + 6px);
+  z-index: 10;
+  display: block;
+  width: min(320px, calc(100vw - 48px));
+  margin: 0;
+  padding: 12px 14px;
+  box-shadow: 0 8px 24px rgba(17, 24, 39, 0.12);
+  font-weight: 400;
+  white-space: normal;
+  text-align: left;
+  color: var(--text);
+}
+.info-pop[hidden] { display: none; }
+/* Fills the gap above the note, so moving the mouse down to read it doesn't close it. */
+.info-pop::before { content: ""; position: absolute; left: 0; right: 0; top: -8px; height: 8px; }
+.info-line { display: block; margin: 0 0 6px; }
+.info-line:last-child { margin: 0; }

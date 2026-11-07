@@ -1,0 +1,19 @@
+/* Where your funds overlap: the biggest pair in dollars, then one row per pair. */
+.overlap-insight { margin: 8px 0 12px; padding: 14px 16px; border-radius: 10px; background: var(--bg); }
+.overlap-insight p { margin: 0 0 4px; }
+.overlap-amount { font-size: 1.6rem; font-weight: 700; line-height: 1.2; }
+.overlap-list { list-style: none; margin: 0 0 8px; padding: 0; }
+.overlap-list li {
+  display: grid;
+  grid-template-columns: minmax(110px, 150px) minmax(0, 1fr) 64px;
+  gap: 4px 16px;
+  align-items: start;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border);
+}
+.overlap-list li:last-child { border-bottom: none; }
+.overlap-pair { font-weight: 600; white-space: nowrap; }
+.overlap-bar { display: grid; gap: 4px; padding-top: 4px; }
+.overlap-percent { text-align: right; font-weight: 600; }
+.bar.overlap-fill { background: var(--accent); border-radius: 0 4px 4px 0; }
+.subheading { font-size: 1rem; margin: 24px 0 4px; }

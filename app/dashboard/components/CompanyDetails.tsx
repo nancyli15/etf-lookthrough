@@ -23,6 +23,7 @@ import { percentText } from "../../../lib/display/format";
 import InfoPopover from "./InfoPopover";
 import type { CompanyExposure, FundSummary } from "../../../lib/analysis/lookthrough";
 import { shortName } from "../../../lib/display/names";
+import "./CompanyDetails.css";
 
 const START_MOVE = 10; // Percent: a round number that's easy to check in your head.
 const MAX_MOVE = 50; // The slider runs from −50% to +50%, with 0 in the middle.
@@ -80,9 +81,9 @@ export default function CompanyDetails({
         {/* 2. Why do I own it? One bar per source; the bars add up to the total above. */}
         <section className="details-section">
           <p className="details-heading">Where your {name} comes from</p>
-          <ul className="sources">
+          <ul className="details-sources">
             {company.direct > 0 && (
-              <li className="source">
+              <li className="details-source">
                 <span className="source-name">Shares you bought</span>
                 <span className="source-track" aria-hidden="true">
                   <span className="bar direct" style={{ width: `${(company.direct / company.total) * 100}%` }} />
@@ -91,7 +92,7 @@ export default function CompanyDetails({
               </li>
             )}
             {sources.map((fund) => (
-              <li key={fund.symbol} className="source">
+              <li key={fund.symbol} className="details-source">
                 <span className="source-name">
                   {fund.symbol}{" "}
                   <span className="muted small">{weightText(fund.weight)} of fund</span>

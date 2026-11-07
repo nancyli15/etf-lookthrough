@@ -1,0 +1,54 @@
+/* The company table: filter buttons and legend above, a bar and a source line per row. */
+.table-tools { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; margin: 12px 0 4px; }
+.views { display: flex; gap: 4px; }
+.view-button {
+  padding: 6px 12px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--card);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+.view-button:hover { background: var(--bg); }
+.view-button.current { border-color: var(--accent); background: var(--selected); color: var(--accent); font-weight: 600; }
+/* table-layout: fixed sizes the columns from the <col> widths alone, so the content
+   can't move them: opening a dropdown or changing page keeps every bar in place. */
+.companies { table-layout: fixed; }
+.companies .col-company { width: 26%; }
+.companies .col-sources { width: 44%; }
+.companies .col-total { width: 16%; }
+.companies .col-percent { width: 14%; }
+.companies td { vertical-align: top; overflow-wrap: anywhere; }
+.companies td.sources { padding-top: 12px; }
+/* On a phone, the bar column gets less room so the numbers still fit. */
+@media (max-width: 600px) {
+  .companies .col-company { width: 34%; }
+  .companies .col-sources { width: 30%; }
+  .companies .col-total { width: 22%; }
+}
+.source-line { display: flex; flex-wrap: wrap; gap: 2px 14px; margin-top: 6px; }
+.totals { display: flex; flex-wrap: wrap; gap: 4px 16px; align-items: center; margin: 12px 0 0; color: var(--muted); }
+.totals strong { color: var(--text); }
+.legend { display: flex; gap: 16px; color: var(--muted); }
+tr.selected td { background: var(--selected); }
+/* A company's breakdown, opened inside the combined table under its row. White, not
+   tinted, with thin lines between its sections, so it reads as part of the table. */
+tr.open-row > td { background: var(--card); padding: 4px 12px 16px 28px; box-shadow: inset 3px 0 0 var(--accent); }
+/* Long tables: a search box beside the title, and page buttons underneath. */
+.table-header { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; margin-bottom: 4px; }
+.table-header h2 { margin: 0; }
+.search {
+  width: min(260px, 100%);
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--card);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.9rem;
+}
+.search:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.company-row { cursor: pointer; }
+.company-row:hover { background: var(--bg); }

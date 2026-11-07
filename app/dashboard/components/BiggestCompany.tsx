@@ -4,6 +4,7 @@
 import { percentText } from "../../../lib/display/format";
 import type { CompanyExposure } from "../../../lib/analysis/lookthrough";
 import { shortName } from "../../../lib/display/names";
+import "./BiggestCompany.css";
 
 type Props = {
   company: CompanyExposure | undefined; // The biggest, from result.companies[0].

@@ -10,6 +10,7 @@ import { percentText } from "../../../lib/display/format";
 import type { FundOverlap, FundSummary } from "../../../lib/analysis/lookthrough";
 import { shortName } from "../../../lib/display/names";
 import InfoPopover from "./InfoPopover";
+import "./OverlapList.css";
 
 // Four funds make six pairs, which fit. More funds make many more, so the rest wait behind a button.
 const SHOWN = 6;

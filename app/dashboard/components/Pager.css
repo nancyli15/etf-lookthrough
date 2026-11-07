@@ -1,0 +1,18 @@
+/* Page buttons under a long table. */
+.pager { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; margin-top: 12px; }
+.pager-buttons { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
+.pager-button {
+  min-width: 36px;
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--card);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.85rem;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+}
+.pager-button:hover:not(:disabled) { background: var(--bg); }
+.pager-button.current { border-color: var(--accent); background: var(--accent); color: #fff; }
+.pager-button:disabled { opacity: 0.4; cursor: default; }

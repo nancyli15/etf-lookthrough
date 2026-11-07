@@ -1,0 +1,19 @@
+/* The dashboard is wider than the sign-in page. Keyed on the page header, which is on
+   the dashboard in every state: keyed on the chart pair, the page narrowed whenever
+   the pair wasn't shown, like with no account chosen. */
+.container:has(.page-header) { max-width: 1100px; }
+/* Page header: the title on the left, the controls on the right. The controls never
+   wrap under the title on a wide screen, so changing accounts can't make it jump. */
+.page-header { display: flex; gap: 16px 24px; align-items: flex-start; justify-content: space-between; }
+.page-title { flex: 1 1 auto; min-width: 0; }
+.page-title p { margin: 0 0 4px; }
+.page-controls { display: flex; flex: none; flex-wrap: nowrap; gap: 12px; align-items: center; }
+/* Bold and the same text size as the selected currency, so the three controls read as
+   one set. 9px top and bottom padding makes them as tall as the switch: its 1px border,
+   2px inner padding and 6px button padding also add up to 9px around the same line of text. */
+.page-controls .button { font-weight: 600; font-size: 0.9rem; padding: 9px 14px; }
+/* On a phone there isn't room, so the controls go under the title, the same way every time. */
+@media (max-width: 760px) {
+  .page-header { flex-direction: column; }
+  .page-controls { flex-wrap: wrap; }
+}

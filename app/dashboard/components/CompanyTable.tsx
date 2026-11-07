@@ -14,6 +14,7 @@ import { fundView, inView, matchesSearch, pageOf, sortForView, type CompanyView 
 import type { Report } from "../../../lib/analysis/report";
 import CompanyDetails from "./CompanyDetails";
 import Pager from "./Pager";
+import "./CompanyTable.css";
 
 const VIEWS: { view: CompanyView; label: string }[] = [
   { view: "all", label: "All" },

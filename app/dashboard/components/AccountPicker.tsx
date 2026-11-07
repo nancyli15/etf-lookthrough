@@ -5,6 +5,7 @@
 import { useRef } from "react";
 import type { AccountGroup } from "../../../lib/portfolio/accounts";
 import { useDismiss } from "./useDismiss";
+import "./AccountPicker.css";
 
 type Props = {
   groups: AccountGroup[];

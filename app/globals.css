@@ -1,3 +1,5 @@
+/* Styles shared across the app: colours, page, cards, buttons, tables, bars and links.
+   Each component's own styles sit next to it, like components/CompanyTable.css. */
 /* One light theme, styled like SnapTrade's dashboard: light gray page, white cards,
    thin borders, teal accent. Every text color is at least 4.5:1 on its background. */
 :root {
@@ -56,32 +58,12 @@ p { margin: 0 0 12px; }
 .button.secondary { background: transparent; color: var(--text); border: 1px solid var(--border); }
 .row { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
 .error { color: var(--danger); }
-.headline { font-size: 1.35rem; font-weight: 600; line-height: 1.3; }
 .small { font-size: 0.85rem; }
 .spaced { margin-top: 12px; }
-.developer { margin-top: 32px; }
-.developer summary { cursor: pointer; }
-/* One row per API call in the developer view; opening it shows the raw JSON. */
-.call { border-bottom: 1px solid var(--border); }
-.call > summary { display: flex; gap: 12px; align-items: baseline; padding: 8px 0; }
-.call > summary { cursor: pointer; list-style: none; }
-.call > summary::-webkit-details-marker { display: none; }
-/* The flex layout hides the usual arrow, so draw it back. */
-.call > summary::before { content: "▸"; color: var(--muted); }
-.call[open] > summary::before { content: "▾"; }
-/* A row that can't open yet (still loading, or failed): same layout, no arrow.
-   The left padding lines it up with rows that have one. */
-.call-plain { display: flex; gap: 12px; align-items: baseline; padding: 8px 0 8px 1em; }
-.call-path { min-width: 170px; font-size: 0.9rem; }
-.call-status { min-width: 70px; font-size: 0.85rem; font-variant-numeric: tabular-nums; }
-.call pre { margin: 0 0 12px; }
 table { width: 100%; border-collapse: collapse; font-size: 0.95rem; }
 th, td { text-align: left; padding: 8px 6px; border-bottom: 1px solid var(--border); }
 th { color: var(--muted); font-weight: 500; }
 tfoot td { font-weight: 600; border-bottom: none; }
-tfoot tr.subtotal td { font-weight: 400; color: var(--muted); }
-.net-worth { border-color: var(--accent-soft); }
-.net-worth-value { font-size: 2.2rem; font-weight: 700; line-height: 1.2; margin-bottom: 4px; }
 /* Amounts stay on one line: "CA$31,205.61", not "CAD" wrapped under it. */
 td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
 pre {
@@ -93,21 +75,7 @@ pre {
   max-height: 360px;
 }
 
-/* Charts sit in pairs beside what they explain, inside one page scroll. Each pair
-   stacks on a phone, and a pair with one card left uses the full width. */
-/* The dashboard is wider than the sign-in page. Keyed on the page header, which is on
-   the dashboard in every state: keyed on the chart pair, the page narrowed whenever
-   the pair wasn't shown, like with no account chosen. */
-.container:has(.page-header) { max-width: 1100px; }
-.pair { display: grid; gap: 16px; margin: 16px 0; }
-.pair > .card { margin: 0; }
-@media (min-width: 900px) {
-  .pair { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
-  .pair > :only-child { grid-column: 1 / -1; }
-}
-
 /* Bars and colored squares: blue for what you bought, orange for what's in your funds. */
-.legend { display: flex; gap: 16px; color: var(--muted); }
 .swatch { display: inline-block; width: 10px; height: 10px; border-radius: 2px; vertical-align: baseline; }
 .swatch.direct { background: var(--series-direct); }
 .swatch.funds { background: var(--series-funds); }
@@ -117,41 +85,6 @@ pre {
 .bar.direct { background: var(--series-direct); }
 .bar.funds { background: var(--series-funds); }
 .bar:last-child { border-radius: 0 4px 4px 0; }
-
-/* The company table: filter buttons and legend above, a bar and a source line per row. */
-.table-tools { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; margin: 12px 0 4px; }
-.views { display: flex; gap: 4px; }
-.view-button {
-  padding: 6px 12px;
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  background: var(--card);
-  color: var(--text);
-  font: inherit;
-  font-size: 0.85rem;
-  cursor: pointer;
-}
-.view-button:hover { background: var(--bg); }
-.view-button.current { border-color: var(--accent); background: var(--selected); color: var(--accent); font-weight: 600; }
-/* table-layout: fixed sizes the columns from the <col> widths alone, so the content
-   can't move them: opening a dropdown or changing page keeps every bar in place. */
-.companies { table-layout: fixed; }
-.companies .col-company { width: 26%; }
-.companies .col-sources { width: 44%; }
-.companies .col-total { width: 16%; }
-.companies .col-percent { width: 14%; }
-.companies td { vertical-align: top; overflow-wrap: anywhere; }
-.companies td.sources { padding-top: 12px; }
-/* On a phone, the bar column gets less room so the numbers still fit. */
-@media (max-width: 600px) {
-  .companies .col-company { width: 34%; }
-  .companies .col-sources { width: 30%; }
-  .companies .col-total { width: 22%; }
-}
-.source-line { display: flex; flex-wrap: wrap; gap: 2px 14px; margin-top: 6px; }
-.totals { display: flex; flex-wrap: wrap; gap: 4px 16px; align-items: center; margin: 12px 0 0; color: var(--muted); }
-.totals strong { color: var(--text); }
-.subheading { font-size: 1rem; margin: 24px 0 4px; }
 
 /* A company name in a table that opens its dropdown */
 .link {
@@ -165,233 +98,7 @@ pre {
   cursor: pointer;
 }
 .link:hover { color: var(--accent); }
-tr.selected td { background: var(--selected); }
-/* A company's breakdown, opened inside the combined table under its row. White, not
-   tinted, with thin lines between its sections, so it reads as part of the table. */
-tr.open-row > td { background: var(--card); padding: 4px 12px 16px 28px; box-shadow: inset 3px 0 0 var(--accent); }
-.details { display: grid; gap: 0 32px; font-size: 0.9rem; }
-@media (min-width: 760px) { .details { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } }
-.details p { margin: 8px 0; }
-.details-section { padding: 12px 0; border-top: 1px solid var(--border); }
-.details-column > .details-section:first-child { border-top: none; }
-.details-list { list-style: none; margin: 0 0 8px; padding: 0; }
-.details-list li { padding: 3px 0; }
-.details-heading { display: block; font-weight: 600; margin: 0 0 8px; }
-.details .details-heading { margin-top: 0; }
-.details-total { margin-top: 8px; }
-.details-big { font-size: 1.6rem; font-weight: 700; line-height: 1.2; }
-/* Loss in red, gain in green. The sign is always written too, so colour isn't the only clue. */
-.details-result.gain .details-big { color: var(--gain); }
-.details-result.loss .details-big { color: var(--danger); }
-.pill {
-  display: inline-block;
-  padding: 2px 10px;
-  border-radius: 999px;
-  background: var(--selected);
-  color: var(--accent);
-  font-size: 0.8rem;
-  font-weight: 600;
-}
-/* One row per source: name and weight, a bar, then the dollars. The bars share one
-   scale (the company's total), so the longest bar is the biggest source. */
-.sources { list-style: none; margin: 0 0 4px; padding: 0; }
-.source { display: grid; grid-template-columns: minmax(120px, 1.2fr) minmax(60px, 1fr) auto; gap: 12px; align-items: center; padding: 5px 0; }
-.source-track { display: flex; height: 10px; background: var(--bg); border-radius: 4px; }
-.source-track .bar { border-radius: 4px; }
-.source .num { text-align: right; font-variant-numeric: tabular-nums; }
-/* The slider runs from −50% to +50%, with 0 in the middle. */
-.slider { width: 100%; margin: 6px 0 2px; accent-color: var(--accent); cursor: pointer; }
-.slider-ends { display: flex; justify-content: space-between; }
-.details-result { margin-top: 8px; }
-
-/* Long tables: a search box beside the title, and page buttons underneath. */
-.table-header { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; margin-bottom: 4px; }
-.table-header h2 { margin: 0; }
-.search {
-  width: min(260px, 100%);
-  padding: 8px 12px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  background: var(--card);
-  color: var(--text);
-  font: inherit;
-  font-size: 0.9rem;
-}
-.search:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
-.pager { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; margin-top: 12px; }
-.pager-buttons { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
-.pager-button {
-  min-width: 36px;
-  padding: 6px 10px;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  background: var(--card);
-  color: var(--text);
-  font: inherit;
-  font-size: 0.85rem;
-  font-variant-numeric: tabular-nums;
-  cursor: pointer;
-}
-.pager-button:hover:not(:disabled) { background: var(--bg); }
-.pager-button.current { border-color: var(--accent); background: var(--accent); color: #fff; }
-.pager-button:disabled { opacity: 0.4; cursor: default; }
-
-/* Line chart */
-.line-chart { position: relative; }
-.line-chart svg { display: block; width: 100%; height: auto; touch-action: pan-y; }
-.line-chart .grid { stroke: var(--border); stroke-width: 1; }
-.line-chart .axis { fill: var(--muted); font-size: 16px; } /* SVG units: about 11px once the chart is scaled to the card. */
-.line-chart .series-line { fill: none; stroke: var(--series-direct); stroke-width: 2; stroke-linejoin: round; }
-.line-chart .series-dot { fill: var(--series-direct); }
-.line-chart .crosshair { stroke: var(--muted); stroke-width: 1; stroke-dasharray: 3 3; }
-.line-chart .hover-dot { fill: var(--series-direct); stroke: var(--card); stroke-width: 2; }
-.tooltip {
-  position: absolute;
-  top: 0;
-  transform: translateX(-50%);
-  padding: 6px 10px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  background: var(--card);
-  white-space: nowrap;
-  pointer-events: none;
-}
 
 /* Keep the scrollbar's space when it's hidden, so the page doesn't jump sideways. */
 html { scrollbar-gutter: stable; }
 .button:disabled { opacity: 0.5; cursor: default; }
-
-/* Account picker: a dropdown of checkboxes beside Disconnect. */
-.picker { position: relative; }
-/* Block, not inline: inline left a few pixels of text-line space under it, which
-   pushed it lower than the buttons beside it. */
-.picker > summary { display: block; list-style: none; }
-.picker > summary::-webkit-details-marker { display: none; }
-.picker-menu {
-  position: absolute;
-  right: 0;
-  z-index: 10;
-  width: min(360px, calc(100vw - 32px));
-  margin: 8px 0 0;
-  padding: 12px 16px;
-  box-shadow: 0 8px 24px rgba(17, 24, 39, 0.12);
-}
-.picker-row { display: flex; gap: 10px; align-items: center; padding: 5px 0; cursor: pointer; }
-.picker-row input { accent-color: var(--accent); }
-.picker-all { border-bottom: 1px solid var(--border); padding-bottom: 8px; margin-bottom: 4px; font-weight: 600; }
-.picker-brokerage { font-weight: 600; margin-top: 6px; }
-.picker-account { padding-left: 24px; font-size: 0.9rem; }
-.picker-account .num { margin-left: auto; font-variant-numeric: tabular-nums; }
-
-/* USD / CAD switch: two halves of one pill, like a light/dark toggle. */
-.switch { display: inline-flex; border: 1px solid var(--border); border-radius: 999px; background: var(--card); padding: 2px; }
-.switch-option {
-  padding: 6px 12px;
-  border: none;
-  border-radius: 999px;
-  background: transparent;
-  color: var(--muted);
-  font: inherit;
-  font-size: 0.9rem;
-  font-weight: 600;
-  cursor: pointer;
-}
-.switch-option.current { background: var(--accent); color: #fff; }
-.switch-option:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-
-/* Page header: the title on the left, the controls on the right. The controls never
-   wrap under the title on a wide screen, so changing accounts can't make it jump. */
-.page-header { display: flex; gap: 16px 24px; align-items: flex-start; justify-content: space-between; }
-.page-title { flex: 1 1 auto; min-width: 0; }
-.page-title p { margin: 0 0 4px; }
-.page-controls { display: flex; flex: none; flex-wrap: nowrap; gap: 12px; align-items: center; }
-/* Bold and the same text size as the selected currency, so the three controls read as
-   one set. 9px top and bottom padding makes them as tall as the switch: its 1px border,
-   2px inner padding and 6px button padding also add up to 9px around the same line of text. */
-.page-controls .button { font-weight: 600; font-size: 0.9rem; padding: 9px 14px; }
-/* On a phone there isn't room, so the controls go under the title, the same way every time. */
-@media (max-width: 760px) {
-  .page-header { flex-direction: column; }
-  .page-controls { flex-wrap: wrap; }
-}
-
-/* Donut: the chart on the left, a labelled legend on the right. Every slice has its
-   amount and share written out, so nothing depends on colour or slice size alone. */
-.donut { display: flex; flex-wrap: wrap; gap: 16px 24px; align-items: center; }
-.donut-chart { width: 160px; height: 160px; flex: none; }
-.donut-total { font-size: 13px; font-weight: 700; fill: var(--text); font-variant-numeric: tabular-nums; }
-.donut-caption { font-size: 11px; fill: var(--muted); }
-.donut-legend { flex: 1 1 280px; list-style: none; margin: 0; padding: 0; font-size: 0.9rem; }
-.donut-legend li { display: grid; grid-template-columns: auto 1fr auto 52px; gap: 10px; align-items: center; padding: 5px 0; border-bottom: 1px solid var(--border); }
-.donut-legend .num { white-space: nowrap; text-align: right; }
-.donut-legend li:last-child { border-bottom: none; }
-.donut-label { white-space: nowrap; } /* "Cash inside your funds" on one line. */
-
-/* Funds card: the table, with the donut of fund sizes beside it on a wide screen. */
-.funds-layout { display: grid; gap: 16px 32px; align-items: start; }
-@media (min-width: 900px) { .funds-layout { grid-template-columns: minmax(0, 1fr) auto; align-items: center; } }
-.funds-layout .donut { justify-content: center; }
-.funds-layout td .swatch { margin-right: 8px; }
-
-/* ⓘ popup: a small round button, and a note card under it. */
-.info { position: relative; display: inline-block; vertical-align: middle; }
-.info-button {
-  background: none;
-  border: none;
-  font: inherit;
-  cursor: pointer;
-  color: var(--muted);
-  font-size: 0.95rem;
-  line-height: 1;
-  padding: 2px 4px;
-  border-radius: 999px;
-}
-.info-button:hover, .info-button[aria-expanded="true"] { color: var(--accent); }
-.info-button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
-.info-pop {
-  position: absolute;
-  left: 0;
-  top: calc(100% + 6px);
-  z-index: 10;
-  display: block;
-  width: min(320px, calc(100vw - 48px));
-  margin: 0;
-  padding: 12px 14px;
-  box-shadow: 0 8px 24px rgba(17, 24, 39, 0.12);
-  font-weight: 400;
-  white-space: normal;
-  text-align: left;
-  color: var(--text);
-}
-.info-pop[hidden] { display: none; }
-/* Fills the gap above the note, so moving the mouse down to read it doesn't close it. */
-.info-pop::before { content: ""; position: absolute; left: 0; right: 0; top: -8px; height: 8px; }
-.info-line { display: block; margin: 0 0 6px; }
-.info-line:last-child { margin: 0; }
-
-/* Where your funds overlap: the biggest pair in dollars, then one row per pair. */
-.overlap-insight { margin: 8px 0 12px; padding: 14px 16px; border-radius: 10px; background: var(--bg); }
-.overlap-insight p { margin: 0 0 4px; }
-.overlap-amount { font-size: 1.6rem; font-weight: 700; line-height: 1.2; }
-.overlap-list { list-style: none; margin: 0 0 8px; padding: 0; }
-.overlap-list li {
-  display: grid;
-  grid-template-columns: minmax(110px, 150px) minmax(0, 1fr) 64px;
-  gap: 4px 16px;
-  align-items: start;
-  padding: 8px 0;
-  border-bottom: 1px solid var(--border);
-}
-.overlap-list li:last-child { border-bottom: none; }
-.overlap-pair { font-weight: 600; white-space: nowrap; }
-.overlap-bar { display: grid; gap: 4px; padding-top: 4px; }
-.overlap-percent { text-align: right; font-weight: 600; }
-.bar.overlap-fill { background: var(--accent); border-radius: 0 4px 4px 0; }
-
-/* Under the headline: two figures about your biggest company. */
-.insight-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin: 12px 0 4px; }
-.insight-tile { padding: 12px 16px; border-radius: 10px; background: var(--bg); }
-.insight-tile p { margin: 0; }
-.insight-value { font-size: 1.5rem; font-weight: 700; line-height: 1.3; }
-.company-row { cursor: pointer; }
-.company-row:hover { background: var(--bg); }

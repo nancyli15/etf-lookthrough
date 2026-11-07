@@ -6,6 +6,7 @@ import { positionsOf } from "../../../lib/portfolio/holdings";
 import type { HistoryLoad } from "../../../lib/portfolio/history";
 import type { Report } from "../../../lib/analysis/report";
 import type { ApiResponse, DashboardData } from "../Dashboard";
+import "./DeveloperView.css";
 
 // SnapTrade's per-account limit, shared by every account-data call (see TRADEOFFS.md).
 const ACCOUNT_LIMIT_PER_MINUTE = 10;

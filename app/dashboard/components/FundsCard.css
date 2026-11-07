@@ -1,0 +1,6 @@
+/* Funds card: the table, with the donut of fund sizes beside it on a wide screen. */
+.funds-layout { display: grid; gap: 16px 32px; align-items: start; }
+@media (min-width: 900px) { .funds-layout { grid-template-columns: minmax(0, 1fr) auto; align-items: center; } }
+.funds-layout .donut { justify-content: center; }
+.funds-layout td .swatch { margin-right: 8px; }
+tfoot tr.subtotal td { font-weight: 400; color: var(--muted); }

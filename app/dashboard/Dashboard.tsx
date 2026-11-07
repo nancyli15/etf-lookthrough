@@ -16,6 +16,7 @@ import AccountPicker from "./components/AccountPicker";
 import CurrencySwitch from "./components/CurrencySwitch";
 import DeveloperView from "./components/DeveloperView";
 import LookThrough from "./components/LookThrough";
+import "./Dashboard.css";
 
 // The result of one SnapTrade API call, as packaged by /api/raw.
 export type ApiResponse = {

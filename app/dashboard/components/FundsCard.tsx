@@ -7,6 +7,7 @@ import type { LookThroughResult } from "../../../lib/analysis/lookthrough";
 import Donut, { type DonutSlice } from "./Donut";
 import InfoPopover from "./InfoPopover";
 import OverlapList from "./OverlapList";
+import "./FundsCard.css";
 
 // Not blue, orange or aqua: those mean "you bought", "via funds" and "cash in your
 // accounts" elsewhere on the page. Four checked colours, then grey for "Other". Red was
