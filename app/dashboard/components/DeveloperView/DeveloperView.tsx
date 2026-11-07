@@ -2,120 +2,14 @@
 // number on the page can be checked against its source, and a failed call is
 // easy to spot. Rows are SnapTrade's raw responses from /api/raw and /api/history.
 // The one exception, "Our calculation", is labelled as ours.
-import { positionsOf } from "@/lib/portfolio/holdings";
-import type { HistoryLoad } from "@/lib/portfolio/history";
-import type { Report } from "@/lib/analysis/report";
+import type { HistoryLoad } from "@/lib/portfolio/history/history";
 import type { ApiResponse, DashboardData } from "../../Dashboard";
+import { CallRow, HistoryRow } from "./CallRow";
+import { COMPANIES_SHOWN, countOf, reportSummary, summaryOf } from "./summaries";
 import "./DeveloperView.css";
 
 // SnapTrade's per-account limit, shared by every account-data call (see TRADEOFFS.md).
 const ACCOUNT_LIMIT_PER_MINUTE = 10;
-const COMPANIES_SHOWN = 10;
-
-// A short summary of each response, so the row says what came back without opening it.
-function summaryOf(name: string, data: unknown): string {
-  if (name === "positions") return countOf(positionsOf(data).length, "position");
-  if (name === "balances") return countOf(Array.isArray(data) ? data.length : 0, "currency", "currencies");
-  if (name === "history") {
-    const body = data as { history?: unknown; currency?: unknown };
-    const days = Array.isArray(body?.history) ? body.history.length : 0;
-    return `${countOf(days, "day")}${typeof body?.currency === "string" ? `, in ${body.currency}` : ""}`;
-  }
-  // /activities wraps its list as { data: [...] }. Accept a bare list too.
-  const list = Array.isArray(data) ? data : (data as { data?: unknown })?.data;
-  return countOf(Array.isArray(list) ? list.length : 0, "activity", "activities");
-}
-
-function countOf(count: number, singular: string, plural = `${singular}s`): string {
-  return `${count.toLocaleString()} ${count === 1 ? singular : plural}`;
-}
-
-// The report's headline numbers, plus the first few companies. The full report
-// can hold thousands of companies, which would make this row slow to open.
-function reportSummary(report: Report) {
-  const { result } = report;
-  return {
-    currency: result.currency,
-    netWorth: report.netWorth,
-    holdings: result.total,
-    cash: report.cash,
-    snapTradeTotal: report.brokerageTotal,
-    differsFromSnapTrade: report.differsFromBrokerage,
-    companies: result.companies.length,
-    [`first${COMPANIES_SHOWN}Companies`]: result.companies.slice(0, COMPANIES_SHOWN).map((company) => ({
-      symbol: company.symbol,
-      total: company.total,
-      direct: company.direct,
-      byFund: company.byFund,
-      percent: company.percent,
-    })),
-    funds: result.funds,
-    otherInFunds: result.otherInFunds,
-    insideUnopenedFunds: result.insideUnopenedFunds,
-    notLookedThrough: result.notLookedThrough,
-    skipped: report.skipped,
-    failedAccounts: report.failedAccounts,
-    activitySince: report.activitySince,
-    fxAsOf: result.fxAsOf,
-  };
-}
-
-type CallRowProps = { path: string; status?: number; ok: boolean; summary: string; data: unknown; note?: string };
-
-function CallRow({ path, status, ok, summary, data, note }: CallRowProps) {
-  return (
-    <details className="call">
-      <summary>
-        <code className="call-path">{path}</code>
-        <span className={ok ? "call-status" : "call-status error"}>
-          {status === undefined ? "" : `${status} ${ok ? "OK" : "failed"}`}
-        </span>
-        <span className="muted small">{ok ? summary : "Open to see the error"}</span>
-      </summary>
-      {note && <p className="muted small">{note}</p>}
-      <pre>{JSON.stringify(data, null, 2)}</pre>
-    </details>
-  );
-}
-
-function HistoryRow({ history, accountId }: { history: HistoryLoad; accountId?: string }) {
-  const path = "/balanceHistory";
-  if (history.state === "loading") {
-    return (
-      <div className="call call-plain">
-        <code className="call-path">{path}</code>
-        <span className="muted small">Loading…</span>
-      </div>
-    );
-  }
-  if (history.state === "failed") {
-    return (
-      <div className="call call-plain">
-        <code className="call-path">{path}</code>
-        <span className="error small">/api/history failed ({history.message})</span>
-      </div>
-    );
-  }
-  const response = history.accounts.find((account) => account.id === accountId);
-  if (!response) {
-    return (
-      <div className="call call-plain">
-        <code className="call-path">{path}</code>
-        <span className="muted small">Not in /api/history's response</span>
-      </div>
-    );
-  }
-  return (
-    <CallRow
-      path={path}
-      status={response.status}
-      ok={response.ok}
-      summary={`Beta. ${summaryOf("history", response.data)}`}
-      data={response.data}
-      note="Estimated by SnapTrade. A 403 means the add-on isn't turned on."
-    />
-  );
-}
 
 export default function DeveloperView({ data, history }: { data: DashboardData; history: HistoryLoad }) {
   const calls: { name: "positions" | "balances" | "activities"; label: string }[] = [

@@ -3,8 +3,8 @@
 // /balanceHistory endpoint. Dashboard.tsx loads /api/history and passes it in, so
 // if the beta fails, only this card shows an error.
 import { useMemo, useRef, useState } from "react";
-import { formatMoney } from "@/lib/display/format";
-import { combineHistory, splitAtGaps, type HistoryLoad, type ValuePoint } from "@/lib/portfolio/history";
+import { formatMoney } from "@/lib/display/format/format";
+import { combineHistory, splitAtGaps, type HistoryLoad, type ValuePoint } from "@/lib/portfolio/history/history";
 import "./AccountValueChart.css";
 
 const WIDTH = 560;

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { Activity } from "../portfolio/activities";
+import type { Activity } from "../../portfolio/activities/activities";
 import {
   activityNote,
   activityText,
@@ -13,7 +13,7 @@ import {
   weightText,
   whatIf,
 } from "./details";
-import type { CompanyExposure, FundSummary } from "../analysis/lookthrough";
+import type { CompanyExposure, FundSummary } from "../../analysis/lookthrough/lookthrough";
 
 const money = (value: number) => `$${value.toFixed(2)}`;
 

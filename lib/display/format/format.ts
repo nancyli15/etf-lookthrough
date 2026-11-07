@@ -1,6 +1,6 @@
 // Small helpers the screen uses. They don't import the fund data, so browser code
 // can use them without downloading every fund's holdings.
-import type { LookThroughResult } from "../analysis/lookthrough";
+import type { LookThroughResult } from "../../analysis/lookthrough/lookthrough";
 
 // Always "US$" or "CA$", never a bare "$". Browsers write their own country's
 // currency as "$", so in Canada CA$ showed as "$" and US$ as "US$", and switching
@@ -45,3 +45,8 @@ export function listOf(names: string[]): string {
   return `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}`;
 }
 
+// "Nov 4, 2026". Date-only strings are midnight UTC, which can display as the day
+// before locally, so the date is read in UTC.
+export function formatDate(iso: string): string {
+  return new Date(iso).toLocaleDateString(undefined, { dateStyle: "medium", timeZone: "UTC" });
+}

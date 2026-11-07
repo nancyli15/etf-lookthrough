@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { getSession } from "@/lib/snaptrade/session";
+import { getSession } from "@/lib/snaptrade/session/session";
 
 const MESSAGES: Record<string, string> = {
   access_denied: "You declined access on SnapTrade, so nothing was shared. You can try again anytime.",

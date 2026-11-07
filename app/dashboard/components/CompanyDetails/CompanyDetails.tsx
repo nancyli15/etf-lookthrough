@@ -1,11 +1,11 @@
 "use client";
 // A company's dropdown in the combined table. The wording and math are in
-// lib/display/details.ts, where they're tested; this file only lays them out.
+// lib/display/details/details.ts, where they're tested; this file only lays them out.
 //
 // Three sections, each with one clear answer: how much you own, which funds it
 // comes from (as bars), and what a price move would do. Then your own trades.
 import { useId, useState } from "react";
-import type { Activity } from "@/lib/portfolio/activities";
+import type { Activity } from "@/lib/portfolio/activities/activities";
 import {
   activityNote,
   activityText,
@@ -18,11 +18,11 @@ import {
   signedMoney,
   weightText,
   whatIf,
-} from "@/lib/display/details";
-import { percentText } from "@/lib/display/format";
+} from "@/lib/display/details/details";
+import { formatDate, percentText } from "@/lib/display/format/format";
 import InfoPopover from "../InfoPopover/InfoPopover";
-import type { CompanyExposure, FundSummary } from "@/lib/analysis/lookthrough";
-import { shortName } from "@/lib/display/names";
+import type { CompanyExposure, FundSummary } from "@/lib/analysis/lookthrough/lookthrough";
+import { shortName } from "@/lib/display/names/names";
 import "./CompanyDetails.css";
 
 const START_MOVE = 10; // Percent: a round number that's easy to check in your head.
@@ -42,10 +42,6 @@ function shortDate(date: string): string {
   return new Date(date).toLocaleDateString(undefined, { month: "short", day: "numeric", timeZone: "UTC" });
 }
 
-function longDate(date: string): string {
-  return new Date(date).toLocaleDateString(undefined, { dateStyle: "medium", timeZone: "UTC" });
-}
-
 export default function CompanyDetails({
   company,
   funds,
@@ -61,7 +57,7 @@ export default function CompanyDetails({
   const { change, share } = whatIf(company, holdingsTotal, move / 100);
   const result = movesText(company, holdingsTotal, move / 100, money);
   const parts = movesParts(company, move / 100, money);
-  const note = activityNote(company, activities.length, activitySince, activityNotLoaded, longDate);
+  const note = activityNote(company, activities.length, activitySince, activityNotLoaded, formatDate);
   const sources = insideFunds(company, funds);
   const moveLabel = `${move > 0 ? "+" : move < 0 ? "−" : ""}${Math.abs(move)}%`;
 

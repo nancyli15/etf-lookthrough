@@ -1,7 +1,7 @@
 // OAuth 2.0 + OpenID Connect helpers, following docs.snaptrade.com/docs/oauth-apps.
 import crypto from "node:crypto";
 import { createRemoteJWKSet, jwtVerify, type JWTPayload } from "jose";
-import { ISSUER, requireEnv } from "./config";
+import { ISSUER, requireEnv } from "../config/config";
 
 type Metadata = {
   issuer: string;

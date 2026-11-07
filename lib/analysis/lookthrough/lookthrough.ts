@@ -1,13 +1,17 @@
 // The core math. For each company:
 //   exposure = value held directly + Σ (value of each fund × company's weight in that fund)
 // Pure functions with no network or UI, so the numbers can be tested by hand.
-import type { Fund } from "../../data/fund-types";
-import { COMPANY_BY_SYMBOL, FUNDS, FUNDS_WITHOUT_DATA } from "../../data/funds";
-import { FX } from "../../data/fx";
-import { convertCurrency } from "../portfolio/currency";
-import type { Holding } from "../portfolio/holdings";
-
-export { convertCurrency };
+//
+// The steps live in their own files: identity.ts (is this the same company?),
+// flatten.ts (open a fund all the way down) and overlap.ts (how much two funds share).
+import type { Fund } from "../../../data/fund-types";
+import { COMPANY_BY_SYMBOL, FUNDS, FUNDS_WITHOUT_DATA } from "../../../data/funds";
+import { FX } from "../../../data/fx";
+import { convertCurrency } from "../../portfolio/currency/currency";
+import type { Holding } from "../../portfolio/holdings/holdings";
+import { companyKey, cleanTicker } from "./identity";
+import { flatten, type Flattened } from "./flatten";
+import { fundOverlap } from "./overlap";
 
 export type CompanyExposure = {
   key: string;
@@ -72,115 +76,11 @@ type Options = {
 };
 
 const FUND_KINDS = new Set(["etf", "mutualfund"]);
-const OVERLAP_INCOMPLETE_ABOVE = 0.05;
-
-// Fund files and SnapTrade can name the same exchange differently, so reduce both
-// to a market. "Nyse Euronext" is Paris, not New York, so it stays separate.
-function marketOf(exchange: string | undefined, currency: string): string {
-  if (!exchange) return currency === "USD" ? "US" : currency === "CAD" ? "TSX" : currency;
-  if (/euronext/i.test(exchange)) return exchange;
-  if (/nasdaq|new york stock exchange|nyse|cboe|xnas|xnys|arcx|bats/i.test(exchange)) return "US";
-  if (/toronto|^tsx$|xtse/i.test(exchange)) return "TSX";
-  return exchange;
-}
-
-// A ticker alone isn't an identity: ROP is Roche in Switzerland and Roper in the US.
-function companyKey(symbol: string, exchange: string | undefined, currency: string): string {
-  const market = marketOf(exchange, currency);
-  if (market === "US" && COMPANY_BY_SYMBOL[symbol]) return COMPANY_BY_SYMBOL[symbol];
-  return `${symbol.toUpperCase().replace(/[^A-Z0-9]/g, "")}|${market}`; // BRK.B and BRKB match.
-}
-
-// Brokerages may send Canadian listings with a suffix, like XEQT.TO. Fund files never do.
-function cleanTicker(holding: Holding): string {
-  return (holding.rawSymbol ?? holding.symbol).replace(/\.(TO|V|CN|NE)$/i, "");
-}
-
-type Flattened = {
-  companies: Map<string, { symbol: string; name: string; weight: number }>;
-  unopened: Map<string, { name: string; weight: number }>;
-  other: number;
-};
-
-// Opens a fund all the way down, turning it into a weight for each company.
-// Recursive because funds hold funds, like XEF holding IEFA. Each level multiplies
-// the weights. (XEQT's file is already looked through by BlackRock, so it's flat.)
-function flatten(root: Fund, funds: Record<string, Fund>, withoutData: Set<string>): Flattened {
-  const flattened: Flattened = { companies: new Map(), unopened: new Map(), other: 0 };
-
-  function visit(fund: Fund, scale: number, path: string[]) {
-    flattened.other += scale * fund.other;
-    for (const holding of fund.holdings) {
-      const weight = scale * holding.weight;
-      const nested = funds[holding.symbol];
-      if (nested && !path.includes(holding.symbol)) {
-        visit(nested, weight, [...path, holding.symbol]);
-      } else if (nested || withoutData.has(holding.symbol)) {
-        // No file, or a loop in the data: keep the money visible rather than lose it.
-        const seen = flattened.unopened.get(holding.symbol);
-        flattened.unopened.set(holding.symbol, { name: holding.name, weight: (seen?.weight ?? 0) + weight });
-      } else {
-        const key = companyKey(holding.symbol, holding.exchange, "USD");
-        const seen = flattened.companies.get(key);
-        flattened.companies.set(key, {
-          symbol: seen?.symbol ?? holding.symbol,
-          name: seen?.name ?? holding.name,
-          weight: (seen?.weight ?? 0) + weight,
-        });
-      }
-    }
-  }
-
-  visit(root, 1, [root.symbol]);
-  return flattened;
-}
-
 
 function chooseCurrency(holdings: Holding[]): string {
   const currencies = new Set(holdings.map((holding) => holding.currency));
   if (currencies.size === 1) return holdings[0].currency;
   return currencies.has("CAD") ? "CAD" : "USD";
-}
-
-function fundOverlap(
-  summaryA: FundSummary,
-  summaryB: FundSummary,
-  flattenedA: Flattened,
-  flattenedB: Flattened,
-  fundA: Fund,
-  fundB: Fund,
-): FundOverlap {
-  const incomplete = Math.max(summaryA.unopenedWeight, summaryB.unopenedWeight) > OVERLAP_INCOMPLETE_ABOVE;
-
-  // The overlap is the smaller weight of each company both funds hold, added up.
-  const shared: { name: string; weight: number }[] = [];
-  for (const [key, companyInA] of flattenedA.companies) {
-    const companyInB = flattenedB.companies.get(key);
-    if (!companyInB) continue;
-    shared.push({ name: companyInA.name, weight: Math.min(companyInA.weight, companyInB.weight) });
-  }
-  shared.sort((first, second) => second.weight - first.weight);
-
-  // These two share one list on purpose: FXAIX is SPY's list standing in, so it's
-  // the same index, not two funds that happen to overlap.
-  if (fundA.approximatedBy === summaryB.symbol || fundB.approximatedBy === summaryA.symbol) {
-    return {
-      fundA: summaryA.symbol,
-      fundB: summaryB.symbol,
-      sharedWeight: 1,
-      sharedCompanies: [],
-      basis: "same-list",
-      incomplete,
-    };
-  }
-  return {
-    fundA: summaryA.symbol,
-    fundB: summaryB.symbol,
-    sharedWeight: shared.reduce((sum, company) => sum + company.weight, 0),
-    sharedCompanies: shared.slice(0, 5).map((company) => company.name),
-    basis: "holdings",
-    incomplete,
-  };
 }
 
 export function lookThrough(holdings: Holding[], options: Options = {}): LookThroughResult {

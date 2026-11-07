@@ -1,12 +1,12 @@
 // Uses a fake SnapTrade and fake session store, so we can force failures like a
 // 401 that can't be triggered on demand against the real API.
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { tokenRequest } from "./oauth";
-import { clearSession, getSession, saveSession } from "./session";
+import { tokenRequest } from "../oauth/oauth";
+import { clearSession, getSession, saveSession } from "../session/session";
 import { NotSignedInError, createClient } from "./api";
 
-vi.mock("./session", () => ({ getSession: vi.fn(), saveSession: vi.fn(), clearSession: vi.fn() }));
-vi.mock("./oauth", () => ({ tokenRequest: vi.fn() }));
+vi.mock("../session/session", () => ({ getSession: vi.fn(), saveSession: vi.fn(), clearSession: vi.fn() }));
+vi.mock("../oauth/oauth", () => ({ tokenRequest: vi.fn() }));
 
 const session = {
   accessToken: "old-access",

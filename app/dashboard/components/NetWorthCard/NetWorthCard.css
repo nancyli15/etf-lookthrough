@@ -1,0 +1,3 @@
+/* Net worth: a soft teal border and one big number. */
+.net-worth { border-color: var(--accent-soft); }
+.net-worth-value { font-size: 2.2rem; font-weight: 700; line-height: 1.2; margin-bottom: 4px; }

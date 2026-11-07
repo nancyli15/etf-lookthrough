@@ -4,10 +4,10 @@
 //
 // Facts only, never advice: it says what changes a number, not what to do.
 // No fund data imported, so the browser can use it.
-import type { Activity } from "../portfolio/activities";
-import { percentText } from "./format";
-import type { CompanyExposure, FundSummary } from "../analysis/lookthrough";
-import { shortName } from "./names";
+import type { Activity } from "../../portfolio/activities/activities";
+import { percentText } from "../format/format";
+import type { CompanyExposure, FundSummary } from "../../analysis/lookthrough/lookthrough";
+import { shortName } from "../names/names";
 
 type Money = (value: number, currency?: string) => string;
 

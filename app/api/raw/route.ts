@@ -6,9 +6,9 @@
 // data (every holding of every fund) is too big to send to the browser.
 // Add ?download=1 to save the raw responses as a JSON file, without the report.
 import { NextResponse, type NextRequest } from "next/server";
-import { API_BASE } from "@/lib/snaptrade/config";
-import { buildReport, type AccountData } from "@/lib/analysis/report";
-import { NotSignedInError, createClient, type ApiResult } from "@/lib/snaptrade/api";
+import { API_BASE } from "@/lib/snaptrade/config/config";
+import { buildReport, type AccountData } from "@/lib/analysis/report/report";
+import { NotSignedInError, createClient, type ApiResult } from "@/lib/snaptrade/api/api";
 
 export const dynamic = "force-dynamic";
 
@@ -41,7 +41,7 @@ export async function GET(req: NextRequest) {
 
     // The connections this sign-in shares: their brokerage names ("SnapTrade Sandbox",
     // "Wealthsimple") label the account picker, and with no accounts they say why
-    // (see lib/portfolio/connections.ts). One call per page, not per account.
+    // (see lib/portfolio/connections/connections.ts). One call per page, not per account.
     const noAccounts = accounts.ok && perAccount.length === 0;
     const connections = accounts.ok ? await client.get("/authorizations") : undefined;
 

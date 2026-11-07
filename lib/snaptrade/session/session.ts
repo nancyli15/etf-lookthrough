@@ -4,7 +4,7 @@
 // Tradeoff: no database for v1. With more users, tokens would move to an
 // encrypted database row keyed on the SnapTrade user ID (id_token `sub`).
 import { cookies } from "next/headers";
-import { seal, unseal } from "./seal";
+import { seal, unseal } from "../seal/seal";
 
 const LOGIN_COOKIE = "st_login";
 const SESSION_COOKIE = "st_session";

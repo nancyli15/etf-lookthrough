@@ -64,7 +64,7 @@ app/             pages and API routes (Next.js uses the folder names as URLs)
     components/  the pieces of the screen, one folder each: CompanyTable/ holds
                  CompanyTable.tsx, CompanyTable.css and any test
     hooks/       shared React hooks, like useDismiss
-lib/
+lib/             one folder per module, holding its .ts and its test
   snaptrade/     sign-in, encrypted cookies, and calls to SnapTrade's API
   portfolio/     turns SnapTrade's answers into clean holdings, accounts, trades and history
   analysis/      the look-through math, and the report the screen shows

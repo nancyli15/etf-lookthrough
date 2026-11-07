@@ -4,8 +4,8 @@
 // /balanceHistory is a beta endpoint. SnapTrade's reference says its values are
 // estimates that may have gaps, so this reads defensively and reports what it
 // couldn't use instead of guessing.
-import { toNumber } from "./holdings";
-import { convertCurrency } from "./currency";
+import { toNumber } from "../holdings/holdings";
+import { convertCurrency } from "../currency/currency";
 
 // One account's /balanceHistory result, as packaged by /api/history. The id matches
 // the account in /api/raw, so the Developer view can put each response with its account.

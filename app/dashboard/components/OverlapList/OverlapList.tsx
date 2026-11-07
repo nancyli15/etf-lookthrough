@@ -3,12 +3,12 @@
 // funds, most overlap first, so nobody has to cross-reference rows and columns.
 // Above it, the biggest overlap in dollars: how much of your money is in that pair.
 //
-// The overlap percentage is weighted (see lib/analysis/lookthrough.ts, fundOverlap): for each
+// The overlap percentage is weighted (see lib/analysis/lookthrough/lookthrough.ts, fundOverlap): for each
 // company both funds hold, take the smaller of its two weights, and add those up.
 import { useState } from "react";
-import { percentText } from "@/lib/display/format";
-import type { FundOverlap, FundSummary } from "@/lib/analysis/lookthrough";
-import { shortName } from "@/lib/display/names";
+import { percentText } from "@/lib/display/format/format";
+import type { FundOverlap, FundSummary } from "@/lib/analysis/lookthrough/lookthrough";
+import { shortName } from "@/lib/display/names/names";
 import InfoPopover from "../InfoPopover/InfoPopover";
 import "./OverlapList.css";
 

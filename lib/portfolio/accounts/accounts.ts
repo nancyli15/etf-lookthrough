@@ -2,7 +2,7 @@
 // title. One SnapTrade sign-in can share several connections (SnapTrade Sandbox,
 // Wealthsimple), and each connection can hold several accounts (Individual, IRA).
 // No UI here, so the naming rules are tested.
-import { toNumber } from "./holdings";
+import { toNumber } from "../holdings/holdings";
 
 export type AccountChoice = {
   id: string;

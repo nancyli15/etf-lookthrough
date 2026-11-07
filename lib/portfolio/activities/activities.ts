@@ -1,7 +1,7 @@
 // Turns /activities responses into each company's recent trades and dividends,
 // for the company dropdown. Only your own activity: what a fund buys or sells
 // inside itself isn't in here.
-import { toNumber } from "./holdings";
+import { toNumber } from "../holdings/holdings";
 
 export type Activity = {
   date: string; // YYYY-MM-DD, from trade_date.

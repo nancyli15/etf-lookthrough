@@ -1,7 +1,7 @@
 // Encrypts small JSON payloads for storage in cookies (AES-256-GCM).
 // GCM also authenticates the data, so a tampered cookie fails to decrypt.
 import crypto from "node:crypto";
-import { requireEnv } from "./config";
+import { requireEnv } from "../config/config";
 
 function key(): Buffer {
   // Derive a fixed 32-byte key from the SESSION_SECRET env var.

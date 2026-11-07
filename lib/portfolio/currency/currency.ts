@@ -1,6 +1,6 @@
-// Currency conversion at one dated rate. Kept apart from lib/analysis/lookthrough.ts so
+// Currency conversion at one dated rate. Kept apart from lib/analysis/lookthrough/lookthrough.ts so
 // browser code can use it without pulling in the fund data.
-import { FX } from "../../data/fx";
+import { FX } from "../../../data/fx";
 
 // Returns null when we have no rate, so callers can show the amount instead of guessing.
 export function convertCurrency(value: number, from: string, to: string, fx: typeof FX = FX): number | null {

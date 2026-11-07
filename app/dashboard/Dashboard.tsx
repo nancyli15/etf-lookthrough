@@ -7,11 +7,11 @@
 // refresh and the second would sign the user out. Waiting for /api/raw means its
 // refreshed token is already saved when /api/history starts.
 import { useEffect, useMemo, useRef, useState } from "react";
-import { groupAccounts, includesText, selectionTitle } from "@/lib/portfolio/accounts";
-import { formatMoney } from "@/lib/display/format";
-import { emptyAccountsMessage } from "@/lib/portfolio/connections";
-import type { HistoryLoad } from "@/lib/portfolio/history";
-import type { Report, ReportCurrency } from "@/lib/analysis/report";
+import { groupAccounts, includesText, selectionTitle } from "@/lib/portfolio/accounts/accounts";
+import { formatMoney } from "@/lib/display/format/format";
+import { emptyAccountsMessage } from "@/lib/portfolio/connections/connections";
+import type { HistoryLoad } from "@/lib/portfolio/history/history";
+import type { Report, ReportCurrency } from "@/lib/analysis/report/report";
 import AccountPicker from "./components/AccountPicker/AccountPicker";
 import CurrencySwitch from "./components/CurrencySwitch/CurrencySwitch";
 import DeveloperView from "./components/DeveloperView/DeveloperView";

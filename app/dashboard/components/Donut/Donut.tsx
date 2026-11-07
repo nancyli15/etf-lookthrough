@@ -3,7 +3,7 @@
 // Plain SVG, no chart library. Each slice is a stretch of one circle's outline
 // (stroke-dasharray), with a 2px gap between slices.
 import type { ReactNode } from "react";
-import { percentText } from "@/lib/display/format";
+import { percentText } from "@/lib/display/format/format";
 import InfoPopover from "../InfoPopover/InfoPopover";
 import "./Donut.css";
 

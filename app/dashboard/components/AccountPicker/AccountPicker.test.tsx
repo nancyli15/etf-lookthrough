@@ -1,7 +1,7 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import { groupAccounts } from "@/lib/portfolio/accounts";
-import { buildReport } from "@/lib/analysis/report";
+import { groupAccounts } from "@/lib/portfolio/accounts/accounts";
+import { buildReport } from "@/lib/analysis/report/report";
 import AccountPicker from "./AccountPicker";
 import LookThrough from "../LookThrough/LookThrough";
 

@@ -1,7 +1,5 @@
-/* The headline, the net worth card, and charts in pairs. */
+/* The headline, and cards in pairs. */
 .headline { font-size: 1.35rem; font-weight: 600; line-height: 1.3; }
-.net-worth { border-color: var(--accent-soft); }
-.net-worth-value { font-size: 2.2rem; font-weight: 700; line-height: 1.2; margin-bottom: 4px; }
 /* Charts sit in pairs beside what they explain, inside one page scroll. Each pair
    stacks on a phone, and a pair with one card left uses the full width. */
 .pair { display: grid; gap: 16px; margin: 16px 0; }

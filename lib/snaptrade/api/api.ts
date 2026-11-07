@@ -1,9 +1,9 @@
 // Calls the SnapTrade data API with the user's Bearer token.
 // Handles: refreshing shortly before expiry, refresh-token rotation, and
 // "on 401, refresh once and retry once" from the OAuth guide.
-import { API_BASE } from "./config";
-import { tokenRequest } from "./oauth";
-import { clearSession, getSession, saveSession, type Session } from "./session";
+import { API_BASE } from "../config/config";
+import { tokenRequest } from "../oauth/oauth";
+import { clearSession, getSession, saveSession, type Session } from "../session/session";
 
 export class NotSignedInError extends Error {}
 

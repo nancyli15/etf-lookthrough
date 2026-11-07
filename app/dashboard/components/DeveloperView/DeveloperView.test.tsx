@@ -1,7 +1,7 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import type { HistoryLoad } from "@/lib/portfolio/history";
-import { buildReport } from "@/lib/analysis/report";
+import type { HistoryLoad } from "@/lib/portfolio/history/history";
+import { buildReport } from "@/lib/analysis/report/report";
 import type { DashboardData } from "../../Dashboard";
 import DeveloperView from "./DeveloperView";
 

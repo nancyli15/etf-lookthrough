@@ -1,12 +1,12 @@
 // Prepares everything the look-through screen shows from the /api/raw response.
 // No UI here, so the wording and the failure handling can be tested directly.
-import { FX } from "../../data/fx";
-import { toHoldings, toNumber } from "../portfolio/holdings";
-import { recentActivity, type Activity } from "../portfolio/activities";
-import { convertCurrency } from "../portfolio/currency";
-import { hasLargeGap, listOf, percentText } from "../display/format";
-import { lookThrough, type CompanyExposure, type LookThroughResult } from "./lookthrough";
-import { shortName } from "../display/names";
+import { FX } from "../../../data/fx";
+import { toHoldings, toNumber } from "../../portfolio/holdings/holdings";
+import { recentActivity, type Activity } from "../../portfolio/activities/activities";
+import { convertCurrency } from "../../portfolio/currency/currency";
+import { listOf, percentText } from "../../display/format/format";
+import { lookThrough, type CompanyExposure, type LookThroughResult } from "../lookthrough/lookthrough";
+import { shortName } from "../../display/names/names";
 
 export type AccountData = {
   account?: {
