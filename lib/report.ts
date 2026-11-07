@@ -4,12 +4,12 @@ import { FX } from "../data/fx";
 import { toHoldings, toNumber } from "./holdings";
 import { recentActivity, type Activity } from "./activities";
 import { convertCurrency } from "./currency";
-import { hasLargeGap, listOf, percentText, shareText } from "./format";
+import { hasLargeGap, listOf, percentText } from "./format";
 import { lookThrough, type CompanyExposure, type LookThroughResult } from "./lookthrough";
 import { shortName } from "./names";
 
 // Re-exported so existing imports keep working. Browser code imports lib/format.ts.
-export { hasLargeGap, percentText, shareText };
+export { hasLargeGap, percentText };
 
 export type AccountData = {
   account?: {

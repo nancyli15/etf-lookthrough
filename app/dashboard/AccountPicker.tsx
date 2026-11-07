@@ -35,7 +35,7 @@ export default function AccountPicker({ groups, selected, onChange, money }: Pro
 
   return (
     <details className="picker" ref={menuRef}>
-      <summary className="button secondary">Accounts: {label} ▾</summary>
+      <summary className="button">Accounts: {label} ▾</summary>
       <div className="picker-menu card">
         <label className="picker-row picker-all">
           <input

@@ -16,7 +16,6 @@ import AccountValueChart from "./AccountValueChart";
 import CompanyTable from "./CompanyTable";
 import FundsCard from "./FundsCard";
 import InfoPopover from "./InfoPopover";
-import ShareButton from "./ShareButton";
 import BiggestCompany from "./BiggestCompany";
 
 function sumOf<T>(rows: T[], valueOf: (row: T) => number): number {
@@ -195,7 +194,6 @@ export default function LookThrough({ report, history = { state: "loading" }, in
             {result.insideUnopenedFunds.map((fund) => fund.symbol).join(", ")}), so company totals are likely understated.
           </p>
         )}
-        <ShareButton result={result} />
       </div>
 
       {/* Companies first: what you own through everything is the point of the page.

@@ -1,7 +1,6 @@
 // Small helpers the screen uses. They don't import the fund data, so browser code
 // can use them without downloading every fund's holdings.
 import type { LookThroughResult } from "./lookthrough";
-import { shortName } from "./names";
 
 // Always "US$" or "CA$", never a bare "$". Browsers write their own country's
 // currency as "$", so in Canada CA$ showed as "$" and US$ as "US$", and switching
@@ -44,20 +43,5 @@ export function percentText(fraction: number): string {
 export function listOf(names: string[]): string {
   if (names.length < 2) return names.join("");
   return `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}`;
-}
-
-const SHARED_COMPANIES = 5;
-
-// Text for the Share button. Percentages only: no dollar amounts, account names
-// or net worth, because people share this with friends and on social media.
-export function shareText(result: LookThroughResult): string | undefined {
-  const top = result.companies.slice(0, SHARED_COMPANIES);
-  if (top.length === 0) return undefined;
-  const lines = top.map((company, index) => `${index + 1}. ${shortName(company.name)}: ${percentText(company.percent)}`);
-  const funds = result.funds.map((fund) => fund.symbol);
-  const opening = funds.length
-    ? `I looked inside my funds (${listOf(funds)}). My biggest companies, counting what I own through them:`
-    : "My biggest companies:";
-  return [opening, ...lines].join("\n");
 }
 
