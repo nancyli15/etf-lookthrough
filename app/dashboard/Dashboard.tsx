@@ -12,10 +12,10 @@ import { formatMoney } from "@/lib/display/format";
 import { emptyAccountsMessage } from "@/lib/portfolio/connections";
 import type { HistoryLoad } from "@/lib/portfolio/history";
 import type { Report, ReportCurrency } from "@/lib/analysis/report";
-import AccountPicker from "./components/AccountPicker";
-import CurrencySwitch from "./components/CurrencySwitch";
-import DeveloperView from "./components/DeveloperView";
-import LookThrough from "./components/LookThrough";
+import AccountPicker from "./components/AccountPicker/AccountPicker";
+import CurrencySwitch from "./components/CurrencySwitch/CurrencySwitch";
+import DeveloperView from "./components/DeveloperView/DeveloperView";
+import LookThrough from "./components/LookThrough/LookThrough";
 import "./Dashboard.css";
 
 // The result of one SnapTrade API call, as packaged by /api/raw.

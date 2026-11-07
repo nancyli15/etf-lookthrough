@@ -1,5 +1,5 @@
 /* Styles shared across the app: colours, page, cards, buttons, tables, bars and links.
-   Each component's own styles sit next to it, like components/CompanyTable.css. */
+   Each component's own styles sit next to it, like components/CompanyTable/CompanyTable.css. */
 /* One light theme, styled like SnapTrade's dashboard: light gray page, white cards,
    thin borders, teal accent. Every text color is at least 4.5:1 on its background. */
 :root {

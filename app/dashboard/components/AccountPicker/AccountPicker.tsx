@@ -3,8 +3,8 @@
 // any mix. Grouped by brokerage connection, each with SnapTrade's own total in
 // the account's own currency. Only shown when there's more than one account.
 import { useRef } from "react";
-import type { AccountGroup } from "../../../lib/portfolio/accounts";
-import { useDismiss } from "./useDismiss";
+import type { AccountGroup } from "@/lib/portfolio/accounts";
+import { useDismiss } from "../../hooks/useDismiss";
 import "./AccountPicker.css";
 
 type Props = {

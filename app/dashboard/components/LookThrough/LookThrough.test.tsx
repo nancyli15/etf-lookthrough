@@ -1,8 +1,8 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import { FUND_DATA_IS_SAMPLE } from "../../../data/funds";
-import { buildReport, type AccountData } from "../../../lib/analysis/report";
-import CompanyDetails from "./CompanyDetails";
+import { FUND_DATA_IS_SAMPLE } from "@/data/funds";
+import { buildReport, type AccountData } from "@/lib/analysis/report";
+import CompanyDetails from "../CompanyDetails/CompanyDetails";
 import LookThrough from "./LookThrough";
 
 function position(symbol: string, kind: string, value: number, currency = "USD") {

@@ -1,9 +1,9 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import { groupAccounts } from "../../../lib/portfolio/accounts";
-import { buildReport } from "../../../lib/analysis/report";
+import { groupAccounts } from "@/lib/portfolio/accounts";
+import { buildReport } from "@/lib/analysis/report";
 import AccountPicker from "./AccountPicker";
-import LookThrough from "./LookThrough";
+import LookThrough from "../LookThrough/LookThrough";
 
 const money = (value: number, currency: string) => `${currency} ${value.toFixed(2)}`;
 const account = (id: string, name: string, connection: string, amount: number, currency: string) => ({

@@ -6,17 +6,17 @@
 // funds and their overlap, and what couldn't be looked through. Clicking a fund's name
 // shows its companies in the table above it. One page scroll; on a phone, the top pair stacks.
 import { useState } from "react";
-import { FX } from "../../../data/fx";
-import { formatMoney, hasLargeGap, percentText } from "../../../lib/display/format";
-import type { HistoryLoad } from "../../../lib/portfolio/history";
-import { displayName } from "../../../lib/display/names";
-import { fundView, type CompanyView } from "../../../lib/display/paging";
-import type { Report } from "../../../lib/analysis/report";
-import AccountValueChart from "./AccountValueChart";
-import CompanyTable from "./CompanyTable";
-import FundsCard from "./FundsCard";
-import InfoPopover from "./InfoPopover";
-import BiggestCompany from "./BiggestCompany";
+import { FX } from "@/data/fx";
+import { formatMoney, hasLargeGap, percentText } from "@/lib/display/format";
+import type { HistoryLoad } from "@/lib/portfolio/history";
+import { displayName } from "@/lib/display/names";
+import { fundView, type CompanyView } from "@/lib/display/paging";
+import type { Report } from "@/lib/analysis/report";
+import AccountValueChart from "../AccountValueChart/AccountValueChart";
+import CompanyTable from "../CompanyTable/CompanyTable";
+import FundsCard from "../FundsCard/FundsCard";
+import InfoPopover from "../InfoPopover/InfoPopover";
+import BiggestCompany from "../BiggestCompany/BiggestCompany";
 import "./LookThrough.css";
 
 function sumOf<T>(rows: T[], valueOf: (row: T) => number): number {

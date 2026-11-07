@@ -7,13 +7,13 @@
 //     one button per fund shows just that fund's companies, largest in it first
 //   - clicking a company opens its dropdown (CompanyDetails)
 import { Fragment, useEffect, useState } from "react";
-import { formatMoney, percentText } from "../../../lib/display/format";
-import type { CompanyExposure } from "../../../lib/analysis/lookthrough";
-import { shortName } from "../../../lib/display/names";
-import { fundView, inView, matchesSearch, pageOf, sortForView, type CompanyView } from "../../../lib/display/paging";
-import type { Report } from "../../../lib/analysis/report";
-import CompanyDetails from "./CompanyDetails";
-import Pager from "./Pager";
+import { formatMoney, percentText } from "@/lib/display/format";
+import type { CompanyExposure } from "@/lib/analysis/lookthrough";
+import { shortName } from "@/lib/display/names";
+import { fundView, inView, matchesSearch, pageOf, sortForView, type CompanyView } from "@/lib/display/paging";
+import type { Report } from "@/lib/analysis/report";
+import CompanyDetails from "../CompanyDetails/CompanyDetails";
+import Pager from "../Pager/Pager";
 import "./CompanyTable.css";
 
 const VIEWS: { view: CompanyView; label: string }[] = [

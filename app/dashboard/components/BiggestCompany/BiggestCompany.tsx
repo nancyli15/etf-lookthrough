@@ -1,9 +1,9 @@
 // Two numbers under the headline, about your biggest company: how much you own in
 // total, and how much of that comes through your funds. What looking through found,
 // without repeating the company table below, which has every company.
-import { percentText } from "../../../lib/display/format";
-import type { CompanyExposure } from "../../../lib/analysis/lookthrough";
-import { shortName } from "../../../lib/display/names";
+import { percentText } from "@/lib/display/format";
+import type { CompanyExposure } from "@/lib/analysis/lookthrough";
+import { shortName } from "@/lib/display/names";
 import "./BiggestCompany.css";
 
 type Props = {

@@ -6,10 +6,10 @@
 // The overlap percentage is weighted (see lib/analysis/lookthrough.ts, fundOverlap): for each
 // company both funds hold, take the smaller of its two weights, and add those up.
 import { useState } from "react";
-import { percentText } from "../../../lib/display/format";
-import type { FundOverlap, FundSummary } from "../../../lib/analysis/lookthrough";
-import { shortName } from "../../../lib/display/names";
-import InfoPopover from "./InfoPopover";
+import { percentText } from "@/lib/display/format";
+import type { FundOverlap, FundSummary } from "@/lib/analysis/lookthrough";
+import { shortName } from "@/lib/display/names";
+import InfoPopover from "../InfoPopover/InfoPopover";
 import "./OverlapList.css";
 
 // Four funds make six pairs, which fit. More funds make many more, so the rest wait behind a button.

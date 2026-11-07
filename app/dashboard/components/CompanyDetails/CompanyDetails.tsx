@@ -5,7 +5,7 @@
 // Three sections, each with one clear answer: how much you own, which funds it
 // comes from (as bars), and what a price move would do. Then your own trades.
 import { useId, useState } from "react";
-import type { Activity } from "../../../lib/portfolio/activities";
+import type { Activity } from "@/lib/portfolio/activities";
 import {
   activityNote,
   activityText,
@@ -18,11 +18,11 @@ import {
   signedMoney,
   weightText,
   whatIf,
-} from "../../../lib/display/details";
-import { percentText } from "../../../lib/display/format";
-import InfoPopover from "./InfoPopover";
-import type { CompanyExposure, FundSummary } from "../../../lib/analysis/lookthrough";
-import { shortName } from "../../../lib/display/names";
+} from "@/lib/display/details";
+import { percentText } from "@/lib/display/format";
+import InfoPopover from "../InfoPopover/InfoPopover";
+import type { CompanyExposure, FundSummary } from "@/lib/analysis/lookthrough";
+import { shortName } from "@/lib/display/names";
 import "./CompanyDetails.css";
 
 const START_MOVE = 10; // Percent: a round number that's easy to check in your head.

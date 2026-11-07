@@ -61,7 +61,9 @@ What's inside each ETF comes from the fund providers' holdings files, not from S
 ```text
 app/             pages and API routes (Next.js uses the folder names as URLs)
   dashboard/     the screen after sign-in: page.tsx and Dashboard.tsx load the data,
-    components/  and the pieces of the screen live here
+    components/  the pieces of the screen, one folder each: CompanyTable/ holds
+                 CompanyTable.tsx, CompanyTable.css and any test
+    hooks/       shared React hooks, like useDismiss
 lib/
   snaptrade/     sign-in, encrypted cookies, and calls to SnapTrade's API
   portfolio/     turns SnapTrade's answers into clean holdings, accounts, trades and history
