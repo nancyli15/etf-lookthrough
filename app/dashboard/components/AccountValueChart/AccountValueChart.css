@@ -1,0 +1,20 @@
+/* Line chart */
+.line-chart { position: relative; }
+.line-chart svg { display: block; width: 100%; height: auto; touch-action: pan-y; }
+.line-chart .grid { stroke: var(--border); stroke-width: 1; }
+.line-chart .axis { fill: var(--muted); font-size: 16px; } /* SVG units: about 11px once the chart is scaled to the card. */
+.line-chart .series-line { fill: none; stroke: var(--series-direct); stroke-width: 2; stroke-linejoin: round; }
+.line-chart .series-dot { fill: var(--series-direct); }
+.line-chart .crosshair { stroke: var(--muted); stroke-width: 1; stroke-dasharray: 3 3; }
+.line-chart .hover-dot { fill: var(--series-direct); stroke: var(--card); stroke-width: 2; }
+.tooltip {
+  position: absolute;
+  top: 0;
+  transform: translateX(-50%);
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--card);
+  white-space: nowrap;
+  pointer-events: none;
+}

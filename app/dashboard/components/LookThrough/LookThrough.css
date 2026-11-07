@@ -1,0 +1,10 @@
+/* The headline, and cards in pairs. */
+.headline { font-size: 1.35rem; font-weight: 600; line-height: 1.3; }
+/* Charts sit in pairs beside what they explain, inside one page scroll. Each pair
+   stacks on a phone, and a pair with one card left uses the full width. */
+.pair { display: grid; gap: 16px; margin: 16px 0; }
+.pair > .card { margin: 0; }
+@media (min-width: 900px) {
+  .pair { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .pair > :only-child { grid-column: 1 / -1; }
+}

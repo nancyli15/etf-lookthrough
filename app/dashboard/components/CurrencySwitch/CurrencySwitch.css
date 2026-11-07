@@ -1,0 +1,15 @@
+/* USD / CAD switch: two halves of one pill, like a light/dark toggle. */
+.switch { display: inline-flex; border: 1px solid var(--border); border-radius: 999px; background: var(--card); padding: 2px; }
+.switch-option {
+  padding: 6px 12px;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.switch-option.current { background: var(--accent); color: #fff; }
+.switch-option:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
