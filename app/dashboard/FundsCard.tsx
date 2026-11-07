@@ -2,9 +2,11 @@
 // overlap. How much of a fund we can match to companies is nearly always 99%+, so
 // it's in an ⓘ note per fund instead of a column. The table is the donut's legend:
 // each row has its slice's colour, so the amounts aren't listed twice.
+import { fundsCsv, overlapsCsv } from "../../lib/csv";
 import { formatMoney, percentText } from "../../lib/format";
 import type { LookThroughResult } from "../../lib/lookthrough";
 import Donut, { type DonutSlice } from "./Donut";
+import DownloadCsv from "./DownloadCsv";
 import InfoPopover from "./InfoPopover";
 import OverlapList from "./OverlapList";
 
@@ -118,8 +120,12 @@ export default function FundsCard({ result, money, onFundClick }: Props) {
           />
         )}
       </div>
+      <DownloadCsv fileName="funds.csv" build={() => fundsCsv(result)} label="Download funds (CSV)" />
 
       <OverlapList funds={result.funds} overlaps={result.overlaps} money={money} />
+      {result.overlaps.length > 0 && (
+        <DownloadCsv fileName="fund-overlap.csv" build={() => overlapsCsv(result)} label="Download overlap (CSV)" />
+      )}
     </div>
   );
 }

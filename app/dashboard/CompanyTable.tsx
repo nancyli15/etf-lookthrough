@@ -7,12 +7,14 @@
 //     one button per fund shows just that fund's companies, largest in it first
 //   - clicking a company opens its dropdown (CompanyDetails)
 import { Fragment, useEffect, useState } from "react";
+import { companiesCsv } from "../../lib/csv";
 import { formatMoney, percentText } from "../../lib/format";
 import type { CompanyExposure } from "../../lib/lookthrough";
 import { shortName } from "../../lib/names";
 import { fundView, inView, matchesSearch, pageOf, sortForView, type CompanyView } from "../../lib/paging";
 import type { Report } from "../../lib/report";
 import CompanyDetails from "./CompanyDetails";
+import DownloadCsv from "./DownloadCsv";
 import Pager from "./Pager";
 
 const VIEWS: { view: CompanyView; label: string }[] = [
@@ -224,8 +226,9 @@ export default function CompanyTable({ report, money, view, onViewChange }: Prop
           your holdings)
         </strong>
       </p>
-      {/* What the other part of holdings is (cash inside funds, crypto) is in the
-          "What's inside your holdings" donut at the top, not repeated here. */}
+      {/* The rest of holdings (cash inside funds, crypto) is in the summary card at
+          the top, not repeated here. */}
+      <DownloadCsv fileName="companies.csv" build={() => companiesCsv(result)} label="Download all companies (CSV)" />
     </div>
   );
 }

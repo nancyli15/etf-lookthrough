@@ -342,6 +342,19 @@ describe("your biggest company, under the headline", () => {
   });
 });
 
+describe("exports", () => {
+  it("puts each download at the bottom of its card, and print at the bottom of the page", () => {
+    const html = render([ok([position("AAPL", "stock", 500), position("SPY", "etf", 1000), position("FXAIX", "mutualfund", 800)])]);
+    expect(html).toContain("Download all companies (CSV)");
+    expect(html).toContain("Download funds (CSV)");
+    expect(html).toContain("Download overlap (CSV)");
+    expect(html).toContain("Print or save as PDF");
+    // The companies download comes after the company table, the funds one after the funds table.
+    expect(html.indexOf("Download all companies")).toBeGreaterThan(html.indexOf("Your companies"));
+    expect(html.indexOf("Download funds")).toBeGreaterThan(html.indexOf("Total in your funds"));
+  });
+});
+
 describe("long company tables", () => {
   it("gives the company total in one line, with the rest of holdings in the summary above", () => {
     const html = render([ok([position("AAPL", "stock", 500), position("SPY", "etf", 1000), position("BTC", "crypto", 100)])]);
