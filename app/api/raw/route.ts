@@ -8,11 +8,14 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { API_BASE } from "@/lib/snaptrade/config/config";
 import { buildReport, type AccountData } from "@/lib/analysis/report/report";
-import { NotSignedInError, createClient, type ApiResult } from "@/lib/snaptrade/api/api";
+import { NotSignedInError, accountsIn, createSnapTradeClient, type ApiResult } from "@/lib/snaptrade/api/api";
+import { errorResponse } from "../errorResponse";
 
+// Run on every request, never from a cache: every user's data is different.
 export const dynamic = "force-dynamic";
 
-type AccountDump = {
+// One account and SnapTrade's three answers about it.
+type AccountResponses = {
   account: unknown;
   positions: ApiResult;
   balances: ApiResult;
@@ -20,60 +23,56 @@ type AccountDump = {
 };
 
 export async function GET(req: NextRequest) {
+  // ?download=1 saves the raw responses as a file, without our report.
+  const isDownload = req.nextUrl.searchParams.get("download") === "1";
   try {
-    const client = await createClient();
+    const client = await createSnapTradeClient();
     const accounts = await client.get("/accounts");
 
-    const list = Array.isArray(accounts.data) ? accounts.data : [];
-    const perAccount: AccountDump[] = [];
+    const perAccount: AccountResponses[] = [];
     // Sequential on purpose: simple, and avoids hammering the API.
-    for (const account of list) {
-      const id = (account as { id?: string }).id;
-      if (!id) continue;
-      const base = `/accounts/${encodeURIComponent(id)}`;
+    for (const { id, raw } of accountsIn(accounts)) {
+      const accountPath = `/accounts/${encodeURIComponent(id)}`;
       perAccount.push({
-        account,
-        positions: await client.get(`${base}/positions/all`),
-        balances: await client.get(`${base}/balances`),
-        activities: await client.get(`${base}/activities`),
+        account: raw,
+        positions: await client.get(`${accountPath}/positions/all`),
+        balances: await client.get(`${accountPath}/balances`),
+        activities: await client.get(`${accountPath}/activities`),
       });
     }
 
     // The connections this sign-in shares: their brokerage names ("SnapTrade Sandbox",
     // "Wealthsimple") label the account picker, and with no accounts they say why
     // (see lib/portfolio/connections/connections.ts). One call per page, not per account.
-    const noAccounts = accounts.ok && perAccount.length === 0;
     const connections = accounts.ok ? await client.get("/authorizations") : undefined;
+    // The raw /accounts answer is only needed when it failed or held nothing we could read.
+    const needsRawAccounts = !accounts.ok || perAccount.length === 0;
 
     const body = {
       fetchedAt: new Date().toISOString(),
       apiBase: API_BASE,
       accountsCall: { path: accounts.path, status: accounts.status, ok: accounts.ok },
       accounts: perAccount,
-      accountsRaw: accounts.ok && !noAccounts ? undefined : accounts.data,
+      accountsRaw: needsRawAccounts ? accounts.data : undefined,
       connectionsCall: connections
         ? { path: connections.path, status: connections.status, ok: connections.ok, data: connections.data }
         : undefined,
     };
 
-    const download = req.nextUrl.searchParams.get("download") === "1";
-    // The download is what SnapTrade sent, so it leaves out our calculated report.
+    if (isDownload) {
+      // What SnapTrade sent, without our calculated report. Content-Disposition makes the browser save it as a file.
+      return NextResponse.json(body, {
+        headers: { "Content-Disposition": `attachment; filename="raw-data-${Date.now()}.json"` },
+      });
+    }
     // /accounts is outside data; buildReport reads every field defensively.
     const report = accounts.ok ? buildReport(perAccount as AccountData[]) : null;
-    return NextResponse.json(download ? body : { ...body, report }, {
-      headers: download
-        ? { "Content-Disposition": `attachment; filename="raw-data-${Date.now()}.json"` }
-        : {},
-    });
+    return NextResponse.json({ ...body, report });
   } catch (err) {
-    if (err instanceof NotSignedInError) {
-      // The download link is opened directly, so a person sees this response: send them to sign in.
-      if (req.nextUrl.searchParams.get("download") === "1") {
-        return NextResponse.redirect(new URL("/?error=session_expired", req.url));
-      }
-      return NextResponse.json({ error: "not_signed_in" }, { status: 401 });
+    // The download link is opened directly, so a person sees this response: send them to sign in.
+    if (err instanceof NotSignedInError && isDownload) {
+      return NextResponse.redirect(new URL("/?error=session_expired", req.url));
     }
-    console.error("Raw data fetch failed:", err instanceof Error ? err.message : "unknown");
-    return NextResponse.json({ error: "fetch_failed" }, { status: 502 });
+    return errorResponse(err, "Raw data fetch");
   }
 }

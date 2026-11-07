@@ -7,8 +7,7 @@
 //     one button per fund shows just that fund's companies, largest in it first
 //   - clicking a company opens its dropdown (CompanyDetails)
 import { Fragment, useEffect, useState } from "react";
-import { formatMoney, percentText } from "@/lib/display/format/format";
-import type { CompanyExposure } from "@/lib/analysis/lookthrough/lookthrough";
+import { formatMoney, percentText, sumOf } from "@/lib/display/format/format";
 import { shortName } from "@/lib/display/names/names";
 import { fundView, inView, matchesSearch, pageOf, sortForView, type CompanyView } from "@/lib/display/paging/paging";
 import type { Report } from "@/lib/analysis/report/report";
@@ -16,7 +15,8 @@ import CompanyDetails from "../CompanyDetails/CompanyDetails";
 import Pager from "../Pager/Pager";
 import "./CompanyTable.css";
 
-const VIEWS: { view: CompanyView; label: string }[] = [
+// The fixed filter buttons. One button per fund is added after these.
+const FIXED_VIEWS: { view: CompanyView; label: string }[] = [
   { view: "all", label: "All" },
   { view: "direct", label: "Bought directly" },
   { view: "funds", label: "Through funds" },
@@ -30,10 +30,6 @@ type Props = {
   onViewChange: (view: CompanyView) => void;
 };
 
-function sumOf(companies: CompanyExposure[], valueOf: (company: CompanyExposure) => number): number {
-  return companies.reduce((sum, company) => sum + valueOf(company), 0);
-}
-
 export default function CompanyTable({ report, money, view, onViewChange }: Props) {
   const { result } = report;
   const [query, setQuery] = useState("");
@@ -41,26 +37,27 @@ export default function CompanyTable({ report, money, view, onViewChange }: Prop
   // Open dropdowns stay open across pages, so you can page away and come back.
   const [openKeys, setOpenKeys] = useState<Set<string>>(new Set());
 
-  // Back to page 1 whenever the view changes, including from the Funds card.
+  // Back to page 1 whenever the view changes, from a button here or from the Funds card.
   useEffect(() => setPageNumber(1), [view]);
 
-  const matches = sortForView(
+  const matchingCompanies = sortForView(
     view,
     result.companies.filter(
       (company) => inView(view, company) && matchesSearch(query, company.symbol, company.name, shortName(company.name)),
     ),
   );
   // All, Bought directly, Through funds, then one button per fund you hold.
-  const views = [...VIEWS, ...result.funds.map((fund) => ({ view: fundView(fund.symbol), label: fund.symbol }))];
-  const page = pageOf(matches, pageNumber);
+  const viewButtons = [...FIXED_VIEWS, ...result.funds.map((fund) => ({ view: fundView(fund.symbol), label: fund.symbol }))];
+  const currentPage = pageOf(matchingCompanies, pageNumber);
   // Bars are scaled to your biggest company, on every page, so they compare across pages.
-  const largest = result.companies[0]?.total || 1;
+  // `|| 1` avoids dividing by zero when there's nothing to show.
+  const largestTotal = result.companies[0]?.total || 1;
   // Totals cover every company, whatever the page, filter or search, so the money never seems to move.
   const directTotal = sumOf(result.companies, (company) => company.direct);
   const fundsTotal = sumOf(result.companies, (company) => company.throughFunds);
 
   // Whole dollars read faster in the line under each bar. Small amounts keep their cents.
-  function brief(value: number): string {
+  function shortMoney(value: number): string {
     return value >= 100 ? formatMoney(value, result.currency, { whole: true }) : money(value);
   }
 
@@ -69,11 +66,6 @@ export default function CompanyTable({ report, money, view, onViewChange }: Prop
     if (next.has(key)) next.delete(key);
     else next.add(key);
     setOpenKeys(next);
-  }
-
-  function changeView(next: CompanyView) {
-    onViewChange(next);
-    setPageNumber(1);
   }
 
   if (result.companies.length === 0) return null;
@@ -97,13 +89,13 @@ export default function CompanyTable({ report, money, view, onViewChange }: Prop
 
       <div className="table-tools">
         <div className="views" role="group" aria-label="Show companies">
-          {views.map((option) => (
+          {viewButtons.map((option) => (
             <button
               key={option.view}
               type="button"
               className={`view-button${view === option.view ? " current" : ""}`}
               aria-pressed={view === option.view}
-              onClick={() => changeView(option.view)}
+              onClick={() => onViewChange(option.view)}
             >
               {option.label}
             </button>
@@ -137,11 +129,15 @@ export default function CompanyTable({ report, money, view, onViewChange }: Prop
           </tr>
         </thead>
         <tbody>
-          {page.rows.map((company) => {
+          {currentPage.rows.map((company) => {
             const isOpen = openKeys.has(company.key);
-            const sources = `${company.direct > 0 ? `${money(company.direct)} you bought` : ""}${
-              company.direct > 0 && company.throughFunds > 0 ? ", " : ""
-            }${company.throughFunds > 0 ? `${money(company.throughFunds)} via ${company.viaFunds.join(" and ")}` : ""}`;
+            // "US$500.00 you bought, US$76.90 via SPY": the bar, read out for screen readers.
+            const sourcesText = [
+              company.direct > 0 ? `${money(company.direct)} you bought` : "",
+              company.throughFunds > 0 ? `${money(company.throughFunds)} via ${company.viaFunds.join(" and ")}` : "",
+            ]
+              .filter(Boolean)
+              .join(", ");
             return (
               <Fragment key={company.key}>
                 {/* Clicking anywhere on the row opens it, not only the name. The name stays a
@@ -154,24 +150,24 @@ export default function CompanyTable({ report, money, view, onViewChange }: Prop
                     </button>{" "}
                     <span className="muted">{company.symbol}</span>
                   </td>
-                  <td className="sources" title={sources}>
-                    <span className="bar-track" role="img" aria-label={sources}>
+                  <td className="sources" title={sourcesText}>
+                    <span className="bar-track" role="img" aria-label={sourcesText}>
                       {company.direct > 0 && (
-                        <span className="bar direct" style={{ width: `${(company.direct / largest) * 100}%` }} />
+                        <span className="bar direct" style={{ width: `${(company.direct / largestTotal) * 100}%` }} />
                       )}
                       {company.throughFunds > 0 && (
-                        <span className="bar funds" style={{ width: `${(company.throughFunds / largest) * 100}%` }} />
+                        <span className="bar funds" style={{ width: `${(company.throughFunds / largestTotal) * 100}%` }} />
                       )}
                     </span>
                     <span className="source-line muted small" aria-hidden="true">
                       {company.direct > 0 && (
                         <span>
-                          <i className="swatch direct" /> {brief(company.direct)} you bought
+                          <i className="swatch direct" /> {shortMoney(company.direct)} you bought
                         </span>
                       )}
                       {company.throughFunds > 0 && (
                         <span>
-                          <i className="swatch funds" /> {brief(company.throughFunds)} via {company.viaFunds.join(", ")}
+                          <i className="swatch funds" /> {shortMoney(company.throughFunds)} via {company.viaFunds.join(", ")}
                         </span>
                       )}
                     </span>
@@ -201,10 +197,10 @@ export default function CompanyTable({ report, money, view, onViewChange }: Prop
       </table>
 
       <Pager
-        page={page.page}
-        first={page.first}
-        last={page.last}
-        total={matches.length}
+        page={currentPage.page}
+        first={currentPage.first}
+        last={currentPage.last}
+        totalRows={matchingCompanies.length}
         label="Your companies"
         onPage={setPageNumber}
       />

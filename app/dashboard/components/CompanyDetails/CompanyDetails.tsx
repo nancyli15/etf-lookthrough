@@ -19,7 +19,7 @@ import {
   weightText,
   whatIf,
 } from "@/lib/display/details/details";
-import { formatDate, percentText } from "@/lib/display/format/format";
+import { formatDate, formatDayMonth, percentText } from "@/lib/display/format/format";
 import InfoPopover from "../InfoPopover/InfoPopover";
 import type { CompanyExposure, FundSummary } from "@/lib/analysis/lookthrough/lookthrough";
 import { shortName } from "@/lib/display/names/names";
@@ -38,10 +38,6 @@ type Props = {
   money: (value: number, currency?: string) => string;
 };
 
-function shortDate(date: string): string {
-  return new Date(date).toLocaleDateString(undefined, { month: "short", day: "numeric", timeZone: "UTC" });
-}
-
 export default function CompanyDetails({
   company,
   funds,
@@ -51,15 +47,17 @@ export default function CompanyDetails({
   activityNotLoaded,
   money,
 }: Props) {
-  const [move, setMove] = useState(START_MOVE);
+  const [movePercent, setMovePercent] = useState(START_MOVE); // The slider's value: -50 to 50.
+  const move = movePercent / 100; // As a fraction, which the math in lib/display/details uses.
+  // useId makes an ID unique on the page, so the slider's <label> can point at it.
   const sliderId = useId();
   const name = shortName(company.name);
-  const { change, share } = whatIf(company, holdingsTotal, move / 100);
-  const result = movesText(company, holdingsTotal, move / 100, money);
-  const parts = movesParts(company, move / 100, money);
-  const note = activityNote(company, activities.length, activitySince, activityNotLoaded, formatDate);
-  const sources = insideFunds(company, funds);
-  const moveLabel = `${move > 0 ? "+" : move < 0 ? "−" : ""}${Math.abs(move)}%`;
+  const { change, shareOfHoldings } = whatIf(company, holdingsTotal, move);
+  const moveSentence = movesText(company, holdingsTotal, move, money);
+  const partsSentence = movesParts(company, move, money);
+  const activityMessage = activityNote(company, activities.length, activitySince, activityNotLoaded, formatDate);
+  const fundRows = insideFunds(company, funds);
+  const moveLabel = `${movePercent > 0 ? "+" : movePercent < 0 ? "−" : ""}${Math.abs(movePercent)}%`;
 
   return (
     <div className="details">
@@ -87,7 +85,7 @@ export default function CompanyDetails({
                 <span className="num">{money(company.direct)}</span>
               </li>
             )}
-            {sources.map((fund) => (
+            {fundRows.map((fund) => (
               <li key={fund.symbol} className="details-source">
                 <span className="source-name">
                   {fund.symbol}{" "}
@@ -99,7 +97,7 @@ export default function CompanyDetails({
                   )}
                 </span>
                 <span className="source-track" aria-hidden="true">
-                  <span className="bar funds" style={{ width: `${fund.part * 100}%` }} />
+                  <span className="bar funds" style={{ width: `${fund.shareOfCompany * 100}%` }} />
                 </span>
                 <span className="num">{money(fund.value)}</span>
               </li>
@@ -122,9 +120,9 @@ export default function CompanyDetails({
             min={-MAX_MOVE}
             max={MAX_MOVE}
             step={1}
-            value={move}
-            onChange={(event) => setMove(Number(event.target.value))}
-            aria-valuetext={`${moveLabel}. ${result}`}
+            value={movePercent}
+            onChange={(event) => setMovePercent(Number(event.target.value))}
+            aria-valuetext={`${moveLabel}. ${moveSentence}`}
           />
           <div className="slider-ends muted small" aria-hidden="true">
             <span>−{MAX_MOVE}%</span>
@@ -135,11 +133,11 @@ export default function CompanyDetails({
             <span className="details-big num">{signedMoney(change, money)}</span>
             <span className="small">
               {" "}
-              {share === 0 ? "" : `${change < 0 ? "−" : "+"}${weightText(Math.abs(share))} of your holdings`}
+              {shareOfHoldings === 0 ? "" : `${change < 0 ? "−" : "+"}${weightText(Math.abs(shareOfHoldings))} of your holdings`}
             </span>
           </div>
-          <p>{result}</p>
-          {parts && <p className="muted small">{parts}</p>}
+          <p>{moveSentence}</p>
+          {partsSentence && <p className="muted small">{partsSentence}</p>}
           <p className="muted small">An estimate. Assumes other prices, fund weights and exchange rates stay the same.</p>
         </section>
 
@@ -150,13 +148,13 @@ export default function CompanyDetails({
             <ul className="details-list small">
               {activities.map((activity, index) => (
                 <li key={`${activity.date}-${index}`}>
-                  <span className="muted">{shortDate(activity.date)}</span> · {activityText(activity, money)}
+                  <span className="muted">{formatDayMonth(activity.date)}</span> · {activityText(activity, money)}
                 </li>
               ))}
             </ul>
           )}
-          {note.note && <p className="muted small">{note.note}</p>}
-          {note.warning && <p className="error small">{note.warning}</p>}
+          {activityMessage.note && <p className="muted small">{activityMessage.note}</p>}
+          {activityMessage.warning && <p className="error small">{activityMessage.warning}</p>}
         </section>
       </div>
     </div>

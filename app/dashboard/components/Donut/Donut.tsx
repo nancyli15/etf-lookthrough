@@ -43,6 +43,7 @@ export default function Donut({
   if (total <= 0) return null;
   const gap = slices.length > 1 ? GAP : 0;
 
+  // Each slice starts where the one before it ended, measured along the circle's outline.
   let offset = 0;
   const arcs = slices.map((slice) => {
     const share = slice.value / total;
@@ -71,6 +72,8 @@ export default function Donut({
               fill="none"
               stroke={arc.color}
               strokeWidth={STROKE}
+              // A dash as long as the slice, then a gap for the rest of the circle,
+              // started `offset` along it: so each circle draws only its own slice.
               strokeDasharray={`${arc.length} ${CIRCUMFERENCE - arc.length}`}
               strokeDashoffset={-arc.offset}
             >

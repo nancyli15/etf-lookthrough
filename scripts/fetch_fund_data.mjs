@@ -31,7 +31,7 @@ export const FUND_DATA: Record<string, Fund> = {
     "name": "SPDR S&P 500 ETF (sample data, not real holdings)",
     "asOf": "2026-01-01",
     "source": "sample",
-    "other": 0.75,
+    "nonCompanyWeight": 0.75,
     "holdings": [
       {"symbol": "AAPL", "name": "APPLE INC", "weight": 0.07},
       {"symbol": "NVDA", "name": "NVIDIA CORP", "weight": 0.07},

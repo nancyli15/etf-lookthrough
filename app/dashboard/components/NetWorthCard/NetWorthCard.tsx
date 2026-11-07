@@ -1,14 +1,10 @@
 // The summary card: total net worth, split into stocks you bought, funds, crypto
 // and cash, with a note when the total is incomplete or differs from SnapTrade's.
 import { FX } from "@/data/fx";
-import { formatDate } from "@/lib/display/format/format";
+import { formatDate, sumOf } from "@/lib/display/format/format";
 import type { Report } from "@/lib/analysis/report/report";
 import InfoPopover from "../InfoPopover/InfoPopover";
 import "./NetWorthCard.css";
-
-function sumOf<T>(rows: T[], valueOf: (row: T) => number): number {
-  return rows.reduce((sum, row) => sum + valueOf(row), 0);
-}
 
 type Props = {
   report: Report;
@@ -27,7 +23,7 @@ export default function NetWorthCard({ report, money, title, includes }: Props) 
   const notLookedTotal = sumOf(result.notLookedThrough, (holding) => holding.value);
   const unopened = sumOf(result.insideUnopenedFunds, (fund) => fund.value);
   // The part of your funds that isn't companies: cash, futures and currency lines, plus funds we can't open.
-  const cashInsideFunds = result.otherInFunds + unopened;
+  const cashInsideFunds = result.nonCompanyInFunds + unopened;
   const cashEquivalentsText = result.cashEquivalents
     .map((holding) => `${money(holding.value)} in ${holding.symbol}`)
     .join(", ");

@@ -3,11 +3,24 @@
 // "on 401, refresh once and retry once" from the OAuth guide.
 import { API_BASE } from "../config/config";
 import { tokenRequest } from "../oauth/oauth";
+import { rowsIn, type SnapTradeAccount } from "../responses/responses";
 import { clearSession, getSession, saveSession, type Session } from "../session/session";
 
 export class NotSignedInError extends Error {}
 
 export type ApiResult = { path: string; status: number; ok: boolean; data: unknown };
+
+// The accounts in a /accounts response that have an ID, with each one as SnapTrade
+// sent it (`raw`). Read defensively: it's outside data.
+export function accountsIn(result: ApiResult): { id: string; name?: string; raw: unknown }[] {
+  return rowsIn<SnapTradeAccount>(result.data)
+    .filter((account) => typeof account?.id === "string" && account.id)
+    .map((account) => ({
+      id: account.id as string,
+      name: typeof account.name === "string" ? account.name : undefined,
+      raw: account,
+    }));
+}
 
 async function refreshSession(session: Session): Promise<Session> {
   try {
@@ -33,13 +46,13 @@ async function refreshSession(session: Session): Promise<Session> {
 }
 
 // Must be used from Route Handlers (not Server Components) so rotated tokens can be saved.
-export async function createClient() {
-  let session = await getSession();
-  if (!session) throw new NotSignedInError("Not signed in");
+export async function createSnapTradeClient() {
+  const savedSession = await getSession();
+  if (!savedSession) throw new NotSignedInError("Not signed in");
 
-  if (Date.now() > session.expiresAt - 60_000) {
-    session = await refreshSession(session);
-  }
+  // Refresh a minute early, so the token can't expire in the middle of a request.
+  let session: Session =
+    Date.now() > savedSession.expiresAt - 60_000 ? await refreshSession(savedSession) : savedSession;
 
   let refreshInProgress: Promise<Session> | null = null;
 
@@ -53,12 +66,12 @@ export async function createClient() {
         cache: "no-store",
       });
 
-    let response = await callApi(session!);
+    let response = await callApi(session);
     if (response.status === 401) {
       // Shared promise: concurrent 401s trigger only one refresh.
-      refreshInProgress ??= refreshSession(session!).then((newSession) => (session = newSession));
+      refreshInProgress ??= refreshSession(session).then((newSession) => (session = newSession));
       await refreshInProgress;
-      response = await callApi(session!);
+      response = await callApi(session);
       if (response.status === 401) {
         // The OAuth guide's rule: refresh once, retry once, then ask the user to authorize again.
         await clearSession();
@@ -66,6 +79,7 @@ export async function createClient() {
       }
     }
 
+    // Most responses are JSON. If one isn't, keep the text so the Developer view can show it.
     const text = await response.text();
     let data: unknown = text;
     try {
@@ -74,5 +88,5 @@ export async function createClient() {
     return { path, status: response.status, ok: response.ok, data };
   }
 
-  return { get, getSession: () => session! };
+  return { get, getSession: () => session };
 }

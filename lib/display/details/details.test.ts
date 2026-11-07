@@ -36,7 +36,7 @@ function company(direct: number, directUnits: number, byFund: [string, number][]
 // Your Sandbox: 8 Tesla shares at $240, plus Tesla inside $8,373.75 of SPY.
 const tesla = company(1920, 8, [["SPY", 137.04]]);
 const nvidia = { ...company(0, 0, [["SPY", 611.44]]), name: "NVIDIA Corp" };
-const spy: FundSummary = { symbol: "SPY", name: "SPDR", value: 8373.75, asOf: "2026-11-04", otherWeight: 0, unopenedWeight: 0 };
+const spy: FundSummary = { symbol: "SPY", name: "SPDR", value: 8373.75, asOf: "2026-11-04", nonCompanyWeight: 0, unopenedWeight: 0 };
 
 describe("company dropdown", () => {
   it("says how much more you own than your brokerage shows", () => {
@@ -63,7 +63,7 @@ describe("company dropdown", () => {
     const [inFxaix, inSpyToo] = insideFunds(both, [spy, fxaix]);
     expect(inSpyToo.symbol).toBe("SPY");
     // The bar is the fund's share of the company's total: $137.04 of $2,057.04 is 6.7%.
-    expect(inSpy.part).toBeCloseTo(137.04 / 2057.04, 4);
+    expect(inSpy.shareOfCompany).toBeCloseTo(137.04 / 2057.04, 4);
     expect(inFxaix.approximatedBy).toBe("SPY");
     expect(weightText(inFxaix.weight)).toBe("1.64%");
     expect(weightText(0.00004)).toBe("under 0.01%");

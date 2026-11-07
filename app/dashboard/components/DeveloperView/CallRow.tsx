@@ -20,33 +20,23 @@ export function CallRow({ path, status, ok, summary, data, note }: CallRowProps)
   );
 }
 
+// A row that can't open yet: still loading, failed, or missing. Same layout, no arrow.
+function PlainRow({ path, message, isError = false }: { path: string; message: string; isError?: boolean }) {
+  return (
+    <div className="call call-plain">
+      <code className="call-path">{path}</code>
+      <span className={isError ? "error small" : "muted small"}>{message}</span>
+    </div>
+  );
+}
+
+// The account's /balanceHistory row. It comes from /api/history, which loads after the rest.
 export function HistoryRow({ history, accountId }: { history: HistoryLoad; accountId?: string }) {
   const path = "/balanceHistory";
-  if (history.state === "loading") {
-    return (
-      <div className="call call-plain">
-        <code className="call-path">{path}</code>
-        <span className="muted small">Loading…</span>
-      </div>
-    );
-  }
-  if (history.state === "failed") {
-    return (
-      <div className="call call-plain">
-        <code className="call-path">{path}</code>
-        <span className="error small">/api/history failed ({history.message})</span>
-      </div>
-    );
-  }
+  if (history.state === "loading") return <PlainRow path={path} message="Loading…" />;
+  if (history.state === "failed") return <PlainRow path={path} message={`/api/history failed (${history.message})`} isError />;
   const response = history.accounts.find((account) => account.id === accountId);
-  if (!response) {
-    return (
-      <div className="call call-plain">
-        <code className="call-path">{path}</code>
-        <span className="muted small">Not in /api/history's response</span>
-      </div>
-    );
-  }
+  if (!response) return <PlainRow path={path} message="Not in /api/history's response" />;
   return (
     <CallRow
       path={path}

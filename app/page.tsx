@@ -1,7 +1,8 @@
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/snaptrade/session/session";
 
-const MESSAGES: Record<string, string> = {
+// What to say for each ?error= code the sign-in and disconnect routes send back here.
+const ERROR_MESSAGES: Record<string, string> = {
   access_denied: "You declined access on SnapTrade, so nothing was shared. You can try again anytime.",
   session_expired: "Your session expired. Please sign in again.",
   state_mismatch: "Sign-in expired or was started in another tab. Please try again.",
@@ -14,7 +15,7 @@ const MESSAGES: Record<string, string> = {
 export default async function Home({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string; disconnected?: string }>;
+  searchParams: Promise<{ error?: string; disconnected?: string }>; // Next.js 15 passes the URL's query as a promise.
 }) {
   if (await getSession()) redirect("/dashboard");
   const { error, disconnected } = await searchParams;
@@ -29,7 +30,7 @@ export default async function Home({
 
       {disconnected && <div className="card">Disconnected. Your SnapTrade access was revoked.</div>}
       {error && (
-        <div className="card error">{MESSAGES[error] ?? "Sign-in didn't complete. Please try again."}</div>
+        <div className="card error">{ERROR_MESSAGES[error] ?? "Sign-in didn't complete. Please try again."}</div>
       )}
 
       <div className="card">

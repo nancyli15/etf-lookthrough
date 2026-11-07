@@ -6,6 +6,7 @@ import { redirectUri } from "@/lib/snaptrade/config/config";
 import { tokenRequest, verifyIdToken } from "@/lib/snaptrade/oauth/oauth";
 import { saveSession, takeLoginState } from "@/lib/snaptrade/session/session";
 
+// Run on every request, never from a cache: every user's data is different.
 export const dynamic = "force-dynamic";
 
 export async function GET(req: NextRequest) {

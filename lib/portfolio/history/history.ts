@@ -4,7 +4,8 @@
 // /balanceHistory is a beta endpoint. SnapTrade's reference says its values are
 // estimates that may have gaps, so this reads defensively and reports what it
 // couldn't use instead of guessing.
-import { toNumber } from "../holdings/holdings";
+import { rowsIn, type SnapTradeBalanceHistory, type SnapTradeBalanceHistoryDay } from "../../snaptrade/responses/responses";
+import { toNumber, toText } from "../holdings/holdings";
 import { convertCurrency } from "../currency/currency";
 
 // One account's /balanceHistory result, as packaged by /api/history. The id matches
@@ -30,7 +31,7 @@ export type AccountValueHistory = {
 
 // Markets close on weekends and holidays, so a few days without a point is normal.
 // A longer gap means missing data, and the chart shows a break instead of a straight line.
-export const MAX_GAP_DAYS = 5;
+const MAX_GAP_DAYS = 5;
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -49,40 +50,42 @@ function reasonFor(response: HistoryResponse): string {
 
 export function combineHistory(responses: HistoryResponse[], reportCurrency: string): AccountValueHistory {
   const result: AccountValueHistory = { currency: reportCurrency, points: [], included: [], missing: [], converted: false };
-  const perAccount: Map<string, number>[] = [];
+  // One map per included account: date → that day's value, in the report's currency.
+  const valueByDatePerAccount: Map<string, number>[] = [];
 
   for (const response of responses) {
     if (!response.ok) {
       result.missing.push({ name: response.name, reason: reasonFor(response) });
       continue;
     }
-    const body = response.data as { history?: unknown; currency?: unknown };
-    const rows = Array.isArray(body?.history) ? body.history : [];
-    const currency = typeof body?.currency === "string" ? body.currency : reportCurrency;
+    const body = response.data as SnapTradeBalanceHistory | null;
+    const rows = rowsIn<SnapTradeBalanceHistoryDay>(body?.history);
+    const currency = toText(body?.currency) ?? reportCurrency;
     if (convertCurrency(1, currency, reportCurrency) === null) {
       result.missing.push({ name: response.name, reason: `No exchange rate for ${currency}` });
       continue;
     }
 
-    const values = new Map<string, number>();
+    const valueByDate = new Map<string, number>();
     for (const row of rows) {
       const date = dateOf(row?.date);
       const amount = toNumber(row?.total_value); // Sent as a string, like positions.
       if (!date || amount === null) continue;
-      values.set(date, convertCurrency(amount, currency, reportCurrency)!);
+      // The rate was checked above, so this can't be null.
+      valueByDate.set(date, convertCurrency(amount, currency, reportCurrency)!);
     }
 
-    if (values.size === 0) {
+    if (valueByDate.size === 0) {
       // New accounts can take up to a day to get history, per SnapTrade's dashboard.
       result.missing.push({ name: response.name, reason: "No history yet" });
       continue;
     }
     if (currency !== reportCurrency) result.converted = true;
     result.included.push(response.name);
-    perAccount.push(values);
+    valueByDatePerAccount.push(valueByDate);
   }
 
-  if (perAccount.length === 0) return result;
+  if (valueByDatePerAccount.length === 0) return result;
 
   // Accounts update on different days: in the Sandbox, Individual's latest value was
   // Nov 5 and the IRA's was Nov 4. Using only dates every account has would end the
@@ -90,19 +93,19 @@ export function combineHistory(responses: HistoryResponse[], reportCurrency: str
   // uses its most recent one, up to MAX_GAP_DAYS old. Past that, or before the
   // account's first value, the date is left out: adding a missing account as $0
   // would show a fake drop.
-  const dates = [...new Set(perAccount.flatMap((values) => [...values.keys()]))].sort();
+  const dates = [...new Set(valueByDatePerAccount.flatMap((valueByDate) => [...valueByDate.keys()]))].sort();
   for (const date of dates) {
     let total = 0;
-    let complete = true;
-    for (const values of perAccount) {
-      const value = latestOnOrBefore(values, date);
+    let everyAccountHasValue = true;
+    for (const valueByDate of valueByDatePerAccount) {
+      const value = latestOnOrBefore(valueByDate, date);
       if (value === undefined) {
-        complete = false;
+        everyAccountHasValue = false;
         break;
       }
       total += value;
     }
-    if (complete) result.points.push({ date, value: total });
+    if (everyAccountHasValue) result.points.push({ date, value: total });
   }
   // $0 days at the start are before the account had money in it. They'd stretch the
   // chart down to $0 and make the first deposit look like a huge jump. A $0 later on
@@ -113,11 +116,11 @@ export function combineHistory(responses: HistoryResponse[], reportCurrency: str
 }
 
 // An account's value on a date, or its most recent one up to MAX_GAP_DAYS earlier.
-function latestOnOrBefore(values: Map<string, number>, date: string): number | undefined {
-  if (values.has(date)) return values.get(date);
+function latestOnOrBefore(valueByDate: Map<string, number>, date: string): number | undefined {
+  if (valueByDate.has(date)) return valueByDate.get(date);
   for (let daysBack = 1; daysBack <= MAX_GAP_DAYS; daysBack++) {
     const earlier = new Date(Date.parse(date) - daysBack * DAY_MS).toISOString().slice(0, 10);
-    if (values.has(earlier)) return values.get(earlier);
+    if (valueByDate.has(earlier)) return valueByDate.get(earlier);
   }
   return undefined;
 }

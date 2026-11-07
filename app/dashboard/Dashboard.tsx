@@ -12,35 +12,31 @@ import { formatMoney } from "@/lib/display/format/format";
 import { emptyAccountsMessage } from "@/lib/portfolio/connections/connections";
 import type { HistoryLoad } from "@/lib/portfolio/history/history";
 import type { Report, ReportCurrency } from "@/lib/analysis/report/report";
+import type { ApiResult } from "@/lib/snaptrade/api/api";
+import { toText } from "@/lib/portfolio/holdings/holdings";
+import type { SnapTradeAccount } from "@/lib/snaptrade/responses/responses";
 import AccountPicker from "./components/AccountPicker/AccountPicker";
 import CurrencySwitch from "./components/CurrencySwitch/CurrencySwitch";
 import DeveloperView from "./components/DeveloperView/DeveloperView";
 import LookThrough from "./components/LookThrough/LookThrough";
 import "./Dashboard.css";
 
-// The result of one SnapTrade API call, as packaged by /api/raw.
-export type ApiResponse = {
-  path: string;   // API endpoint that was called
-  status: number; // HTTP status code
-  ok: boolean;    // Whether the request succeeded
-  data: unknown;  // Response body, exactly as SnapTrade sent it
-};
-
-// One brokerage account and the results of its API requests.
-export type AccountData = {
-  account: any;            // Brokerage account information (name, ID, institution, etc.)
-  positions: ApiResponse;  // Stocks, ETFs, and other investments held in the account
-  balances: ApiResponse;   // Cash and account balances
-  activities: ApiResponse; // Transactions and account activity
+// One brokerage account and SnapTrade's answers about it, as /api/raw sends them.
+// Each ApiResult is { path, status, ok, data }, with `data` exactly as SnapTrade sent it.
+export type AccountResponses = {
+  account: SnapTradeAccount; // Name, ID, institution, balance. Every field is checked before use.
+  positions: ApiResult; // Stocks, ETFs and other investments held in the account
+  balances: ApiResult; // Cash, one row per currency
+  activities: ApiResult; // Trades, dividends and other account activity
 };
 
 // The complete response from our /api/raw endpoint, covering all connected accounts.
 export type DashboardData = {
   fetchedAt: string; // When the data was retrieved
   accountsCall: { status: number; ok: boolean }; // Result of the request for the user's accounts
-  accounts: AccountData[];
+  accounts: AccountResponses[];
   accountsRaw?: unknown; // Original /accounts response, when it failed or held no accounts we could read
-  connectionsCall?: ApiResponse; // /authorizations: brokerage names, and why there are no accounts
+  connectionsCall?: ApiResult; // /authorizations: brokerage names, and why there are no accounts
   report: Report | null; // The look-through, calculated on the server from the data above
 };
 
@@ -78,58 +74,62 @@ export default function Dashboard({ email }: { email?: string }) {
   // The account picker and the currency switch. null means "the default": every
   // account, in the accounts' own currency. That's what /api/raw already calculated,
   // so the default view needs no extra request.
-  const [selected, setSelected] = useState<Set<string> | null>(null);
-  const [currency, setCurrency] = useState<ReportCurrency | null>(null);
+  const [pickedIds, setPickedIds] = useState<Set<string> | null>(null);
+  const [pickedCurrency, setPickedCurrency] = useState<ReportCurrency | null>(null);
   const [customReport, setCustomReport] = useState<Report | null>(null);
   const [recalculating, setRecalculating] = useState(false);
-  const latestRequest = useRef(0);
+  // Counts /api/report requests, so a slow answer to an old click can be ignored.
+  const latestRequestId = useRef(0);
 
   const groups = useMemo(
     () => (dashboardData ? groupAccounts(dashboardData.accounts, dashboardData.connectionsCall?.data) : []),
     [dashboardData],
   );
   const allIds = useMemo(() => groups.flatMap((group) => group.accounts.map((account) => account.id)), [groups]);
-  const chosen = selected ?? new Set(allIds);
+  // The accounts on screen: the picked ones, or all of them by default.
+  const selectedIds = pickedIds ?? new Set(allIds);
+  const showingAll = selectedIds.size === allIds.length;
   // Only once accounts have loaded: before that, there are none to choose, which isn't the same as unticking them all.
-  const noneChosen = allIds.length > 0 && chosen.size === 0;
-  const isDefault = (selected === null || selected.size === allIds.length) && currency === null;
+  const noneChosen = allIds.length > 0 && selectedIds.size === 0;
+  const isDefault = showingAll && pickedCurrency === null;
 
   // A different mix of accounts, or a different currency: send just those accounts
   // back to /api/report to recalculate. It doesn't call SnapTrade, so switching
   // often can't hit SnapTrade's rate limit.
-  function recalculate(nextSelected: Set<string>, nextCurrency: ReportCurrency | null) {
+  function recalculate(nextIds: Set<string>, nextCurrency: ReportCurrency | null) {
     if (!dashboardData) return;
-    const all = nextSelected.size === allIds.length;
-    setSelected(all ? null : nextSelected);
-    setCurrency(nextCurrency);
+    const allPicked = nextIds.size === allIds.length;
+    setPickedIds(allPicked ? null : nextIds);
+    setPickedCurrency(nextCurrency);
     // Nothing chosen, or back to the default: no request needed.
-    if (nextSelected.size === 0 || (all && nextCurrency === null)) {
-      latestRequest.current++;
+    if (nextIds.size === 0 || (allPicked && nextCurrency === null)) {
+      latestRequestId.current++; // Any request still in flight is now out of date.
       setCustomReport(null);
       setRecalculating(false);
       return;
     }
     setRecalculating(true);
     // Quick clicks can send several requests. Only the newest one's answer is used.
-    const request = ++latestRequest.current;
+    const requestId = ++latestRequestId.current;
+    const isLatest = () => requestId === latestRequestId.current;
     fetch("/api/report", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        accounts: dashboardData.accounts.filter((account) => nextSelected.has(account.account?.id)),
+        accounts: dashboardData.accounts.filter((accountResponses) => nextIds.has(toText(accountResponses.account?.id) ?? "")),
         currency: nextCurrency ?? undefined,
       }),
     })
       .then(async (response) => {
         if (!response.ok) throw new Error(`status ${response.status}`);
         const body = await response.json();
-        if (request === latestRequest.current) setCustomReport(body.report);
+        if (isLatest()) setCustomReport(body.report);
       })
       .catch((error) => {
-        if (request === latestRequest.current) setErrorMessage(error instanceof Error ? error.message : "Something went wrong");
+        if (isLatest()) setErrorMessage(error instanceof Error ? error.message : "Something went wrong");
       })
       .finally(() => {
-        if (request === latestRequest.current) setRecalculating(false);
+        if (isLatest()) setRecalculating(false);
       });
   }
 
@@ -138,15 +138,12 @@ export default function Dashboard({ email }: { email?: string }) {
   // With no account chosen there's no report, so fall back to the full report's currency
   // rather than US$: unticking everything shouldn't flip the switch.
   const pageCurrency = report?.result.currency ?? dashboardData?.report?.result.currency;
-  const shownCurrency: ReportCurrency = currency ?? (pageCurrency === "CAD" ? "CAD" : "USD");
-  const showingAll = selected === null || selected.size === allIds.length;
+  const shownCurrency: ReportCurrency = pickedCurrency ?? (pageCurrency === "CAD" ? "CAD" : "USD");
   // The chart adds up only the chosen accounts' history.
   const shownHistory: HistoryLoad =
     history.state === "loaded" && !showingAll
-      ? { ...history, accounts: history.accounts.filter((account) => account.id && chosen.has(account.id)) }
+      ? { ...history, accounts: history.accounts.filter((account) => account.id && selectedIds.has(account.id)) }
       : history;
-
-  const moneyIn = (value: number, currency: string) => formatMoney(value, currency);
 
   return (
     <>
@@ -160,9 +157,14 @@ export default function Dashboard({ email }: { email?: string }) {
         </div>
         <div className="page-controls">
           {allIds.length > 0 && (
-            <CurrencySwitch value={shownCurrency} onChange={(next) => recalculate(chosen, next)} />
+            <CurrencySwitch value={shownCurrency} onChange={(next) => recalculate(selectedIds, next)} />
           )}
-          <AccountPicker groups={groups} selected={chosen} onChange={(next) => recalculate(next, currency)} money={moneyIn} />
+          <AccountPicker
+            groups={groups}
+            selected={selectedIds}
+            onChange={(next) => recalculate(next, pickedCurrency)}
+            money={(value, currency) => formatMoney(value, currency)}
+          />
           <form action="/api/disconnect" method="post">
             <button className="button" type="submit">Disconnect</button>
           </form>
@@ -196,8 +198,8 @@ export default function Dashboard({ email }: { email?: string }) {
         <LookThrough
           report={report}
           history={shownHistory}
-          title={groups.length ? selectionTitle(groups, chosen) : undefined}
-          includes={allIds.length > 1 ? includesText(groups, chosen) : undefined}
+          title={groups.length ? selectionTitle(groups, selectedIds) : undefined}
+          includes={allIds.length > 1 ? includesText(groups, selectedIds) : undefined}
         />
       )}
 

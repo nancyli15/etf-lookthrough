@@ -40,7 +40,7 @@ export type FundSummary = {
   value: number;
   asOf: string;
   approximatedBy?: string;
-  otherWeight: number;
+  nonCompanyWeight: number;
   unopenedWeight: number;
 };
 
@@ -60,7 +60,7 @@ export type LookThroughResult = {
   directHoldings: DirectHolding[]; // Largest first.
   funds: FundSummary[];
   overlaps: FundOverlap[]; // Largest first.
-  otherInFunds: number; // Cash, futures and other non-stock lines inside funds.
+  nonCompanyInFunds: number; // Cash, futures and other non-stock lines inside funds.
   insideUnopenedFunds: { symbol: string; name: string; value: number }[];
   notLookedThrough: { symbol: string; name: string; kind: string; value: number; reason: string }[];
   cashEquivalents: { symbol: string; name: string; value: number }[]; // Already inside the cash balance.
@@ -77,6 +77,10 @@ type Options = {
 
 const FUND_KINDS = new Set(["etf", "mutualfund"]);
 
+// For sort(): biggest value first.
+const largestValueFirst = (first: { value: number }, second: { value: number }) => second.value - first.value;
+
+// Used only when no currency is passed in. buildReport always passes one; tests don't.
 function chooseCurrency(holdings: Holding[]): string {
   const currencies = new Set(holdings.map((holding) => holding.currency));
   if (currencies.size === 1) return holdings[0].currency;
@@ -91,56 +95,65 @@ export function lookThrough(holdings: Holding[], options: Options = {}): LookThr
   const currency = options.currency ?? chooseCurrency(holdings);
 
   const result: LookThroughResult = {
-    currency: options.currency ?? (holdings.length ? currency : "USD"),
+    currency,
     total: 0,
     companies: [],
     directHoldings: [],
     funds: [],
     overlaps: [],
-    otherInFunds: 0,
+    nonCompanyInFunds: 0,
     insideUnopenedFunds: [],
     notLookedThrough: [],
     cashEquivalents: [],
     unconverted: [],
   };
 
+  // Keyed by companyKey, so the same company from different sources adds up in one place.
   const companies = new Map<string, CompanyExposure>();
-  const summaries = new Map<string, FundSummary>();
-  const flattened = new Map<string, Flattened>();
-  const unopened = new Map<string, { symbol: string; name: string; value: number }>();
+  const fundSummaries = new Map<string, FundSummary>();
+  // Each fund is opened once, even if several accounts hold it.
+  const flattenedFunds = new Map<string, Flattened>();
+  const unopenedFunds = new Map<string, { symbol: string; name: string; value: number }>();
 
-  function addToCompany(
-    key: string,
-    symbol: string,
-    name: string,
-    direct: number,
-    through: number,
-    via?: string,
-    directUnits = 0,
-  ) {
-    const exposure = companies.get(key) ?? {
-      key,
-      symbol,
-      name: COMPANY_BY_SYMBOL[symbol] && !key.includes("|") ? COMPANY_BY_SYMBOL[symbol] : name,
-      direct: 0,
-      directUnits: 0,
-      throughFunds: 0,
-      total: 0,
-      percent: 0,
-      viaFunds: [],
-      byFund: [],
-    };
-    exposure.direct += direct;
-    exposure.directUnits += directUnits;
-    exposure.throughFunds += through;
-    exposure.total += direct + through;
-    if (via) {
-      if (!exposure.viaFunds.includes(via)) exposure.viaFunds.push(via);
-      const fromFund = exposure.byFund.find((entry) => entry.symbol === via);
-      if (fromFund) fromFund.value += through;
-      else exposure.byFund.push({ symbol: via, value: through });
+  // The company's running total, created at $0 the first time it's seen.
+  function exposureFor(key: string, symbol: string, name: string): CompanyExposure {
+    let exposure = companies.get(key);
+    if (!exposure) {
+      exposure = {
+        key,
+        symbol,
+        // Share classes like GOOGL and GOOG get one key, their company's name ("Alphabet").
+        name: COMPANY_BY_SYMBOL[symbol] === key ? key : name,
+        direct: 0,
+        directUnits: 0,
+        throughFunds: 0,
+        total: 0,
+        percent: 0,
+        viaFunds: [],
+        byFund: [],
+      };
+      companies.set(key, exposure);
     }
-    companies.set(key, exposure);
+    return exposure;
+  }
+
+  // Shares of the company you bought yourself.
+  function addDirect(key: string, symbol: string, name: string, value: number, units: number) {
+    const exposure = exposureFor(key, symbol, name);
+    exposure.direct += value;
+    exposure.directUnits += units;
+    exposure.total += value;
+  }
+
+  // The company's part of a fund you hold: fund value × the company's weight in it.
+  function addThroughFund(key: string, symbol: string, name: string, value: number, fundSymbol: string) {
+    const exposure = exposureFor(key, symbol, name);
+    exposure.throughFunds += value;
+    exposure.total += value;
+    if (!exposure.viaFunds.includes(fundSymbol)) exposure.viaFunds.push(fundSymbol);
+    const fromThisFund = exposure.byFund.find((entry) => entry.symbol === fundSymbol);
+    if (fromThisFund) fromThisFund.value += value;
+    else exposure.byFund.push({ symbol: fundSymbol, value });
   }
 
   for (const holding of holdings) {
@@ -178,7 +191,7 @@ export function lookThrough(holdings: Holding[], options: Options = {}): LookThr
 
     const ticker = cleanTicker(holding);
     if (!FUND_KINDS.has(holding.kind)) {
-      addToCompany(companyKey(ticker, holding.exchange, holding.currency), ticker, holding.name, value, 0, undefined, holding.units);
+      addDirect(companyKey(ticker, holding.exchange, holding.currency), ticker, holding.name, value, holding.units);
       result.directHoldings.push({ symbol: ticker, name: holding.name, units: holding.units, value });
       continue;
     }
@@ -195,30 +208,30 @@ export function lookThrough(holdings: Holding[], options: Options = {}): LookThr
       continue;
     }
 
-    const flattenedFund = flattened.get(fund.symbol) ?? flatten(fund, funds, withoutData);
-    flattened.set(fund.symbol, flattenedFund);
+    const flattenedFund = flattenedFunds.get(fund.symbol) ?? flatten(fund, funds, withoutData);
+    flattenedFunds.set(fund.symbol, flattenedFund);
 
     const unopenedWeight = [...flattenedFund.unopened.values()].reduce((sum, nested) => sum + nested.weight, 0);
-    const summary = summaries.get(fund.symbol) ?? {
+    const summary = fundSummaries.get(fund.symbol) ?? {
       symbol: fund.symbol,
       name: fund.name,
       value: 0,
       asOf: fund.asOf,
       approximatedBy: fund.approximatedBy,
-      otherWeight: flattenedFund.other,
+      nonCompanyWeight: flattenedFund.nonCompanyWeight,
       unopenedWeight,
     };
     summary.value += value;
-    summaries.set(fund.symbol, summary);
+    fundSummaries.set(fund.symbol, summary);
 
-    result.otherInFunds += value * flattenedFund.other;
+    result.nonCompanyInFunds += value * flattenedFund.nonCompanyWeight;
     for (const [key, company] of flattenedFund.companies) {
-      addToCompany(key, company.symbol, company.name, 0, value * company.weight, fund.symbol);
+      addThroughFund(key, company.symbol, company.name, value * company.weight, fund.symbol);
     }
     for (const [symbol, nested] of flattenedFund.unopened) {
-      const seen = unopened.get(symbol) ?? { symbol, name: nested.name, value: 0 };
-      seen.value += value * nested.weight;
-      unopened.set(symbol, seen);
+      const unopenedFund = unopenedFunds.get(symbol) ?? { symbol, name: nested.name, value: 0 };
+      unopenedFund.value += value * nested.weight;
+      unopenedFunds.set(symbol, unopenedFund);
     }
   }
 
@@ -226,12 +239,12 @@ export function lookThrough(holdings: Holding[], options: Options = {}): LookThr
     .map((company) => ({
       ...company,
       percent: result.total ? company.total / result.total : 0,
-      byFund: [...company.byFund].sort((first, second) => second.value - first.value),
+      byFund: [...company.byFund].sort(largestValueFirst),
     }))
     .sort((first, second) => second.total - first.total);
-  result.directHoldings.sort((first, second) => second.value - first.value);
-  result.funds = [...summaries.values()].sort((first, second) => second.value - first.value);
-  result.insideUnopenedFunds = [...unopened.values()].sort((first, second) => second.value - first.value);
+  result.directHoldings.sort(largestValueFirst);
+  result.funds = [...fundSummaries.values()].sort(largestValueFirst);
+  result.insideUnopenedFunds = [...unopenedFunds.values()].sort(largestValueFirst);
 
   // Compare each pair of funds once.
   for (let indexA = 0; indexA < result.funds.length; indexA++) {
@@ -242,8 +255,9 @@ export function lookThrough(holdings: Holding[], options: Options = {}): LookThr
         fundOverlap(
           summaryA,
           summaryB,
-          flattened.get(summaryA.symbol)!,
-          flattened.get(summaryB.symbol)!,
+          // Every fund in result.funds was flattened above, so these exist.
+          flattenedFunds.get(summaryA.symbol)!,
+          flattenedFunds.get(summaryB.symbol)!,
           funds[summaryA.symbol],
           funds[summaryB.symbol],
         ),
