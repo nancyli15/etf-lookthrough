@@ -8,9 +8,6 @@ import { hasLargeGap, listOf, percentText } from "../display/format";
 import { lookThrough, type CompanyExposure, type LookThroughResult } from "./lookthrough";
 import { shortName } from "../display/names";
 
-// Re-exported so existing imports keep working. Browser code imports lib/display/format.ts.
-export { hasLargeGap, percentText };
-
 export type AccountData = {
   account?: {
     name?: string;
