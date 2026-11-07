@@ -1,11 +1,11 @@
 "use client";
 // A company's dropdown in the combined table. The wording and math are in
-// lib/details.ts, where they're tested; this file only lays them out.
+// lib/display/details.ts, where they're tested; this file only lays them out.
 //
 // Three sections, each with one clear answer: how much you own, which funds it
 // comes from (as bars), and what a price move would do. Then your own trades.
 import { useId, useState } from "react";
-import type { Activity } from "../../lib/activities";
+import type { Activity } from "../../../lib/portfolio/activities";
 import {
   activityNote,
   activityText,
@@ -18,11 +18,11 @@ import {
   signedMoney,
   weightText,
   whatIf,
-} from "../../lib/details";
-import { percentText } from "../../lib/format";
+} from "../../../lib/display/details";
+import { percentText } from "../../../lib/display/format";
 import InfoPopover from "./InfoPopover";
-import type { CompanyExposure, FundSummary } from "../../lib/lookthrough";
-import { shortName } from "../../lib/names";
+import type { CompanyExposure, FundSummary } from "../../../lib/analysis/lookthrough";
+import { shortName } from "../../../lib/display/names";
 
 const START_MOVE = 10; // Percent: a round number that's easy to check in your head.
 const MAX_MOVE = 50; // The slider runs from −50% to +50%, with 0 in the middle.

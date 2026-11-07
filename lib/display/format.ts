@@ -1,6 +1,6 @@
 // Small helpers the screen uses. They don't import the fund data, so browser code
 // can use them without downloading every fund's holdings.
-import type { LookThroughResult } from "./lookthrough";
+import type { LookThroughResult } from "../analysis/lookthrough";
 
 // Always "US$" or "CA$", never a bare "$". Browsers write their own country's
 // currency as "$", so in Canada CA$ showed as "$" and US$ as "US$", and switching

@@ -2,10 +2,10 @@
 // number on the page can be checked against its source, and a failed call is
 // easy to spot. Rows are SnapTrade's raw responses from /api/raw and /api/history.
 // The one exception, "Our calculation", is labelled as ours.
-import { positionsOf } from "../../lib/holdings";
-import type { HistoryLoad } from "../../lib/history";
-import type { Report } from "../../lib/report";
-import type { ApiResponse, DashboardData } from "./Dashboard";
+import { positionsOf } from "../../../lib/portfolio/holdings";
+import type { HistoryLoad } from "../../../lib/portfolio/history";
+import type { Report } from "../../../lib/analysis/report";
+import type { ApiResponse, DashboardData } from "../Dashboard";
 
 // SnapTrade's per-account limit, shared by every account-data call (see TRADEOFFS.md).
 const ACCOUNT_LIMIT_PER_MINUTE = 10;

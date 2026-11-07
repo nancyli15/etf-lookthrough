@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { getSession } from "@/lib/session";
+import { getSession } from "@/lib/snaptrade/session";
 import Dashboard from "./Dashboard";
 
 export const dynamic = "force-dynamic";

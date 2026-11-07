@@ -1,9 +1,9 @@
 // Step 1 of sign-in: create fresh state, nonce and PKCE values, then send the
 // browser to SnapTrade's consent screen.
 import { NextResponse, type NextRequest } from "next/server";
-import { SCOPES, requireEnv, redirectUri } from "@/lib/config";
-import { codeChallenge, getMetadata, randomToken } from "@/lib/oauth";
-import { setLoginState } from "@/lib/session";
+import { SCOPES, requireEnv, redirectUri } from "@/lib/snaptrade/config";
+import { codeChallenge, getMetadata, randomToken } from "@/lib/snaptrade/oauth";
+import { setLoginState } from "@/lib/snaptrade/session";
 
 export const dynamic = "force-dynamic";
 

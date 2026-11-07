@@ -131,3 +131,5 @@ The parts of the API the app depends on, and what happens if they change. SnapTr
 | Decision | Why | What I'd change with more time or users |
 |---|---|---|
 | Override PostCSS instead of moving to Next 16 | Next 15 pins a version with known flaws. The override clears the audit, and the build passes, without a major upgrade | Upgrade Next and remove the override |
+| `lib/` grouped into four folders by job: snaptrade, portfolio, analysis, display | 30 files in one folder made it hard to say where anything lives. Grouping by job gives a one-word answer, like "sign-in is in `lib/snaptrade/`". Tests stay next to their files | — |
+| Screen pieces in `app/dashboard/components/`; only `page.tsx` and `Dashboard.tsx` stay above it | The page and the code that loads its data stand out from the 13 pieces they use. Next.js only makes URLs from `page.tsx` and `route.ts`, so the folder never becomes a page | — |

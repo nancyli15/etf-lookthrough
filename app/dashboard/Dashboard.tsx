@@ -7,15 +7,15 @@
 // refresh and the second would sign the user out. Waiting for /api/raw means its
 // refreshed token is already saved when /api/history starts.
 import { useEffect, useMemo, useRef, useState } from "react";
-import { groupAccounts, includesText, selectionTitle } from "@/lib/accounts";
-import { formatMoney } from "@/lib/format";
-import { emptyAccountsMessage } from "@/lib/connections";
-import type { HistoryLoad } from "@/lib/history";
-import type { Report, ReportCurrency } from "@/lib/report";
-import AccountPicker from "./AccountPicker";
-import CurrencySwitch from "./CurrencySwitch";
-import DeveloperView from "./DeveloperView";
-import LookThrough from "./LookThrough";
+import { groupAccounts, includesText, selectionTitle } from "@/lib/portfolio/accounts";
+import { formatMoney } from "@/lib/display/format";
+import { emptyAccountsMessage } from "@/lib/portfolio/connections";
+import type { HistoryLoad } from "@/lib/portfolio/history";
+import type { Report, ReportCurrency } from "@/lib/analysis/report";
+import AccountPicker from "./components/AccountPicker";
+import CurrencySwitch from "./components/CurrencySwitch";
+import DeveloperView from "./components/DeveloperView";
+import LookThrough from "./components/LookThrough";
 
 // The result of one SnapTrade API call, as packaged by /api/raw.
 export type ApiResponse = {

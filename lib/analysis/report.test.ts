@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { CompanyExposure } from "./lookthrough";
-import { displayName, shortName } from "./names";
+import { displayName, shortName } from "../display/names";
 import { buildReport, headlineFor } from "./report";
 
 function company(name: string, direct: number, viaFunds: string[], percent: number, throughFunds = 0): CompanyExposure {

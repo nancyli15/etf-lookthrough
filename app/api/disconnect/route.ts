@@ -1,7 +1,7 @@
 // In-app disconnect: revoke the refresh token at SnapTrade, then delete local tokens.
 import { NextResponse, type NextRequest } from "next/server";
-import { revokeRefreshToken } from "@/lib/oauth";
-import { clearSession, getSession } from "@/lib/session";
+import { revokeRefreshToken } from "@/lib/snaptrade/oauth";
+import { clearSession, getSession } from "@/lib/snaptrade/session";
 
 export const dynamic = "force-dynamic";
 

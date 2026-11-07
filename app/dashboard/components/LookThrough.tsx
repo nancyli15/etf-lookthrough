@@ -6,12 +6,12 @@
 // funds and their overlap, and what couldn't be looked through. Clicking a fund's name
 // shows its companies in the table above it. One page scroll; on a phone, the top pair stacks.
 import { useState } from "react";
-import { FX } from "../../data/fx";
-import { formatMoney, hasLargeGap, percentText } from "../../lib/format";
-import type { HistoryLoad } from "../../lib/history";
-import { displayName } from "../../lib/names";
-import { fundView, type CompanyView } from "../../lib/paging";
-import type { Report } from "../../lib/report";
+import { FX } from "../../../data/fx";
+import { formatMoney, hasLargeGap, percentText } from "../../../lib/display/format";
+import type { HistoryLoad } from "../../../lib/portfolio/history";
+import { displayName } from "../../../lib/display/names";
+import { fundView, type CompanyView } from "../../../lib/display/paging";
+import type { Report } from "../../../lib/analysis/report";
 import AccountValueChart from "./AccountValueChart";
 import CompanyTable from "./CompanyTable";
 import FundsCard from "./FundsCard";

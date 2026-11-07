@@ -1,7 +1,7 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import { FUND_DATA_IS_SAMPLE } from "../../data/funds";
-import { buildReport, type AccountData } from "../../lib/report";
+import { FUND_DATA_IS_SAMPLE } from "../../../data/funds";
+import { buildReport, type AccountData } from "../../../lib/analysis/report";
 import CompanyDetails from "./CompanyDetails";
 import LookThrough from "./LookThrough";
 

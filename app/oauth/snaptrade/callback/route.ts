@@ -2,9 +2,9 @@
 // We check state, exchange the code on the server, verify the id_token, and
 // store the tokens in an encrypted cookie.
 import { NextResponse, type NextRequest } from "next/server";
-import { redirectUri } from "@/lib/config";
-import { tokenRequest, verifyIdToken } from "@/lib/oauth";
-import { saveSession, takeLoginState } from "@/lib/session";
+import { redirectUri } from "@/lib/snaptrade/config";
+import { tokenRequest, verifyIdToken } from "@/lib/snaptrade/oauth";
+import { saveSession, takeLoginState } from "@/lib/snaptrade/session";
 
 export const dynamic = "force-dynamic";
 

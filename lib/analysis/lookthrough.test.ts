@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
-import type { Fund, FundHolding } from "../data/fund-types";
-import { FUND_DATA_IS_SAMPLE, FUNDS } from "../data/funds";
-import type { Holding } from "./holdings";
-import { hasLargeGap } from "./format";
+import type { Fund, FundHolding } from "../../data/fund-types";
+import { FUND_DATA_IS_SAMPLE, FUNDS } from "../../data/funds";
+import type { Holding } from "../portfolio/holdings";
+import { hasLargeGap } from "../display/format";
 import { lookThrough } from "./lookthrough";
 
 function holding(symbol: string, kind: string, value: number, extra: Partial<Holding> = {}): Holding {

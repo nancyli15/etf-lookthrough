@@ -5,8 +5,8 @@
 //
 // It only accepts signed-in users, so it isn't an open calculator for anyone.
 import { NextResponse, type NextRequest } from "next/server";
-import { buildReport, type AccountData } from "@/lib/report";
-import { getSession } from "@/lib/session";
+import { buildReport, type AccountData } from "@/lib/analysis/report";
+import { getSession } from "@/lib/snaptrade/session";
 
 export const dynamic = "force-dynamic";
 

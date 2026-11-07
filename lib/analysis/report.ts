@@ -1,14 +1,14 @@
 // Prepares everything the look-through screen shows from the /api/raw response.
 // No UI here, so the wording and the failure handling can be tested directly.
-import { FX } from "../data/fx";
-import { toHoldings, toNumber } from "./holdings";
-import { recentActivity, type Activity } from "./activities";
-import { convertCurrency } from "./currency";
-import { hasLargeGap, listOf, percentText } from "./format";
+import { FX } from "../../data/fx";
+import { toHoldings, toNumber } from "../portfolio/holdings";
+import { recentActivity, type Activity } from "../portfolio/activities";
+import { convertCurrency } from "../portfolio/currency";
+import { hasLargeGap, listOf, percentText } from "../display/format";
 import { lookThrough, type CompanyExposure, type LookThroughResult } from "./lookthrough";
-import { shortName } from "./names";
+import { shortName } from "../display/names";
 
-// Re-exported so existing imports keep working. Browser code imports lib/format.ts.
+// Re-exported so existing imports keep working. Browser code imports lib/display/format.ts.
 export { hasLargeGap, percentText };
 
 export type AccountData = {

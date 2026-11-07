@@ -56,6 +56,23 @@ What's inside each ETF comes from the fund providers' holdings files, not from S
 3. Add `https://<your-project>.vercel.app/oauth/snaptrade/callback` as a redirect URI in OAuth Apps.
 4. Redeploy.
 
+## How the code is organized
+
+```text
+app/             pages and API routes (Next.js uses the folder names as URLs)
+  dashboard/     the screen after sign-in: page.tsx and Dashboard.tsx load the data,
+    components/  and the pieces of the screen live here
+lib/
+  snaptrade/     sign-in, encrypted cookies, and calls to SnapTrade's API
+  portfolio/     turns SnapTrade's answers into clean holdings, accounts, trades and history
+  analysis/      the look-through math, and the report the screen shows
+  display/       wording and small helpers for the screen, with no fund data
+data/            fund holdings and exchange rates
+scripts/         builds and downloads the fund data
+```
+
+Each test file sits next to the file it checks.
+
 ## How sign-in works
 
 1. `/login` creates a fresh `state`, `nonce` and PKCE `code_verifier`, stores them in a short-lived encrypted cookie, and redirects to SnapTrade's consent screen.

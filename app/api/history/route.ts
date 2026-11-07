@@ -2,8 +2,8 @@
 // /balanceHistory endpoint. Kept separate from /api/raw on purpose: if the beta
 // fails or changes, only the chart is affected and the rest of the page loads.
 import { NextResponse } from "next/server";
-import type { HistoryResponse } from "@/lib/history";
-import { NotSignedInError, createClient } from "@/lib/snaptrade";
+import type { HistoryResponse } from "@/lib/portfolio/history";
+import { NotSignedInError, createClient } from "@/lib/snaptrade/api";
 
 export const dynamic = "force-dynamic";
 

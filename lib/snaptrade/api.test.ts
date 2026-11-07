@@ -3,7 +3,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { tokenRequest } from "./oauth";
 import { clearSession, getSession, saveSession } from "./session";
-import { NotSignedInError, createClient } from "./snaptrade";
+import { NotSignedInError, createClient } from "./api";
 
 vi.mock("./session", () => ({ getSession: vi.fn(), saveSession: vi.fn(), clearSession: vi.fn() }));
 vi.mock("./oauth", () => ({ tokenRequest: vi.fn() }));

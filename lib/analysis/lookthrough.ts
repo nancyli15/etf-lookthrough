@@ -1,11 +1,11 @@
 // The core math. For each company:
 //   exposure = value held directly + Σ (value of each fund × company's weight in that fund)
 // Pure functions with no network or UI, so the numbers can be tested by hand.
-import type { Fund } from "../data/fund-types";
-import { COMPANY_BY_SYMBOL, FUNDS, FUNDS_WITHOUT_DATA } from "../data/funds";
-import { FX } from "../data/fx";
-import { convertCurrency } from "./currency";
-import type { Holding } from "./holdings";
+import type { Fund } from "../../data/fund-types";
+import { COMPANY_BY_SYMBOL, FUNDS, FUNDS_WITHOUT_DATA } from "../../data/funds";
+import { FX } from "../../data/fx";
+import { convertCurrency } from "../portfolio/currency";
+import type { Holding } from "../portfolio/holdings";
 
 export { convertCurrency };
 

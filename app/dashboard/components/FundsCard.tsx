@@ -2,8 +2,8 @@
 // overlap. How much of a fund we can match to companies is nearly always 99%+, so
 // it's in an ⓘ note per fund instead of a column. The table is the donut's legend:
 // each row has its slice's colour, so the amounts aren't listed twice.
-import { formatMoney, percentText } from "../../lib/format";
-import type { LookThroughResult } from "../../lib/lookthrough";
+import { formatMoney, percentText } from "../../../lib/display/format";
+import type { LookThroughResult } from "../../../lib/analysis/lookthrough";
 import Donut, { type DonutSlice } from "./Donut";
 import InfoPopover from "./InfoPopover";
 import OverlapList from "./OverlapList";
