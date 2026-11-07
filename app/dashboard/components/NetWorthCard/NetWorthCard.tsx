@@ -1,14 +1,10 @@
 // The summary card: total net worth, split into stocks you bought, funds, crypto
 // and cash, with a note when the total is incomplete or differs from SnapTrade's.
 import { FX } from "@/data/fx";
-import { formatDate } from "@/lib/display/format/format";
+import { formatDate, sumOf } from "@/lib/display/format/format";
 import type { Report } from "@/lib/analysis/report/report";
 import InfoPopover from "../InfoPopover/InfoPopover";
 import "./NetWorthCard.css";
-
-function sumOf<T>(rows: T[], valueOf: (row: T) => number): number {
-  return rows.reduce((sum, row) => sum + valueOf(row), 0);
-}
 
 type Props = {
   report: Report;

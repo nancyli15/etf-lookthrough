@@ -8,7 +8,7 @@
 // shows its companies in the table above it. One page scroll; on a phone, the top pair stacks.
 import { useState } from "react";
 import { FX } from "@/data/fx";
-import { formatDate, formatMoney, hasLargeGap, percentText } from "@/lib/display/format/format";
+import { formatDate, formatMoney, hasLargeGap, percentText, sumOf } from "@/lib/display/format/format";
 import type { HistoryLoad } from "@/lib/portfolio/history/history";
 import { fundView, type CompanyView } from "@/lib/display/paging/paging";
 import type { Report } from "@/lib/analysis/report/report";
@@ -42,7 +42,7 @@ export default function LookThrough({ report, history = { state: "loading" }, in
     document.getElementById("companies")?.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
-  const unopened = result.insideUnopenedFunds.reduce((sum, fund) => sum + fund.value, 0);
+  const unopened = sumOf(result.insideUnopenedFunds, (fund) => fund.value);
   const shareOf = (value: number) => percentText(result.total ? value / result.total : 0);
   const fundDates = [...new Set(result.funds.map((fund) => fund.asOf))].map(formatDate).join(", ");
 

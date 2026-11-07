@@ -5,6 +5,7 @@
 //     or it hasn't synced any accounts yet
 //   - SnapTrade sent accounts in a shape this app doesn't read
 // /api/raw calls /authorizations only in this case, to tell them apart.
+import { listOf } from "../../display/format/format";
 
 export type CallResult = { status: number; ok: boolean; data: unknown };
 
@@ -18,9 +19,9 @@ function connectionsOf(data: unknown): Connection[] {
   }));
 }
 
+// "Wealthsimple and Questrade", each brokerage once.
 function namesOf(connections: Connection[]): string {
-  const names = [...new Set(connections.map((connection) => connection.name))];
-  return names.length < 2 ? names.join("") : `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}`;
+  return listOf([...new Set(connections.map((connection) => connection.name))]);
 }
 
 export function emptyAccountsMessage(accountsRaw: unknown, connectionsCall?: CallResult): string {

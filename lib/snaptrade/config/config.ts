@@ -7,6 +7,8 @@ export function requireEnv(name: string): string {
   return value;
 }
 
+// SnapTrade's sign-in server. Its address is in every id_token it signs (the `iss`
+// claim), and its discovery documents live under it at /.well-known/.
 export const ISSUER = "https://api.snaptrade.com";
 
 // Base URL for SnapTrade's data API. Overridable so we can adjust without code changes.
@@ -17,6 +19,7 @@ export const API_BASE =
 // No `trade` (we never place orders) and no `webhook` (data refreshes on page load).
 export const SCOPES = "openid email read";
 
+// This app's own address, without a trailing slash: http://localhost:3000 or the Vercel URL.
 export function appUrl(): string {
   return requireEnv("APP_URL").replace(/\/$/, "");
 }

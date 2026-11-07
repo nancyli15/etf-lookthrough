@@ -1,12 +1,15 @@
 // Short descriptions of each SnapTrade response, so a Developer view row says
 // what came back without being opened.
+import { activityRowsOf } from "@/lib/portfolio/activities/activities";
 import { positionsOf } from "@/lib/portfolio/holdings/holdings";
 import type { Report } from "@/lib/analysis/report/report";
 
 export const COMPANIES_SHOWN = 10; // The report row shows only the first few: the full list can be thousands.
 
-// A short summary of each response, so the row says what came back without opening it.
-export function summaryOf(name: string, data: unknown): string {
+export type CallName = "positions" | "balances" | "activities" | "history";
+
+// "12 positions", "2 currencies", "365 days, in CAD".
+export function summaryOf(name: CallName, data: unknown): string {
   if (name === "positions") return countOf(positionsOf(data).length, "position");
   if (name === "balances") return countOf(Array.isArray(data) ? data.length : 0, "currency", "currencies");
   if (name === "history") {
@@ -14,11 +17,10 @@ export function summaryOf(name: string, data: unknown): string {
     const days = Array.isArray(body?.history) ? body.history.length : 0;
     return `${countOf(days, "day")}${typeof body?.currency === "string" ? `, in ${body.currency}` : ""}`;
   }
-  // /activities wraps its list as { data: [...] }. Accept a bare list too.
-  const list = Array.isArray(data) ? data : (data as { data?: unknown })?.data;
-  return countOf(Array.isArray(list) ? list.length : 0, "activity", "activities");
+  return countOf(activityRowsOf(data).length, "activity", "activities");
 }
 
+// "1 call", "4 calls", "1,204 companies".
 export function countOf(count: number, singular: string, plural = `${singular}s`): string {
   return `${count.toLocaleString()} ${count === 1 ? singular : plural}`;
 }

@@ -11,9 +11,10 @@ import { shortName } from "../names/names";
 
 type Money = (value: number, currency?: string) => string;
 
-function units(count: number): string {
-  const text = count.toLocaleString(undefined, { maximumFractionDigits: 4 });
-  return `${text} ${count === 1 ? "share" : "shares"}`;
+// "1 share", "8 shares", "0.0692 shares".
+function sharesText(count: number): string {
+  const number = count.toLocaleString(undefined, { maximumFractionDigits: 4 });
+  return `${number} ${count === 1 ? "share" : "shares"}`;
 }
 
 // Small weights need more digits: 0.05% would show as 0.1% with one.
@@ -33,15 +34,15 @@ export function ownershipLabel(company: CompanyExposure): string {
 export function ownershipText(company: CompanyExposure, money: Money): string {
   const name = shortName(company.name);
   if (company.direct > 0 && company.throughFunds > 0) {
-    const extra = company.throughFunds / company.direct;
-    return `You bought ${money(company.direct)} (${units(company.directUnits)}) directly. Your funds add ${money(company.throughFunds)}, ${percentText(extra)} more than your brokerage shows.`;
+    const extraFromFunds = company.throughFunds / company.direct;
+    return `You bought ${money(company.direct)} (${sharesText(company.directUnits)}) directly. Your funds add ${money(company.throughFunds)}, ${percentText(extraFromFunds)} more than your brokerage shows.`;
   }
   if (company.direct > 0) {
-    return `All of it is the ${units(company.directUnits)} you bought. None of the funds we can see hold ${name}.`;
+    return `All of it is the ${sharesText(company.directUnits)} you bought. None of the funds we can see hold ${name}.`;
   }
-  const count = company.viaFunds.length;
-  const from = count === 1 ? company.viaFunds[0] : `${count} funds`;
-  return `You don't own ${name} shares directly, so your brokerage doesn't list it. All of it comes through ${from}.`;
+  const fundCount = company.viaFunds.length;
+  const source = fundCount === 1 ? company.viaFunds[0] : `${fundCount} funds`;
+  return `You don't own ${name} shares directly, so your brokerage doesn't list it. All of it comes through ${source}.`;
 }
 
 // 2. Why do I own it? One row per fund, biggest first. Its weight in the fund is
@@ -64,9 +65,10 @@ export function insideFunds(company: CompanyExposure, funds: FundSummary[]) {
 }
 
 // 3. What if it moves? Every dollar of the company moves with it, direct or in a fund.
+// `move` is a fraction: 0.1 is a 10% rise, -0.1 a 10% fall.
 export function whatIf(company: CompanyExposure, holdingsTotal: number, move: number) {
   const change = company.total * move;
-  return { change, share: holdingsTotal ? change / holdingsTotal : 0 };
+  return { change, shareOfHoldings: holdingsTotal ? change / holdingsTotal : 0 };
 }
 
 // "+CA$181.98" or "−CA$181.98": the sign is the point, so it's always written.
@@ -78,11 +80,11 @@ export function signedMoney(value: number, money: Money): string {
 // The slider runs from −50% to +50%, so a fall reads as a loss, not "up or down".
 export function movesText(company: CompanyExposure, holdingsTotal: number, move: number, money: Money): string {
   if (move === 0) return "No move, no change.";
-  const { change, share } = whatIf(company, holdingsTotal, move);
+  const { change, shareOfHoldings } = whatIf(company, holdingsTotal, move);
   const size = `${Math.round(Math.abs(move) * 100)}%`;
-  const [direction, result] = move > 0 ? ["rise", "gain"] : ["fall", "lose"];
+  const [direction, outcome] = move > 0 ? ["rise", "gain"] : ["fall", "lose"];
   const sign = move > 0 ? "+" : "−";
-  return `For a ${size} ${direction} in ${shortName(company.name)}'s price, your holdings would ${result} about ${money(Math.abs(change))} (${sign}${weightText(Math.abs(share))}).`;
+  return `For a ${size} ${direction} in ${shortName(company.name)}'s price, your holdings would ${outcome} about ${money(Math.abs(change))} (${sign}${weightText(Math.abs(shareOfHoldings))}).`;
 }
 
 // Both parts move together: a stock's price is the same whether you hold it yourself
@@ -96,11 +98,12 @@ export function movesParts(company: CompanyExposure, move: number, money: Money)
 // part inside a fund changes only when you trade the fund, or the fund changes.
 export function controlText(company: CompanyExposure, money: Money): string {
   const funds = company.viaFunds.join(", ");
+  const severalFunds = company.viaFunds.length > 1;
   if (company.direct > 0 && company.throughFunds > 0) {
-    return `You control the ${money(company.direct)} in your own shares. The ${money(company.throughFunds)} inside ${funds} changes only when you buy or sell ${company.viaFunds.length > 1 ? "those funds" : funds}.`;
+    return `You control the ${money(company.direct)} in your own shares. The ${money(company.throughFunds)} inside ${funds} changes only when you buy or sell ${severalFunds ? "those funds" : funds}.`;
   }
   if (company.direct > 0) return "All of it is in shares you hold yourself.";
-  return `It changes only when you buy or sell ${funds}, or when ${company.viaFunds.length > 1 ? "they change" : "it changes"} what ${company.viaFunds.length > 1 ? "they hold" : "it holds"}.`;
+  return `It changes only when you buy or sell ${funds}, or when ${severalFunds ? "they change what they hold" : "it changes what it holds"}.`;
 }
 
 // 5. What have I done with it lately? Always answered, even with nothing to list:
@@ -108,22 +111,22 @@ export function controlText(company: CompanyExposure, money: Money): string {
 export function activityNote(
   company: CompanyExposure,
   activityCount: number,
-  since: string | undefined,
-  notLoaded: string[],
-  date: (iso: string) => string,
+  since: string | undefined, // YYYY-MM-DD: how far back the brokerage's history goes.
+  notLoaded: string[], // Accounts whose activity didn't load.
+  formatDate: (iso: string) => string, // Passed in so tests can use plain dates.
 ): { note?: string; warning?: string } {
   const name = shortName(company.name);
   const warning = notLoaded.length
     ? `Couldn't load activity for ${notLoaded.join(", ")}, so some trades may be missing.`
     : undefined;
   // How far back the brokerage's history goes, from each account's sync_status.
-  const span = since ? `since ${date(since)}` : "in the history SnapTrade has";
+  const span = since ? `since ${formatDate(since)}` : "in the history SnapTrade has";
   // These are only trades you made yourself. A fund's own trades aren't yours, so
   // when the company is also inside your funds, say so instead of leaving it to guess.
   const fundsNote = company.viaFunds.length ? " Trades inside your funds aren't included." : "";
 
   if (activityCount > 0) {
-    const history = since ? `History from ${date(since)}.` : "";
+    const history = since ? `History from ${formatDate(since)}.` : "";
     return { note: `${history}${fundsNote}`.trim() || undefined, warning };
   }
   if (company.direct > 0) return { note: `No ${name} trades or dividends ${span}.${fundsNote}`, warning };
@@ -138,14 +141,14 @@ export function activityText(activity: Activity, money: Money): string {
   const cash = money(activity.amount || activity.units * activity.price, activity.currency);
   switch (activity.kind) {
     case "buy":
-      return `Bought ${units(activity.units)} for ${cash} (${price} each)`;
+      return `Bought ${sharesText(activity.units)} for ${cash} (${price} each)`;
     case "sell":
-      return `Sold ${units(activity.units)} for ${cash} (${price} each)`;
+      return `Sold ${sharesText(activity.units)} for ${cash} (${price} each)`;
     case "dividend":
       return `Dividend of ${money(activity.amount, activity.currency)}`;
     case "reinvested":
-      return `Reinvested a dividend in ${units(activity.units)}`;
+      return `Reinvested a dividend in ${sharesText(activity.units)}`;
     case "stockDividend":
-      return activity.units > 0 ? `Stock dividend of ${units(activity.units)}` : "Stock dividend";
+      return activity.units > 0 ? `Stock dividend of ${sharesText(activity.units)}` : "Stock dividend";
   }
 }

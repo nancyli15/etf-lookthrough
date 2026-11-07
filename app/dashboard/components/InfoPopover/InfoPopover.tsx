@@ -5,30 +5,19 @@
 //
 // Built from a <span> and a <button>, not <details> like the Accounts dropdown: a
 // <details> isn't allowed inside a paragraph, so the browser broke the line before it.
-import { useEffect, useId, useRef, useState, type ReactNode } from "react";
+import { useCallback, useId, useRef, useState, type ReactNode } from "react";
+import { useDismiss } from "../../hooks/useDismiss";
 import "./InfoPopover.css";
 
 export default function InfoPopover({ label, children }: { label: string; children: ReactNode }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLSpanElement>(null);
+  // useId makes an ID unique on the page, so the button can point at its note (aria-controls).
   const noteId = useId();
 
-  // Only listen while it's open, so a page with twenty ⓘs isn't watching every click.
-  useEffect(() => {
-    if (!open) return;
-    function closeOnOutsideTap(event: PointerEvent) {
-      if (!ref.current?.contains(event.target as Node)) setOpen(false);
-    }
-    function closeOnEscape(event: KeyboardEvent) {
-      if (event.key === "Escape") setOpen(false);
-    }
-    document.addEventListener("pointerdown", closeOnOutsideTap);
-    document.addEventListener("keydown", closeOnEscape);
-    return () => {
-      document.removeEventListener("pointerdown", closeOnOutsideTap);
-      document.removeEventListener("keydown", closeOnEscape);
-    };
-  }, [open]);
+  // Listens only while open: a closed ⓘ has nothing to close.
+  const close = useCallback(() => setOpen(false), []);
+  useDismiss(ref, close, open);
 
   return (
     <span

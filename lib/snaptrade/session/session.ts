@@ -25,29 +25,30 @@ export type Session = {
   email?: string; // only kept when SnapTrade says it is verified
 };
 
-const baseOptions = {
+const COOKIE_OPTIONS = {
   httpOnly: true, // JavaScript in the browser can't read it
   secure: process.env.NODE_ENV === "production", // HTTPS-only when deployed
   sameSite: "lax" as const, // sent on the redirect back from SnapTrade
   path: "/",
 };
 
+// cookies() is Next.js's access to this request's cookies. Setting one adds it to the response.
 export async function setLoginState(login: LoginState): Promise<void> {
-  const jar = await cookies();
-  jar.set(LOGIN_COOKIE, seal(login), { ...baseOptions, maxAge: 10 * 60 });
+  const cookieStore = await cookies();
+  cookieStore.set(LOGIN_COOKIE, seal(login), { ...COOKIE_OPTIONS, maxAge: 10 * 60 }); // 10 minutes to finish signing in.
 }
 
 // Reads and deletes the login state so it can only be used once.
 export async function takeLoginState(): Promise<LoginState | null> {
-  const jar = await cookies();
-  const login = unseal<LoginState>(jar.get(LOGIN_COOKIE)?.value);
-  jar.delete(LOGIN_COOKIE);
+  const cookieStore = await cookies();
+  const login = unseal<LoginState>(cookieStore.get(LOGIN_COOKIE)?.value);
+  cookieStore.delete(LOGIN_COOKIE);
   return login;
 }
 
 export async function getSession(): Promise<Session | null> {
-  const jar = await cookies();
-  return unseal<Session>(jar.get(SESSION_COOKIE)?.value);
+  const cookieStore = await cookies();
+  return unseal<Session>(cookieStore.get(SESSION_COOKIE)?.value);
 }
 
 export async function saveSession(session: Session): Promise<void> {
@@ -55,11 +56,11 @@ export async function saveSession(session: Session): Promise<void> {
   if (value.length > MAX_COOKIE_CHARS) {
     throw new Error("Session too large for a cookie; move tokens to a database.");
   }
-  const jar = await cookies();
-  jar.set(SESSION_COOKIE, value, { ...baseOptions, maxAge: 30 * 24 * 60 * 60 });
+  const cookieStore = await cookies();
+  cookieStore.set(SESSION_COOKIE, value, { ...COOKIE_OPTIONS, maxAge: 30 * 24 * 60 * 60 }); // 30 days.
 }
 
 export async function clearSession(): Promise<void> {
-  const jar = await cookies();
-  jar.delete(SESSION_COOKIE);
+  const cookieStore = await cookies();
+  cookieStore.delete(SESSION_COOKIE);
 }

@@ -3,7 +3,8 @@
 // easy to spot. Rows are SnapTrade's raw responses from /api/raw and /api/history.
 // The one exception, "Our calculation", is labelled as ours.
 import type { HistoryLoad } from "@/lib/portfolio/history/history";
-import type { ApiResponse, DashboardData } from "../../Dashboard";
+import type { ApiResult } from "@/lib/snaptrade/api/api";
+import type { DashboardData } from "../../Dashboard";
 import { CallRow, HistoryRow } from "./CallRow";
 import { COMPANIES_SHOWN, countOf, reportSummary, summaryOf } from "./summaries";
 import "./DeveloperView.css";
@@ -11,19 +12,21 @@ import "./DeveloperView.css";
 // SnapTrade's per-account limit, shared by every account-data call (see TRADEOFFS.md).
 const ACCOUNT_LIMIT_PER_MINUTE = 10;
 
+// The calls /api/raw makes for each account, in the order they're shown.
+const ACCOUNT_CALLS: { name: "positions" | "balances" | "activities"; path: string }[] = [
+  { name: "positions", path: "/positions/all" },
+  { name: "balances", path: "/balances" },
+  { name: "activities", path: "/activities" },
+];
+
 export default function DeveloperView({ data, history }: { data: DashboardData; history: HistoryLoad }) {
-  const calls: { name: "positions" | "balances" | "activities"; label: string }[] = [
-    { name: "positions", label: "/positions/all" },
-    { name: "balances", label: "/balances" },
-    { name: "activities", label: "/activities" },
-  ];
-  const accounts = data.accounts.length;
+  const accountCount = data.accounts.length;
   // /api/raw: /accounts, then 3 per account. /api/history: /accounts again, then 1 per account.
   // /api/history only runs when there are accounts (see Dashboard.tsx).
-  const historyCalls = history.state === "loading" || !data.accountsCall.ok || accounts === 0 ? 0 : 1 + accounts;
+  const historyCalls = history.state === "loading" || !data.accountsCall.ok || accountCount === 0 ? 0 : 1 + accountCount;
   const connectionsCalls = data.connectionsCall ? 1 : 0;
-  const totalCalls = 1 + 3 * accounts + historyCalls + connectionsCalls;
-  const perAccount = 3 + (historyCalls ? 1 : 0);
+  const totalCalls = 1 + ACCOUNT_CALLS.length * accountCount + historyCalls + connectionsCalls;
+  const callsPerAccount = ACCOUNT_CALLS.length + (historyCalls ? 1 : 0);
 
   return (
     <details className="developer">
@@ -40,11 +43,11 @@ export default function DeveloperView({ data, history }: { data: DashboardData; 
             share it.
           </span>
         </div>
-        {accounts > 0 ? (
+        {accountCount > 0 ? (
           <p className="small spaced">
             This page made <strong>{countOf(totalCalls, "call")}</strong> to SnapTrade: /accounts{" "}
             {historyCalls ? "twice" : "once"}
-            {connectionsCalls ? ", /authorizations once" : ""}, and {perAccount} per account. Where SnapTrade's
+            {connectionsCalls ? ", /authorizations once" : ""}, and {callsPerAccount} per account. Where SnapTrade's
             per-account limit applies, it's {ACCOUNT_LIMIT_PER_MINUTE} a minute, so refreshing more than twice a minute
             can hit it. Changing which accounts are shown doesn't call SnapTrade again.
           </p>
@@ -103,12 +106,12 @@ export default function DeveloperView({ data, history }: { data: DashboardData; 
             summary="Account details and SnapTrade's total"
             data={accountData.account}
           />
-          {calls.map((call) => {
-            const response: ApiResponse = accountData[call.name];
+          {ACCOUNT_CALLS.map((call) => {
+            const response: ApiResult = accountData[call.name];
             return (
               <CallRow
                 key={call.name}
-                path={call.label}
+                path={call.path}
                 status={response.status}
                 ok={response.ok}
                 summary={summaryOf(call.name, response.data)}

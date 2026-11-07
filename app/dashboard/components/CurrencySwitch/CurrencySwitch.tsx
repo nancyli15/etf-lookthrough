@@ -5,10 +5,7 @@
 import type { ReportCurrency } from "@/lib/analysis/report/report";
 import "./CurrencySwitch.css";
 
-const OPTIONS: { currency: ReportCurrency; label: string }[] = [
-  { currency: "USD", label: "USD" },
-  { currency: "CAD", label: "CAD" },
-];
+const CURRENCIES: ReportCurrency[] = ["USD", "CAD"];
 
 type Props = {
   value: ReportCurrency;
@@ -18,15 +15,16 @@ type Props = {
 export default function CurrencySwitch({ value, onChange }: Props) {
   return (
     <div className="switch" role="group" aria-label="Show amounts in">
-      {OPTIONS.map((option) => (
+      {CURRENCIES.map((currency) => (
         <button
-          key={option.currency}
+          key={currency}
           type="button"
-          className={`switch-option${value === option.currency ? " current" : ""}`}
-          aria-pressed={value === option.currency}
-          onClick={() => value !== option.currency && onChange(option.currency)}
+          className={`switch-option${value === currency ? " current" : ""}`}
+          // aria-pressed tells screen readers which half is on.
+          aria-pressed={value === currency}
+          onClick={() => value !== currency && onChange(currency)}
         >
-          {option.label}
+          {currency}
         </button>
       ))}
     </div>

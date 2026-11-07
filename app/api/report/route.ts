@@ -8,6 +8,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { buildReport, type AccountData } from "@/lib/analysis/report/report";
 import { getSession } from "@/lib/snaptrade/session/session";
 
+// Run on every request, never from a cache: every user's data is different.
 export const dynamic = "force-dynamic";
 
 // Each account sends positions, balances and activities. 50 is far more than a

@@ -4,45 +4,45 @@ import { pageCount, pageNumbers } from "@/lib/display/paging/paging";
 import "./Pager.css";
 
 type Props = {
-  page: number;
-  first: number;
-  last: number;
-  total: number;
+  page: number; // The current page, starting at 1.
+  first: number; // Row number of the first row shown, like 11.
+  last: number; // Row number of the last row shown, like 20.
+  totalRows: number;
   label: string; // Names the table for screen readers, like "Companies inside your funds".
   onPage: (page: number) => void;
 };
 
-export default function Pager({ page, first, last, total, label, onPage }: Props) {
-  const pages = pageCount(total);
+export default function Pager({ page, first, last, totalRows, label, onPage }: Props) {
+  const totalPages = pageCount(totalRows);
   return (
     <nav className="pager" aria-label={`${label}, pages`}>
       <span className="muted small" aria-live="polite">
-        {total === 0 ? "No matches" : `Showing ${first}–${last} of ${total}`}
+        {totalRows === 0 ? "No matches" : `Showing ${first}–${last} of ${totalRows}`}
       </span>
-      {pages > 1 && (
+      {totalPages > 1 && (
         <div className="pager-buttons">
           <button type="button" className="pager-button" onClick={() => onPage(page - 1)} disabled={page === 1}>
             ‹ Prev
           </button>
-          {pageNumbers(page, pages).map((number, index) =>
-            number === "…" ? (
+          {pageNumbers(page, totalPages).map((pageNumber, index) =>
+            pageNumber === "…" ? (
               <span key={`gap-${index}`} className="muted" aria-hidden="true">
                 …
               </span>
             ) : (
               <button
-                key={number}
+                key={pageNumber}
                 type="button"
-                className={`pager-button${number === page ? " current" : ""}`}
-                onClick={() => onPage(number)}
-                aria-current={number === page ? "page" : undefined}
-                aria-label={`Page ${number}`}
+                className={`pager-button${pageNumber === page ? " current" : ""}`}
+                onClick={() => onPage(pageNumber)}
+                aria-current={pageNumber === page ? "page" : undefined}
+                aria-label={`Page ${pageNumber}`}
               >
-                {number}
+                {pageNumber}
               </button>
             ),
           )}
-          <button type="button" className="pager-button" onClick={() => onPage(page + 1)} disabled={page === pages}>
+          <button type="button" className="pager-button" onClick={() => onPage(page + 1)} disabled={page === totalPages}>
             Next ›
           </button>
         </div>

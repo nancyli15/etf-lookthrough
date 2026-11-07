@@ -2,7 +2,7 @@
 // overlap. How much of a fund we can match to companies is nearly always 99%+, so
 // it's in an ⓘ note per fund instead of a column. The table is the donut's legend:
 // each row has its slice's colour, so the amounts aren't listed twice.
-import { formatMoney, percentText } from "@/lib/display/format/format";
+import { formatMoney, percentText, sumOf } from "@/lib/display/format/format";
 import type { LookThroughResult } from "@/lib/analysis/lookthrough/lookthrough";
 import Donut, { type DonutSlice } from "../Donut/Donut";
 import InfoPopover from "../InfoPopover/InfoPopover";
@@ -13,6 +13,7 @@ import "./FundsCard.css";
 // accounts" elsewhere on the page. Four checked colours, then grey for "Other". Red was
 // left out: next to green or pink, colourblind readers couldn't tell them apart.
 const FUND_COLORS = ["#eda100", "#6250d6", "#e87ba4", "#008300"];
+const OTHER_FUNDS_COLOR = "var(--series-neutral)";
 const MAX_SLICES = FUND_COLORS.length;
 
 type Props = {
@@ -23,16 +24,16 @@ type Props = {
 
 export default function FundsCard({ result, money, onFundClick }: Props) {
   if (result.funds.length === 0) return null;
-  const share = (value: number) => percentText(result.total ? value / result.total : 0);
-  const unopened = result.insideUnopenedFunds.reduce((sum, fund) => sum + fund.value, 0);
-  const fundsTotal = result.funds.reduce((sum, fund) => sum + fund.value, 0);
+  const shareOfHoldings = (value: number) => percentText(result.total ? value / result.total : 0);
+  const unopened = sumOf(result.insideUnopenedFunds, (fund) => fund.value);
+  const fundsTotal = sumOf(result.funds, (fund) => fund.value);
 
   // Funds come largest first. Past four, the rest fold into "Other", so no colour is invented.
-  const shown = result.funds.slice(0, MAX_SLICES);
-  const rest = result.funds.slice(MAX_SLICES).reduce((sum, fund) => sum + fund.value, 0);
+  const slicedFunds = result.funds.slice(0, MAX_SLICES);
+  const otherFundsValue = sumOf(result.funds.slice(MAX_SLICES), (fund) => fund.value);
   const slices: DonutSlice[] = [
-    ...shown.map((fund, index) => ({ key: fund.symbol, label: fund.symbol, value: fund.value, color: FUND_COLORS[index] })),
-    ...(rest > 0 ? [{ key: "other", label: "Other funds", value: rest, color: "var(--series-neutral)" }] : []),
+    ...slicedFunds.map((fund, index) => ({ key: fund.symbol, label: fund.symbol, value: fund.value, color: FUND_COLORS[index] })),
+    ...(otherFundsValue > 0 ? [{ key: "other", label: "Other funds", value: otherFundsValue, color: OTHER_FUNDS_COLOR }] : []),
   ];
 
   return (
@@ -49,8 +50,9 @@ export default function FundsCard({ result, money, onFundClick }: Props) {
           </thead>
           <tbody>
             {result.funds.map((fund, index) => {
-              const color = index < MAX_SLICES ? FUND_COLORS[index] : "var(--series-neutral)";
-              const matched = 1 - fund.otherWeight - fund.unopenedWeight;
+              const color = index < MAX_SLICES ? FUND_COLORS[index] : OTHER_FUNDS_COLOR;
+              // The share of the fund we could match to named companies.
+              const matchedWeight = 1 - fund.otherWeight - fund.unopenedWeight;
               return (
                 <tr key={fund.symbol}>
                   <td>
@@ -68,11 +70,11 @@ export default function FundsCard({ result, money, onFundClick }: Props) {
                     <span className="muted">{fund.name}</span>{" "}
                     <InfoPopover label={`About ${fund.symbol}'s contents`}>
                       <span className="info-line">
-                        <strong>{percentText(matched)}</strong> of {fund.symbol} is matched to named companies, all in
+                        <strong>{percentText(matchedWeight)}</strong> of {fund.symbol} is matched to named companies, all in
                         the table below.
                       </span>
                       <span className="info-line muted">
-                        The other {money(fund.value * (1 - matched))} is cash, futures or currency contracts inside the
+                        The other {money(fund.value * (1 - matchedWeight))} is cash, futures or currency contracts inside the
                         fund
                         {fund.unopenedWeight > 0 && ", or funds we can't open yet"}.
                       </span>
@@ -101,7 +103,7 @@ export default function FundsCard({ result, money, onFundClick }: Props) {
             <tr>
               <td>
                 Total in your funds
-                <div className="muted small">{share(fundsTotal)} of your holdings</div>
+                <div className="muted small">{shareOfHoldings(fundsTotal)} of your holdings</div>
               </td>
               <td className="num">{money(fundsTotal)}</td>
               <td className="num">100.0%</td>

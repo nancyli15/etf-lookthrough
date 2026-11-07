@@ -33,6 +33,11 @@ export function toNumber(value: unknown): number | null {
   return typeof numericValue === "number" && Number.isFinite(numericValue) ? numericValue : null;
 }
 
+// Text from outside data: a non-empty string, trimmed, or undefined for anything else.
+export function toText(value: unknown): string | undefined {
+  return typeof value === "string" && value.trim() ? value.trim() : undefined;
+}
+
 // /positions/all returns { results: [...] }. Read defensively: this is outside data.
 export function positionsOf(data: unknown): any[] {
   if (Array.isArray(data)) return data;
@@ -40,9 +45,6 @@ export function positionsOf(data: unknown): any[] {
   return Array.isArray(results) ? results : [];
 }
 
-function stringOrUndefined(value: unknown): string | undefined {
-  return typeof value === "string" && value ? value : undefined;
-}
 
 function notLookedThroughReason(kind: string): string {
   if (kind === "crypto") return "Crypto has no companies inside";
@@ -50,7 +52,8 @@ function notLookedThroughReason(kind: string): string {
 }
 
 export function toHoldings(responses: unknown[]): HoldingsResult {
-  const merged = new Map<string, Holding>();
+  // One entry per security and currency, so the same ETF in two accounts becomes one holding.
+  const holdingsByKey = new Map<string, Holding>();
   const skipped: string[] = [];
 
   for (const response of responses) {
@@ -71,7 +74,7 @@ export function toHoldings(responses: unknown[]): HoldingsResult {
       const key = `${figi ?? symbol}|${currency}`;
       const value = units * price;
 
-      const existing = merged.get(key);
+      const existing = holdingsByKey.get(key);
       if (existing) {
         existing.units += units;
         existing.value += value;
@@ -80,13 +83,13 @@ export function toHoldings(responses: unknown[]): HoldingsResult {
 
       // Lowercased so "ETF" and "etf" aren't treated as different things.
       const kind = String(position.instrument.kind ?? "").toLowerCase();
-      merged.set(key, {
+      holdingsByKey.set(key, {
         symbol,
-        rawSymbol: stringOrUndefined(position.instrument.raw_symbol),
+        rawSymbol: toText(position.instrument.raw_symbol),
         name: position.instrument.description ?? symbol,
         kind,
         figi,
-        exchange: stringOrUndefined(position.instrument.exchange),
+        exchange: toText(position.instrument.exchange),
         units,
         price,
         currency,
@@ -97,5 +100,5 @@ export function toHoldings(responses: unknown[]): HoldingsResult {
     }
   }
 
-  return { holdings: [...merged.values()], skipped };
+  return { holdings: [...holdingsByKey.values()], skipped };
 }
