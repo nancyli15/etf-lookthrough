@@ -22,7 +22,6 @@ Built on [SnapTrade OAuth](https://docs.snaptrade.com/docs/oauth-apps): you sign
   - which part you control
   - your recent trades and dividends
 - **Your funds:** how much of each the app can trace to companies, and how much your funds overlap.
-- **A share image** of your top companies, as percentages only, made in your browser.
 - **An account picker** when you have more than one account: show all of them combined, one brokerage, one account, or any mix. The title says what's shown, such as "Wealthsimple · TFSA".
 - **A Developer view** with every SnapTrade response behind the page, one row per call.
 

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { CompanyExposure } from "./lookthrough";
 import { displayName, shortName } from "./names";
-import { buildReport, headlineFor, shareText } from "./report";
+import { buildReport, headlineFor } from "./report";
 
 function company(name: string, direct: number, viaFunds: string[], percent: number, throughFunds = 0): CompanyExposure {
   return { key: name, symbol: name, name, direct, throughFunds, total: direct + throughFunds, percent, viaFunds, byFund: [], directUnits: 0 };
@@ -232,22 +232,6 @@ describe("buildReport", () => {
 
   it("handles no accounts without crashing", () => {
     expect(buildReport([])).toMatchObject({ headline: undefined, failedAccounts: [], skipped: [] });
-  });
-});
-
-describe("shareText", () => {
-  it("shares percentages only: no dollar amounts or account names", () => {
-    const report = buildReport([
-      { account: { name: "My secret IRA" }, positions: positions([aapl, spy]), balances: { ok: true, data: [{ cash: "999", currency: "USD" }] } },
-    ]);
-    const text = shareText(report.result)!;
-    expect(text).toContain("I looked inside my funds (SPY)");
-    expect(text).toMatch(/1\. Apple: \d+\.\d%/);
-    expect(text).not.toMatch(/\$|500|1,000|999|IRA/);
-  });
-
-  it("has nothing to share without companies", () => {
-    expect(shareText(buildReport([]).result)).toBeUndefined();
   });
 });
 

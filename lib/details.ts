@@ -1,6 +1,6 @@
-// Wording and math for a company's dropdown in the combined table. It answers,
-// in order: is that more than I thought, why is it in each fund, what if it
-// moves, which part do I control, and what have I done with it lately.
+// Wording and math for a company's dropdown in the combined table. It answers
+// three questions, in order: how much do I own, why do I own it (which funds),
+// and why does it matter (what if the price moves). Then your own trades.
 //
 // Facts only, never advice: it says what changes a number, not what to do.
 // No fund data imported, so the browser can use it.
@@ -22,32 +22,45 @@ export function weightText(weight: number): string {
   return `${(weight * 100).toFixed(weight >= 0.1 ? 1 : 2)}%`;
 }
 
-// 1. Is that more than I thought? Brokerages list only the shares you bought.
+// 1. How much do I own? A short label, then one sentence. Brokerages list only
+// the shares you bought, so the sentence says what the funds add.
+export function ownershipLabel(company: CompanyExposure): string {
+  if (company.direct > 0 && company.throughFunds > 0) return "Direct + funds";
+  if (company.direct > 0) return "Direct only";
+  return "Through funds only";
+}
+
 export function ownershipText(company: CompanyExposure, money: Money): string {
   const name = shortName(company.name);
   if (company.direct > 0 && company.throughFunds > 0) {
-    const extra = company.direct ? company.throughFunds / company.direct : 0;
-    return `Your brokerage shows you bought ${money(company.direct)} (${units(company.directUnits)}) directly. Adding your funds, you own ${money(company.total)}, which is ${percentText(extra)} more.`;
+    const extra = company.throughFunds / company.direct;
+    return `You bought ${money(company.direct)} (${units(company.directUnits)}) directly. Your funds add ${money(company.throughFunds)}, ${percentText(extra)} more than your brokerage shows.`;
   }
   if (company.direct > 0) {
-    return `You own ${units(company.directUnits)} directly, worth ${money(company.direct)}. None of the funds we can see hold ${name}.`;
+    return `All of it is the ${units(company.directUnits)} you bought. None of the funds we can see hold ${name}.`;
   }
-  return `You don't own ${name} directly, so your brokerage doesn't list it. All ${money(company.total)} is inside your funds.`;
+  const count = company.viaFunds.length;
+  const from = count === 1 ? company.viaFunds[0] : `${count} funds`;
+  return `You don't own ${name} shares directly, so your brokerage doesn't list it. All of it comes through ${from}.`;
 }
 
-// 2. Why is it in each fund? Its weight there, worked out from the dollars:
-// $137.04 of Tesla in $8,373.75 of SPY is 1.64% of the fund.
+// 2. Why do I own it? One row per fund, biggest first. Its weight in the fund is
+// worked out from the dollars: $137.04 of Tesla in $8,373.75 of SPY is 1.64%.
+// `part` is the fund's share of your whole exposure, which sets the bar's length.
 export function insideFunds(company: CompanyExposure, funds: FundSummary[]) {
-  return company.byFund.map((entry) => {
-    const fund = funds.find((summary) => summary.symbol === entry.symbol);
-    return {
-      symbol: entry.symbol,
-      value: entry.value,
-      weight: fund?.value ? entry.value / fund.value : 0,
-      // FXAIX uses SPY's list, so both show the same weight. Saying so stops that looking like a bug.
-      approximatedBy: fund?.approximatedBy,
-    };
-  });
+  return company.byFund
+    .map((entry) => {
+      const fund = funds.find((summary) => summary.symbol === entry.symbol);
+      return {
+        symbol: entry.symbol,
+        value: entry.value,
+        weight: fund?.value ? entry.value / fund.value : 0,
+        part: company.total ? entry.value / company.total : 0,
+        // FXAIX uses SPY's list, so both show the same weight. Saying so stops that looking like a bug.
+        approximatedBy: fund?.approximatedBy,
+      };
+    })
+    .sort((a, b) => b.value - a.value);
 }
 
 // 3. What if it moves? Every dollar of the company moves with it, direct or in a fund.
@@ -56,18 +69,27 @@ export function whatIf(company: CompanyExposure, holdingsTotal: number, move: nu
   return { change, share: holdingsTotal ? change / holdingsTotal : 0 };
 }
 
-// The slider picks the size of the move, 0% to 100%. A fall and a rise of the same
-// size move the same dollars, so one sentence covers both directions.
-// Both parts move together: a stock's price is the same whether you hold it
-// yourself or through a fund. The sentence says so, and names each part.
+// "+CA$181.98" or "−CA$181.98": the sign is the point, so it's always written.
+export function signedMoney(value: number, money: Money): string {
+  if (value === 0) return money(0);
+  return `${value > 0 ? "+" : "−"}${money(Math.abs(value))}`;
+}
+
+// The slider runs from −50% to +50%, so a fall reads as a loss, not "up or down".
 export function movesText(company: CompanyExposure, holdingsTotal: number, move: number, money: Money): string {
   if (move === 0) return "No move, no change.";
   const { change, share } = whatIf(company, holdingsTotal, move);
-  const parts = [
-    ...(company.direct > 0 ? [`${money(company.direct * move)} on the shares you bought`] : []),
-    ...(company.throughFunds > 0 ? [`${money(company.throughFunds * move)} inside ${company.viaFunds.join(" and ")}`] : []),
-  ];
-  return `Up or down, that's ${parts.join(" and ")}. Together, your holdings move about ${money(change)} (${percentText(share)}).`;
+  const size = `${Math.round(Math.abs(move) * 100)}%`;
+  const [direction, result] = move > 0 ? ["rise", "gain"] : ["fall", "lose"];
+  const sign = move > 0 ? "+" : "−";
+  return `For a ${size} ${direction} in ${shortName(company.name)}'s price, your holdings would ${result} about ${money(Math.abs(change))} (${sign}${weightText(Math.abs(share))}).`;
+}
+
+// Both parts move together: a stock's price is the same whether you hold it yourself
+// or through a fund. When there are two parts, name each so "is this combined?" is answered.
+export function movesParts(company: CompanyExposure, move: number, money: Money): string | undefined {
+  if (move === 0 || company.direct <= 0 || company.throughFunds <= 0) return undefined;
+  return `${signedMoney(company.direct * move, money)} on the shares you bought, ${signedMoney(company.throughFunds * move, money)} inside ${company.viaFunds.join(", ")}.`;
 }
 
 // 4. Which part do I control? Shares you hold change when you trade them. The
@@ -98,19 +120,14 @@ export function activityNote(
   const span = since ? `since ${date(since)}` : "in the history SnapTrade has";
   // These are only trades you made yourself. A fund's own trades aren't yours, so
   // when the company is also inside your funds, say so instead of leaving it to guess.
-  const funds = company.viaFunds.join(" and ");
-  const itself = company.viaFunds.length > 1 ? "buy and sell inside themselves" : "buys and sells inside itself";
-  const fundsNote = company.viaFunds.length ? ` What ${funds} ${itself} isn't shown.` : "";
+  const fundsNote = company.viaFunds.length ? " Trades inside your funds aren't included." : "";
 
   if (activityCount > 0) {
     const history = since ? `History from ${date(since)}.` : "";
     return { note: `${history}${fundsNote}`.trim() || undefined, warning };
   }
-  if (company.direct > 0) {
-    const where = since ? `, the earliest date SnapTrade has for your accounts` : "";
-    return { note: `No trades or dividends for ${name} ${span}${where}.${fundsNote}`, warning };
-  }
-  return { note: `You haven't traded ${name} directly ${span}.${fundsNote}`, warning };
+  if (company.direct > 0) return { note: `No ${name} trades or dividends ${span}.${fundsNote}`, warning };
+  return { note: `No direct ${name} trades ${span}.${fundsNote}`, warning };
 }
 
 // What have I done with it lately? From /activities.

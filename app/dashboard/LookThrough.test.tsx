@@ -49,8 +49,7 @@ describe("LookThrough screen", () => {
     expect(html).toContain("Bought directly");
     expect(html).toContain("Through funds");
     expect(html).toContain("Account value");
-    expect(html).toContain("Share my top companies");
-    expect(html).toContain("Copy image");
+    expect(html).not.toContain("Share my top companies"); // Removed: the page is the point, not a share image.
     // The old chart, breakdown card and separate tables are gone.
     expect(html).not.toContain("Your biggest companies"); // An old card, and a top-5 chart that repeated this table.
     expect(html).not.toContain("<h2>Companies inside your funds</h2>");
@@ -249,10 +248,12 @@ describe("company dropdown", () => {
     />,
   );
 
-  it("answers all five: more than shown, inside each fund, what if, which part you control, recent", () => {
-    expect(html).toContain("Your brokerage shows you bought $500.00 (1 share) directly");
-    expect(html).toContain("Inside SPY:");
-    expect(html).toContain("your holdings move about");
+  it("answers in order: how much you own, which funds it comes from, what if it moves, your trades", () => {
+    expect(html).toContain("Direct + funds");
+    expect(html).toContain("You bought $500.00 (1 share) directly");
+    expect(html).toContain("comes from</p>"); // "Where your Apple comes from"
+    expect(html).toContain("of fund");
+    expect(html).toContain("your holdings would gain about");
     expect(html).toContain("You control the $500.00 in your own shares");
     expect(html).toContain("Sold 5 shares for $902.50 ($180.50 each)");
   });
@@ -278,18 +279,18 @@ describe("company dropdown", () => {
         money={(value) => `$${value.toFixed(2)}`}
       />,
     );
-    expect(markup).toContain("Your own trades in");
-    expect(markup).toContain("directly since");
+    expect(markup).toContain("Your direct trades");
+    expect(markup).toContain("trades since");
     expect(markup).toContain("2026");
   });
 
-  it("has a slider for the size of the move, from 0% to 100%, starting at 10%", () => {
+  it("has a slider from −50% to +50%, starting at +10%", () => {
     expect(html).toContain('type="range"');
-    expect(html).toContain('min="0"');
-    expect(html).toContain('max="100"');
+    expect(html).toContain('min="-50"');
+    expect(html).toContain('max="50"');
     expect(html).toContain('value="10"');
-    expect(html).toContain("on the shares you bought and");
-    expect(html).toContain("Together, your holdings move about");
+    expect(html).toContain("on the shares you bought,");
+    expect(html).toContain("An estimate.");
   });
 });
 

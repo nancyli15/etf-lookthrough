@@ -163,7 +163,7 @@ export default function Dashboard({ email }: { email?: string }) {
           )}
           <AccountPicker groups={groups} selected={chosen} onChange={(next) => recalculate(next, currency)} money={moneyIn} />
           <form action="/api/disconnect" method="post">
-            <button className="button secondary" type="submit">Disconnect</button>
+            <button className="button" type="submit">Disconnect</button>
           </form>
         </div>
       </div>
