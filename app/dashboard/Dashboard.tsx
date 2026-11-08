@@ -9,7 +9,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { groupAccounts, includesText, selectionTitle } from "@/lib/portfolio/accounts/accounts";
 import { formatMoney } from "@/lib/display/format/format";
-import { emptyAccountsMessage } from "@/lib/portfolio/connections/connections";
+import { disabledConnectionsMessage, emptyAccountsMessage } from "@/lib/portfolio/connections/connections";
 import type { HistoryLoad } from "@/lib/portfolio/history/history";
 import type { Report, ReportCurrency } from "@/lib/analysis/report/report";
 import type { ApiResult } from "@/lib/snaptrade/api/api";
@@ -91,6 +91,9 @@ export default function Dashboard({ email }: { email?: string }) {
   const showingAll = selectedIds.size === allIds.length;
   // Only once accounts have loaded: before that, there are none to choose, which isn't the same as unticking them all.
   const noneChosen = allIds.length > 0 && selectedIds.size === 0;
+  // Only when some accounts loaded: with none, "No accounts yet" already explains it.
+  const disabledMessage =
+    dashboardData && dashboardData.accounts.length > 0 ? disabledConnectionsMessage(dashboardData.connectionsCall) : undefined;
   const isDefault = showingAll && pickedCurrency === null;
 
   // A different mix of accounts, or a different currency: send just those accounts
@@ -194,6 +197,9 @@ export default function Dashboard({ email }: { email?: string }) {
           <p className="muted">Pick one or more accounts above to see what you own.</p>
         </div>
       )}
+      {/* Page-wide, not per account picked: a broken connection is worth knowing about
+          whichever accounts are shown. */}
+      {disabledMessage && <div className="card error">{disabledMessage}</div>}
       {report && dashboardData && dashboardData.accounts.length > 0 && (
         <LookThrough
           report={report}

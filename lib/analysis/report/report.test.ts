@@ -185,12 +185,21 @@ describe("buildReport", () => {
     expect(r.skipped).toEqual(["AAPL"]);
   });
 
-  it("uses the oldest holdings date across accounts", () => {
+  it("uses the oldest holdings sync across accounts, from sync_status", () => {
+    const synced = (time?: string) => ({ sync_status: { holdings: { last_successful_sync: time } } });
     const r = buildReport([
-      { positions: positions([aapl], "2026-11-03T12:00:00Z") },
-      { positions: positions([spy], "2026-11-01T12:00:00Z") },
+      { account: synced("2026-11-07T18:00:15.117025+00:00"), positions: positions([aapl], "2026-11-08T03:54:43Z") },
+      { account: synced("2026-11-06T09:00:00+00:00"), positions: positions([spy], "2026-11-08T03:54:43Z") },
     ]);
-    expect(r.holdingsAsOf).toBe("2026-11-01T12:00:00Z");
+    // Not data_freshness.as_of: that's when SnapTrade answered, not when it synced.
+    expect(r.holdingsSyncedAt).toBe("2026-11-06T09:00:00+00:00");
+
+    // One account without a time means no time we can promise for the page.
+    const oneMissing = buildReport([
+      { account: synced("2026-11-07T18:00:15Z"), positions: positions([aapl]) },
+      { account: synced(), positions: positions([spy]) },
+    ]);
+    expect(oneMissing.holdingsSyncedAt).toBeUndefined();
   });
 
   it("adds cash across accounts, converting to the report's currency", () => {

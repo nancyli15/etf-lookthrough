@@ -24,6 +24,8 @@ The parts of the API the app depends on, and what happens if they change. SnapTr
 | Break the line after more than 5 days without data | Weekends and holidays are normal, but a straight line across weeks would hide missing data | — |
 | Label the chart "Account value", not returns | Deposits and withdrawals move the line too, so a rise isn't a return | Calculate time-weighted returns from activities |
 | Convert history in other currencies at today's rate | We have one dated rate, not daily history | Daily exchange rates |
+| "Holdings synced 10 hours ago" under net worth, from the oldest `sync_status.holdings.last_successful_sync` | SnapTrade syncs brokerages on a schedule, not live, and this was only in the small print. Not `/positions/all`'s `data_freshness.as_of`: it was the moment SnapTrade answered, 10 hours after the last sync, so it always said "just now". The oldest account is honest for the whole page, and if any account has no time, none is shown | The "ago" doesn't tick while the page stays open. Two endpoints are combined, so `/accounts` and the positions could come from different syncs |
+| A red card names any disabled connection, even when other accounts load | `/authorizations` marks a connection `disabled` when its brokerage login stops working. Before, this was only explained when it left no accounts, so with two brokerages and one broken the page looked normal with stale numbers. Says "may be out of date", not "missing", because we haven't seen what `/accounts` returns for a disabled connection | Untested against a real disabled connection: only unit tests cover it. It's shown page-wide, even when the account picker hides that brokerage's accounts |
 
 ## Sign-in and security
 
@@ -125,6 +127,7 @@ The parts of the API the app depends on, and what happens if they change. SnapTr
 | One light theme, styled like SnapTrade's dashboard, instead of following the system's dark mode | It feels at home next to SnapTrade's own screens, and one theme is half the colors to check | Add a dark theme back, with its own checked chart colors |
 | Under the headline, two figures about the biggest company: its total, and how much of it comes through funds. The sentence says "you own 50% more of it than your shares alone" | A top-5 chart was tried, but it repeated the first rows of the company table right below it. The summary says what look-through found; the table shows why | Let the user pick the company |
 | The whole company row opens its details, not only the name | A bigger target. The name stays a button, so the keyboard and screen readers still work | — |
+| Exact sync time shown beside "10 hours ago", not in a hover tooltip | A `title` tooltip has no visible hint, takes a second to appear, and never appears on a phone. Testing found nobody knew it was there | One more bit of grey text under net worth |
 
 ## Tooling
 

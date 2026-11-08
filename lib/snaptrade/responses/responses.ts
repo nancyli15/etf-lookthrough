@@ -15,7 +15,10 @@ export type SnapTradeAccount = {
   institution_name?: unknown;
   brokerage_authorization?: unknown; // The ID of the connection it belongs to.
   balance?: { total?: { amount?: unknown; currency?: unknown } }; // SnapTrade's own total for the account.
-  sync_status?: { transactions?: { first_transaction_date?: unknown } }; // How far back activity goes.
+  sync_status?: {
+    holdings?: { last_successful_sync?: unknown }; // When SnapTrade last read holdings from the brokerage.
+    transactions?: { first_transaction_date?: unknown }; // How far back activity goes.
+  };
 };
 
 // One item from /accounts/{id}/positions/all (inside its { results: [...] }).

@@ -27,7 +27,7 @@ export type Report = {
   headline?: Headline;
   skipped: string[]; // Positions we couldn't value.
   failedAccounts: string[]; // Accounts whose positions didn't load, so the totals are short.
-  holdingsAsOf?: string;
+  holdingsSyncedAt?: string; // The oldest account's last holdings sync, from /accounts.
   cash: number; // In the report's currency.
   cashNotLoaded: string[]; // Accounts whose balances didn't load, so net worth is short.
   cashUnconverted: string[]; // Currencies of cash we have no exchange rate for.
@@ -79,12 +79,16 @@ function activitySince(accounts: AccountData[]): string | undefined {
   return starts.map((date) => date.slice(0, 10)).sort().at(-1);
 }
 
-// With several accounts, the oldest date is the honest one for the whole page.
-function oldestAsOf(responses: unknown[]): string | undefined {
-  const dates = responses
-    .map((response) => (response as { data_freshness?: { as_of?: unknown } })?.data_freshness?.as_of)
-    .filter((date): date is string => typeof date === "string" && !Number.isNaN(Date.parse(date)));
-  return dates.sort((earlier, later) => Date.parse(earlier) - Date.parse(later))[0];
+// When SnapTrade last synced holdings from the brokerage. Not the positions
+// response's data_freshness.as_of: in testing that was the moment SnapTrade
+// answered, about 10 hours after the last sync. With several accounts, the oldest
+// sync is the honest one for the page. If any account doesn't say, we can't promise one.
+function holdingsSyncedAt(accounts: AccountData[]): string | undefined {
+  const times = accounts.map((accountData) => accountData.account?.sync_status?.holdings?.last_successful_sync);
+  if (times.length === 0 || !times.every((time): time is string => typeof time === "string" && !Number.isNaN(Date.parse(time)))) {
+    return undefined;
+  }
+  return times.sort((earlier, later) => Date.parse(earlier) - Date.parse(later))[0];
 }
 
 // /balances returns one row per currency: [{ currency: { code }, cash }].
@@ -181,7 +185,7 @@ export function buildReport(accounts: AccountData[], options: { currency?: Repor
     headline: headlineFor(result.companies),
     skipped,
     failedAccounts,
-    holdingsAsOf: oldestAsOf(positionResponses),
+    holdingsSyncedAt: holdingsSyncedAt(accounts),
     cash,
     cashNotLoaded,
     cashUnconverted,

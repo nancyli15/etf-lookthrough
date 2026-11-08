@@ -1,5 +1,22 @@
 import { describe, expect, it } from "vitest";
-import { formatMoney, percentText } from "./format";
+import { formatMoney, percentText, syncedText } from "./format";
+
+describe("syncedText", () => {
+  const now = new Date("2026-11-07T15:00:00Z");
+
+  it("says how long ago, in the biggest whole unit", () => {
+    expect(syncedText("2026-11-07T14:59:30Z", now)).toBe("Holdings synced just now");
+    expect(syncedText("2026-11-07T14:59:00Z", now)).toBe("Holdings synced 1 minute ago");
+    expect(syncedText("2026-11-07T14:20:00Z", now)).toBe("Holdings synced 40 minutes ago");
+    expect(syncedText("2026-11-07T12:00:00Z", now)).toBe("Holdings synced 3 hours ago");
+    expect(syncedText("2026-11-05T15:00:00Z", now)).toBe("Holdings synced 2 days ago");
+  });
+
+  it("gives the date, not a made-up time, when there's no time or it's in the future", () => {
+    expect(syncedText("2026-11-04", now)).toMatch(/^Holdings as of /);
+    expect(syncedText("2026-11-07T16:00:00Z", now)).toMatch(/^Holdings as of /);
+  });
+});
 
 describe("formatMoney", () => {
   it("always says which dollar it is, on any computer", () => {

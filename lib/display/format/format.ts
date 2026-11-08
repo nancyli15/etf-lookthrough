@@ -59,6 +59,32 @@ export function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString(undefined, { dateStyle: "medium", timeZone: "UTC" });
 }
 
+// "Holdings synced 3 hours ago". SnapTrade syncs brokerages on a schedule, not live,
+// so the page says how old its numbers are. `now` is a parameter so tests can fix it.
+// A date with no time ("2026-11-04") gets "as of Nov 4, 2026": "3 hours ago" would
+// be made up. So does a time in the future, which only a clock difference can cause.
+export function syncedText(iso: string, now: Date = new Date()): string {
+  const hasTime = iso.includes("T");
+  const minutes = Math.floor((now.getTime() - Date.parse(iso)) / 60_000);
+  if (!hasTime || Number.isNaN(minutes) || minutes < 0) return `Holdings as of ${formatDate(iso)}`;
+  if (minutes < 1) return "Holdings synced just now";
+  if (minutes < 60) return `Holdings synced ${plural(minutes, "minute")} ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `Holdings synced ${plural(hours, "hour")} ago`;
+  return `Holdings synced ${plural(Math.floor(hours / 24), "day")} ago`;
+}
+
+// "Nov 7, 2026, 1:00 PM", in the viewer's own time zone. Shown next to "10 hours
+// ago" so the exact time is on screen, not hidden in a tooltip phones can't open.
+export function formatDateTime(iso: string): string {
+  return new Date(iso).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" });
+}
+
+// "1 hour", "3 hours".
+function plural(count: number, unit: string): string {
+  return `${count} ${unit}${count === 1 ? "" : "s"}`;
+}
+
 // "Nov 4", for dates in a list or on a chart where the year is clear.
 export function formatDayMonth(iso: string): string {
   return new Date(iso).toLocaleDateString(undefined, { month: "short", day: "numeric", timeZone: "UTC" });
