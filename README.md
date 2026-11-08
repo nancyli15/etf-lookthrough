@@ -49,6 +49,24 @@ What's inside each ETF comes from the fund providers' holdings files, not from S
 - **On Vercel,** the build downloads the real file from a private repo, using a read-only token in `FUND_DATA_TOKEN`. If the download fails, the build fails, so the live site never shows sample data.
 - **To refresh it,** download each fund's holdings file by hand, run `python3 scripts/build_funds.py <folder>`, and upload the new `data/fund-data.ts` to the private repo.
 
+### Testing a fund the app can't open
+
+SnapTrade's Sandbox holdings are fixed, so no Sandbox account holds a fund the app doesn't recognise. To see that case with real API responses, hide a fund the Sandbox does hold, locally only:
+
+1. Commit or stash your work first.
+2. In `data/funds.ts`, after `FUNDS`, add `delete FUNDS.SPY; delete FUNDS.FXAIX;`.
+3. Run `npm run dev` (restart it if it's already running) and sign in with the Sandbox account that holds SPY (Individual) and FXAIX (IRA).
+4. Undo with `git checkout data/funds.ts`, and check `git status` is clean. Never commit the edit.
+
+Checked on 2026-11-08 with Individual and IRA ticked:
+
+| Where | Expected |
+|---|---|
+| Net worth card | "Funds we can't look inside yet: US$30,698.35" (SPY $8,373.75 + FXAIX $22,324.60). "Crypto and other" stays US$28,555.00, crypto only |
+| Under the headline | "45.1% of your holdings is in funds we can't open yet (SPY and FXAIX), so company totals are likely understated." 30,698.35 ÷ 68,125.85 holdings |
+| Company table | Only the 5 stocks bought directly, 13.0% of holdings |
+| An account with no unknown funds (Apple and Microsoft only) | No new row, no warning |
+
 ## Deploy (Vercel)
 
 1. Import the GitHub repo in Vercel.
