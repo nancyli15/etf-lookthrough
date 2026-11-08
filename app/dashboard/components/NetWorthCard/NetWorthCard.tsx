@@ -49,18 +49,6 @@ export default function NetWorthCard({ report, money, title, includes }: Props) 
       <h2>{title ?? "Your summary"}</h2>
       <p className="muted small">Total net worth</p>
       <p className="net-worth-value">{money(netWorth)}</p>
-      {/* Right under the number it describes: SnapTrade syncs on a schedule, so this
-          says how old the number is. <time> marks it as a date for screen readers. */}
-      {holdingsSyncedAt && (
-        <p className="muted small">
-          <time dateTime={holdingsSyncedAt}>
-            {syncedText(holdingsSyncedAt)}
-            {/* "as of" already gives the date; "ago" gets the exact time beside it. */}
-            {syncedText(holdingsSyncedAt).includes(" ago") && <> ({formatDateTime(holdingsSyncedAt)})</>}
-          </time>
-          .
-        </p>
-      )}
       <p className="muted small">
         {includes ?? "Across your connected brokerage accounts only."}
         {/* Mixing a USD and a CAD account converts one into the other. Said up here,
@@ -134,6 +122,18 @@ export default function NetWorthCard({ report, money, title, includes }: Props) 
           </tr>
         </tbody>
       </table>
+      {/* Under the breakdown, as a footnote for the whole card: SnapTrade syncs on a
+          schedule, so this says how old the numbers are. <time> marks it as a date for screen readers. */}
+      {holdingsSyncedAt && (
+        <p className="muted small spaced">
+          <time dateTime={holdingsSyncedAt}>
+            {syncedText(holdingsSyncedAt)}
+            {/* "as of" already gives the date; "ago" gets the exact time beside it. */}
+            {syncedText(holdingsSyncedAt).includes(" ago") && <> ({formatDateTime(holdingsSyncedAt)})</>}
+          </time>
+          .
+        </p>
+      )}
       {(failedAccounts.length > 0 ||
         cashNotLoaded.length > 0 ||
         cashUnconverted.length > 0 ||
