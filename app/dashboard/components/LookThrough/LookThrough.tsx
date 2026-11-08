@@ -8,7 +8,7 @@
 // shows its companies in the table above it. One page scroll; on a phone, the top pair stacks.
 import { useState } from "react";
 import { FX } from "@/data/fx";
-import { formatDate, formatMoney, muchIsInUnopenedFunds, percentText, sumOf } from "@/lib/display/format/format";
+import { formatDate, formatMoney, listOf, muchIsInUnopenedFunds, percentText, unopenedFunds } from "@/lib/display/format/format";
 import type { HistoryLoad } from "@/lib/portfolio/history/history";
 import { fundView, type CompanyView } from "@/lib/display/paging/paging";
 import type { Report } from "@/lib/analysis/report/report";
@@ -42,7 +42,8 @@ export default function LookThrough({ report, history = { state: "loading" }, in
     document.getElementById("companies")?.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
-  const unopened = sumOf(result.insideUnopenedFunds, (fund) => fund.value);
+  // Funds you hold and funds inside them that we have no holdings file for.
+  const unopened = unopenedFunds(result);
   const shareOf = (value: number) => percentText(result.total ? value / result.total : 0);
   const fundDates = [...new Set(result.funds.map((fund) => fund.asOf))].map(formatDate).join(", ");
 
@@ -76,8 +77,8 @@ export default function LookThrough({ report, history = { state: "loading" }, in
         <BiggestCompany company={result.companies[0]} money={money} />
         {muchIsInUnopenedFunds(result) && (
           <p className="error">
-            {shareOf(unopened)} of your portfolio sits inside funds we can't open yet (
-            {result.insideUnopenedFunds.map((fund) => fund.symbol).join(", ")}), so company totals are likely understated.
+            {shareOf(unopened.value)} of your holdings is in funds we can't open yet ({listOf(unopened.symbols)}), so
+            company totals are likely understated.
           </p>
         )}
       </div>

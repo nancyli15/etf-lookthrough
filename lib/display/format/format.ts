@@ -30,11 +30,17 @@ export function formatMoney(value: number, currency: string, options: MoneyOptio
 // total could be noticeably understated, so the screen says so up front.
 const UNOPENED_WARNING_ABOVE = 0.05;
 
+// Every fund we can't open, in one list: ones you hold yourself (like VFV) and ones
+// inside your funds (like IEFA inside XEF). Both hide companies the same way.
+export function unopenedFunds(result: LookThroughResult): { symbols: string[]; value: number } {
+  const all = [...fundsWeCantOpen(result), ...result.insideUnopenedFunds];
+  return { symbols: [...new Set(all.map((fund) => fund.symbol))], value: sumOf(all, (fund) => fund.value) };
+}
+
 // True when enough of the portfolio sits in funds we can't open that company totals
 // are noticeably understated.
 export function muchIsInUnopenedFunds(result: LookThroughResult): boolean {
-  const unopened = sumOf(result.insideUnopenedFunds, (fund) => fund.value);
-  return result.total > 0 && unopened / result.total > UNOPENED_WARNING_ABOVE;
+  return result.total > 0 && unopenedFunds(result).value / result.total > UNOPENED_WARNING_ABOVE;
 }
 
 // Funds you hold that we have no holdings file for, like VFV. They're in the total

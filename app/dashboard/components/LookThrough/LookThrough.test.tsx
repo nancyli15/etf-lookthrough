@@ -84,6 +84,13 @@ describe("LookThrough screen", () => {
     expect(html).not.toContain("This total is incomplete");
   });
 
+  it("warns under the headline when much of your money is in a fund we can't open", () => {
+    const html = render([ok([position("AAPL", "stock", 400), position("ZZZZ", "etf", 600)])]);
+    // ZZZZ is $600 of $1,000 in holdings.
+    expect(html).toMatch(/60\.0% of your holdings is in funds we can(&#x27;|')t open yet \(ZZZZ\)/);
+    expect(html).toContain("likely understated");
+  });
+
   it("shows a money market fund inside cash, and splits crypto from funds we can't open", () => {
     const html = render([
       {
