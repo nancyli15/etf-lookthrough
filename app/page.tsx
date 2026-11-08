@@ -36,11 +36,16 @@ export default async function Home({
       <div className="card">
         <h2>Connect your accounts</h2>
         <p className="muted">
-          Read-only: this app can view your holdings but can never place trades. You can disconnect
-          anytime.
+          Read-only: this app reads your holdings, balances and activity, and can never place
+          trades. You can disconnect anytime.
         </p>
         <a className="button" href="/login">Sign in with SnapTrade</a>
       </div>
+
+      <p className="muted small">
+        Built on SnapTrade's read-only API. After you sign in, the Developer view at the bottom of
+        the page shows every SnapTrade call behind it, and what the app made of each one.
+      </p>
     </>
   );
 }

@@ -1,7 +1,7 @@
 // The summary card: total net worth, split into stocks you bought, funds, crypto
 // and cash, with a note when the total is incomplete or differs from SnapTrade's.
 import { FX } from "@/data/fx";
-import { formatDate, sumOf } from "@/lib/display/format/format";
+import { formatDate, formatDateTime, listOf, sumOf, syncedText } from "@/lib/display/format/format";
 import type { Report } from "@/lib/analysis/report/report";
 import InfoPopover from "../InfoPopover/InfoPopover";
 import "./NetWorthCard.css";
@@ -14,8 +14,19 @@ type Props = {
 };
 
 export default function NetWorthCard({ report, money, title, includes }: Props) {
-  const { result, skipped, failedAccounts, cash, cashNotLoaded, cashUnconverted, netWorth, brokerageTotal, differsFromBrokerage } =
-    report;
+  const {
+    result,
+    skipped,
+    failedAccounts,
+    cash,
+    cashNotLoaded,
+    cashUnconverted,
+    netWorth,
+    brokerageTotal,
+    differsFromBrokerage,
+    holdingsSyncedAt,
+    holdingsNotShared,
+  } = report;
 
   const directTotal = sumOf(result.directHoldings, (holding) => holding.value);
   const fundsTotal = sumOf(result.funds, (fund) => fund.value);
@@ -24,6 +35,11 @@ export default function NetWorthCard({ report, money, title, includes }: Props) 
   const unopened = sumOf(result.insideUnopenedFunds, (fund) => fund.value);
   // The part of your funds that isn't companies: cash, futures and currency lines, plus funds we can't open.
   const cashInsideFunds = result.nonCompanyInFunds + unopened;
+  // Accounts whose brokerage keeps holdings private: counted at SnapTrade's total.
+  const notShared = holdingsNotShared.filter((account) => account.value !== null);
+  const notSharedTotal = sumOf(notShared, (account) => account.value ?? 0);
+  const notSharedNames = listOf(notShared.map((account) => account.name));
+  const noTotalNames = listOf(holdingsNotShared.filter((account) => account.value === null).map((account) => account.name));
   const cashEquivalentsText = result.cashEquivalents
     .map((holding) => `${money(holding.value)} in ${holding.symbol}`)
     .join(", ");
@@ -77,6 +93,19 @@ export default function NetWorthCard({ report, money, title, includes }: Props) 
               <td className="num">{money(notLookedTotal)}</td>
             </tr>
           )}
+          {notShared.length > 0 && (
+            <tr>
+              <td>
+                Accounts that don't share holdings{" "}
+                <InfoPopover label="About accounts that don't share holdings">
+                  {notSharedNames} {notShared.length === 1 ? "doesn't" : "don't"} share {notShared.length === 1 ? "its" : "their"}{" "}
+                  holdings with SnapTrade, so this uses SnapTrade's total value. It's in your net worth, but not in
+                  the companies below, because we can't see what's inside.
+                </InfoPopover>
+              </td>
+              <td className="num">{money(notSharedTotal)}</td>
+            </tr>
+          )}
           <tr>
             <td>
               Cash
@@ -93,11 +122,24 @@ export default function NetWorthCard({ report, money, title, includes }: Props) 
           </tr>
         </tbody>
       </table>
+      {/* Under the breakdown, as a footnote for the whole card: SnapTrade syncs on a
+          schedule, so this says how old the numbers are. <time> marks it as a date for screen readers. */}
+      {holdingsSyncedAt && (
+        <p className="muted small spaced">
+          <time dateTime={holdingsSyncedAt}>
+            {syncedText(holdingsSyncedAt)}
+            {/* "as of" already gives the date; "ago" gets the exact time beside it. */}
+            {syncedText(holdingsSyncedAt).includes(" ago") && <> ({formatDateTime(holdingsSyncedAt)})</>}
+          </time>
+          .
+        </p>
+      )}
       {(failedAccounts.length > 0 ||
         cashNotLoaded.length > 0 ||
         cashUnconverted.length > 0 ||
         result.unconverted.length > 0 ||
-        skipped.length > 0) && (
+        skipped.length > 0 ||
+        noTotalNames) && (
         <p className="error small spaced">
           This total is incomplete.
           {failedAccounts.length > 0 && <> Holdings didn't load for {failedAccounts.join(", ")}.</>}
@@ -105,6 +147,7 @@ export default function NetWorthCard({ report, money, title, includes }: Props) 
           {cashUnconverted.length > 0 && <> No exchange rate for cash in {cashUnconverted.join(", ")}.</>}
           {result.unconverted.length > 0 && <> Some holdings have no exchange rate.</>}
           {skipped.length > 0 && <> Some positions couldn't be valued.</>}
+          {noTotalNames && <> {noTotalNames} doesn't share holdings, and SnapTrade sent no total for it.</>}
         </p>
       )}
       {differsFromBrokerage && brokerageTotal !== undefined && (

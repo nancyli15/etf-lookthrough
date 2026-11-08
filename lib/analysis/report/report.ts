@@ -5,7 +5,7 @@ import { toHoldings, toNumber, toText } from "../../portfolio/holdings/holdings"
 import { rowsIn, type SnapTradeAccount, type SnapTradeBalance } from "../../snaptrade/responses/responses";
 import { recentActivity, type Activity } from "../../portfolio/activities/activities";
 import { convertCurrency, currencyCodeOf } from "../../portfolio/currency/currency";
-import { listOf, percentText } from "../../display/format/format";
+import { listOf, percentText, sumOf } from "../../display/format/format";
 import { lookThrough, type CompanyExposure, type LookThroughResult } from "../lookthrough/lookthrough";
 import { shortName } from "../../display/names/names";
 
@@ -27,10 +27,14 @@ export type Report = {
   headline?: Headline;
   skipped: string[]; // Positions we couldn't value.
   failedAccounts: string[]; // Accounts whose positions didn't load, so the totals are short.
-  holdingsAsOf?: string;
+  holdingsSyncedAt?: string; // The oldest account's last holdings sync, from /accounts.
   cash: number; // In the report's currency.
   cashNotLoaded: string[]; // Accounts whose balances didn't load, so net worth is short.
   cashUnconverted: string[]; // Currencies of cash we have no exchange rate for.
+  // Accounts whose brokerage doesn't share holdings (like Vanguard workplace plans),
+  // with SnapTrade's total for each. In net worth, but not in the look-through.
+  // `value` is null when SnapTrade sent no usable total either.
+  holdingsNotShared: { name: string; value: number | null }[];
   netWorth: number;
   brokerageTotal?: number; // SnapTrade's own account totals, when every account reports one.
   differsFromBrokerage: boolean; // Our total and SnapTrade's disagree by more than timing could explain.
@@ -79,12 +83,16 @@ function activitySince(accounts: AccountData[]): string | undefined {
   return starts.map((date) => date.slice(0, 10)).sort().at(-1);
 }
 
-// With several accounts, the oldest date is the honest one for the whole page.
-function oldestAsOf(responses: unknown[]): string | undefined {
-  const dates = responses
-    .map((response) => (response as { data_freshness?: { as_of?: unknown } })?.data_freshness?.as_of)
-    .filter((date): date is string => typeof date === "string" && !Number.isNaN(Date.parse(date)));
-  return dates.sort((earlier, later) => Date.parse(earlier) - Date.parse(later))[0];
+// When SnapTrade last synced holdings from the brokerage. Not the positions
+// response's data_freshness.as_of: in testing that was the moment SnapTrade
+// answered, about 10 hours after the last sync. With several accounts, the oldest
+// sync is the honest one for the page. If any account doesn't say, we can't promise one.
+function holdingsSyncedAt(accounts: AccountData[]): string | undefined {
+  const times = accounts.map((accountData) => accountData.account?.sync_status?.holdings?.last_successful_sync);
+  if (times.length === 0 || !times.every((time): time is string => typeof time === "string" && !Number.isNaN(Date.parse(time)))) {
+    return undefined;
+  }
+  return times.sort((earlier, later) => Date.parse(earlier) - Date.parse(later))[0];
 }
 
 // /balances returns one row per currency: [{ currency: { code }, cash }].
@@ -118,17 +126,29 @@ function readCash(accounts: AccountData[], reportCurrency: string) {
   return { cash, converted, cashNotLoaded, cashUnconverted: [...cashUnconverted] };
 }
 
+// SnapTrade's own total for one account, in the report's currency, or null.
+function accountTotal(accountData: AccountData, reportCurrency: string): number | null {
+  const total = accountData.account?.balance?.total;
+  const amount = toNumber(total?.amount);
+  const currency = total?.currency;
+  if (amount === null || typeof currency !== "string") return null;
+  return convertCurrency(amount, currency, reportCurrency);
+}
+
+// SnapTrade's docs: when holdings_unavailable is true, empty positions and cash don't
+// mean an empty account, so use the account's total value instead.
+function readHoldingsNotShared(accounts: AccountData[], reportCurrency: string) {
+  return accounts
+    .filter((accountData) => accountData.account?.sync_status?.holdings?.holdings_unavailable === true)
+    .map((accountData) => ({ name: accountName(accountData), value: accountTotal(accountData, reportCurrency) }));
+}
+
 // Partial totals can't be compared with our total, so one missing account means no comparison.
 function readBrokerageTotal(accounts: AccountData[], reportCurrency: string): number | undefined {
   if (accounts.length === 0) return undefined;
   let total = 0;
   for (const accountData of accounts) {
-    const accountTotal = accountData.account?.balance?.total;
-    const amount = toNumber(accountTotal?.amount);
-    const currency = accountTotal?.currency;
-    if (amount === null || typeof currency !== "string") return undefined;
-
-    const value = convertCurrency(amount, currency, reportCurrency);
+    const value = accountTotal(accountData, reportCurrency);
     if (value === null) return undefined;
     total += value;
   }
@@ -166,7 +186,8 @@ export function buildReport(accounts: AccountData[], options: { currency?: Repor
   if (converted) result.fxAsOf = FX.asOf;
 
   const failedAccounts = accounts.filter((accountData) => !accountData.positions.ok).map(accountName);
-  const netWorth = result.total + cash;
+  const holdingsNotShared = readHoldingsNotShared(accounts, result.currency);
+  const netWorth = result.total + cash + sumOf(holdingsNotShared, (account) => account.value ?? 0);
   const brokerageTotal = readBrokerageTotal(accounts, result.currency);
   // Missing data already has its own warning, and would make the totals differ anyway.
   const isComplete =
@@ -174,17 +195,19 @@ export function buildReport(accounts: AccountData[], options: { currency?: Repor
     skipped.length === 0 &&
     cashNotLoaded.length === 0 &&
     cashUnconverted.length === 0 &&
-    result.unconverted.length === 0;
+    result.unconverted.length === 0 &&
+    holdingsNotShared.every((account) => account.value !== null);
 
   return {
     result,
     headline: headlineFor(result.companies),
     skipped,
     failedAccounts,
-    holdingsAsOf: oldestAsOf(positionResponses),
+    holdingsSyncedAt: holdingsSyncedAt(accounts),
     cash,
     cashNotLoaded,
     cashUnconverted,
+    holdingsNotShared,
     netWorth,
     brokerageTotal,
     recentActivity: recentActivity(

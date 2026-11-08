@@ -28,7 +28,7 @@ type Props = {
 };
 
 export default function LookThrough({ report, history = { state: "loading" }, includes, title }: Props) {
-  const { result, headline, skipped, failedAccounts, holdingsAsOf, netWorth } = report;
+  const { result, headline, skipped, failedAccounts, netWorth } = report;
 
   // Always "US$" or "CA$" (see formatMoney), so switching accounts never hides which currency it is.
   function money(value: number, currency = result.currency): string {
@@ -94,7 +94,6 @@ export default function LookThrough({ report, history = { state: "loading" }, in
           empty FHSA, notes about holdings, fund dates and percentages are noise. */}
       {result.total !== 0 && (
         <p className="muted small">
-          {holdingsAsOf && <>Holdings as of {formatDate(holdingsAsOf)}. </>}
           {fundDates && <>Fund data as of {fundDates}. </>}
           {result.fxAsOf && <>Converted at {FX.cadPerUsd} CAD per USD ({FX.source}, {formatDate(result.fxAsOf)}). </>}
           Percentages are of your holdings, so they don't include cash.

@@ -143,6 +143,35 @@ describe("net worth", () => {
     expect(report.differsFromBrokerage).toBe(false);
   });
 
+  // SnapTrade's docs: some brokerages (like Vanguard workplace plans) don't share holdings,
+  // so positions and cash come back empty, and the account's total is the only number.
+  const notShared = (name: string, total?: number) => ({
+    account: {
+      name,
+      balance: total === undefined ? undefined : { total: { amount: total, currency: "USD" } },
+      sync_status: { holdings: { holdings_unavailable: true } },
+    },
+    positions: positions([]),
+    balances: { ok: true, data: [] },
+  });
+
+  it("counts an account that doesn't share holdings at SnapTrade's total, not $0", () => {
+    const report = buildReport([account("IRA", 1000, 0, [position("AAPL", "stock", "1", "1000")]), notShared("401(k)", 50000)]);
+    expect(report.holdingsNotShared).toEqual([{ name: "401(k)", value: 50000 }]);
+    expect(report.netWorth).toBe(51000);
+    // Not in the look-through: we can't see what's inside it.
+    expect(report.result.total).toBe(1000);
+    // Before, the missing $50,000 set off the "SnapTrade reports…" warning.
+    expect(report.differsFromBrokerage).toBe(false);
+  });
+
+  it("lists one with no total either, but leaves it out of net worth", () => {
+    const report = buildReport([account("IRA", 1000, 0, [position("AAPL", "stock", "1", "1000")]), notShared("401(k)")]);
+    expect(report.holdingsNotShared).toEqual([{ name: "401(k)", value: null }]);
+    expect(report.netWorth).toBe(1000);
+    expect(report.differsFromBrokerage).toBe(false);
+  });
+
   it("doesn't add a second warning when data is already missing", () => {
     const report = buildReport([
       { ...account("IRA", 5000, 0, [position("AAPL", "stock", "1", "1000")]), balances: { ok: false, data: null } },
@@ -185,12 +214,21 @@ describe("buildReport", () => {
     expect(r.skipped).toEqual(["AAPL"]);
   });
 
-  it("uses the oldest holdings date across accounts", () => {
+  it("uses the oldest holdings sync across accounts, from sync_status", () => {
+    const synced = (time?: string) => ({ sync_status: { holdings: { last_successful_sync: time } } });
     const r = buildReport([
-      { positions: positions([aapl], "2026-11-03T12:00:00Z") },
-      { positions: positions([spy], "2026-11-01T12:00:00Z") },
+      { account: synced("2026-11-07T18:00:15.117025+00:00"), positions: positions([aapl], "2026-11-08T03:54:43Z") },
+      { account: synced("2026-11-06T09:00:00+00:00"), positions: positions([spy], "2026-11-08T03:54:43Z") },
     ]);
-    expect(r.holdingsAsOf).toBe("2026-11-01T12:00:00Z");
+    // Not data_freshness.as_of: that's when SnapTrade answered, not when it synced.
+    expect(r.holdingsSyncedAt).toBe("2026-11-06T09:00:00+00:00");
+
+    // One account without a time means no time we can promise for the page.
+    const oneMissing = buildReport([
+      { account: synced("2026-11-07T18:00:15Z"), positions: positions([aapl]) },
+      { account: synced(), positions: positions([spy]) },
+    ]);
+    expect(oneMissing.holdingsSyncedAt).toBeUndefined();
   });
 
   it("adds cash across accounts, converting to the report's currency", () => {

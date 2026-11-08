@@ -4,7 +4,8 @@
 //   - a connection exists but is disabled, its accounts are hidden from apps,
 //     or it hasn't synced any accounts yet
 //   - SnapTrade sent accounts in a shape this app doesn't read
-// /api/raw calls /authorizations only in this case, to tell them apart.
+// /api/raw calls /authorizations on every load, so these can be told apart. It also
+// powers disabledConnectionsMessage below, for when some accounts do load.
 import { listOf } from "../../display/format/format";
 import { rowsIn, type SnapTradeConnection } from "../../snaptrade/responses/responses";
 import { toText } from "../holdings/holdings";
@@ -45,4 +46,20 @@ export function emptyAccountsMessage(accountsRaw: unknown, connectionsCall?: Cal
   // Accounts marked "Hidden" in SnapTrade come back exactly like this: the connection is
   // active, but /accounts is empty. That was the real cause the first time this appeared.
   return `Your ${namesOf(active)} connection has no accounts this app can see. Its accounts may be hidden from apps in SnapTrade, or it may still be syncing.`;
+}
+
+// When some accounts load but a connection is disabled. A brokerage disables a
+// connection when its login stops working, such as after a password change, and
+// SnapTrade stops syncing it. The rest of the page looks normal, so without this
+// the stale numbers would go unnoticed. "May be out of date", not "missing": we
+// haven't seen whether /accounts still lists a disabled connection's accounts.
+export function disabledConnectionsMessage(connectionsCall?: CallResult): string | undefined {
+  if (!connectionsCall?.ok) return undefined;
+  const disabled = connectionsOf(connectionsCall.data).filter((connection) => connection.disabled);
+  if (disabled.length === 0) return undefined;
+  const names = namesOf(disabled);
+  const isOne = new Set(disabled.map((connection) => connection.name)).size === 1;
+  return isOne
+    ? `Your ${names} connection is disabled, so SnapTrade can't update it and its numbers below may be out of date. Reconnect it in SnapTrade, then sign in again.`
+    : `Your ${names} connections are disabled, so SnapTrade can't update them and their numbers below may be out of date. Reconnect them in SnapTrade, then sign in again.`;
 }
