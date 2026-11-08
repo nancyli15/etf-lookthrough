@@ -129,6 +129,7 @@ The parts of the API the app depends on, and what happens if they change. SnapTr
 | Under the headline, two figures about the biggest company: its total, and how much of it comes through funds. The sentence says "you own 50% more of it than your shares alone" | A top-5 chart was tried, but it repeated the first rows of the company table right below it. The summary says what look-through found; the table shows why | Let the user pick the company |
 | The whole company row opens its details, not only the name | A bigger target. The name stays a button, so the keyboard and screen readers still work | — |
 | Exact sync time shown beside "10 hours ago", not in a hover tooltip | A `title` tooltip has no visible hint, takes a second to appear, and never appears on a phone. Testing found nobody knew it was there | One more bit of grey text under net worth |
+| No worked example on the sign-in page | A card with XEQT, XQQ and SPY's top companies was built and removed: it was twice the size of the sign-in card, repeated what the dashboard shows after sign-in, and was about fund data rather than SnapTrade | First-time users see no result before connecting. A README screenshot covers that for reviewers |
 
 ## Tooling
 
