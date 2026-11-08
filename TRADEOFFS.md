@@ -130,6 +130,7 @@ The parts of the API the app depends on, and what happens if they change. SnapTr
 | The whole company row opens its details, not only the name | A bigger target. The name stays a button, so the keyboard and screen readers still work | — |
 | Exact sync time shown beside "10 hours ago", not in a hover tooltip | A `title` tooltip has no visible hint, takes a second to appear, and never appears on a phone. Testing found nobody knew it was there | One more bit of grey text under net worth |
 | No worked example on the sign-in page | A card with XEQT, XQQ and SPY's top companies was built and removed: it was twice the size of the sign-in card, repeated what the dashboard shows after sign-in, and was about fund data rather than SnapTrade | First-time users see no result before connecting. A README screenshot covers that for reviewers |
+| A fund we have no holdings file for (like VFV) gets its own net worth row, "Funds we can't look inside yet", not "Crypto and other" | Someone holding only VFV saw their whole portfolio labelled "Crypto and other". The kinds that count as funds live in `holdings.ts`, so the browser can use the rule without loading the fund data | Add more funds' files; each one moves money from this row into the company table |
 
 ## Tooling
 
