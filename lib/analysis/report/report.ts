@@ -5,7 +5,7 @@ import { toHoldings, toNumber, toText } from "../../portfolio/holdings/holdings"
 import { rowsIn, type SnapTradeAccount, type SnapTradeBalance } from "../../snaptrade/responses/responses";
 import { recentActivity, type Activity } from "../../portfolio/activities/activities";
 import { convertCurrency, currencyCodeOf } from "../../portfolio/currency/currency";
-import { listOf, percentText } from "../../display/format/format";
+import { listOf, percentText, sumOf } from "../../display/format/format";
 import { lookThrough, type CompanyExposure, type LookThroughResult } from "../lookthrough/lookthrough";
 import { shortName } from "../../display/names/names";
 
@@ -31,6 +31,10 @@ export type Report = {
   cash: number; // In the report's currency.
   cashNotLoaded: string[]; // Accounts whose balances didn't load, so net worth is short.
   cashUnconverted: string[]; // Currencies of cash we have no exchange rate for.
+  // Accounts whose brokerage doesn't share holdings (like Vanguard workplace plans),
+  // with SnapTrade's total for each. In net worth, but not in the look-through.
+  // `value` is null when SnapTrade sent no usable total either.
+  holdingsNotShared: { name: string; value: number | null }[];
   netWorth: number;
   brokerageTotal?: number; // SnapTrade's own account totals, when every account reports one.
   differsFromBrokerage: boolean; // Our total and SnapTrade's disagree by more than timing could explain.
@@ -122,17 +126,29 @@ function readCash(accounts: AccountData[], reportCurrency: string) {
   return { cash, converted, cashNotLoaded, cashUnconverted: [...cashUnconverted] };
 }
 
+// SnapTrade's own total for one account, in the report's currency, or null.
+function accountTotal(accountData: AccountData, reportCurrency: string): number | null {
+  const total = accountData.account?.balance?.total;
+  const amount = toNumber(total?.amount);
+  const currency = total?.currency;
+  if (amount === null || typeof currency !== "string") return null;
+  return convertCurrency(amount, currency, reportCurrency);
+}
+
+// SnapTrade's docs: when holdings_unavailable is true, empty positions and cash don't
+// mean an empty account, so use the account's total value instead.
+function readHoldingsNotShared(accounts: AccountData[], reportCurrency: string) {
+  return accounts
+    .filter((accountData) => accountData.account?.sync_status?.holdings?.holdings_unavailable === true)
+    .map((accountData) => ({ name: accountName(accountData), value: accountTotal(accountData, reportCurrency) }));
+}
+
 // Partial totals can't be compared with our total, so one missing account means no comparison.
 function readBrokerageTotal(accounts: AccountData[], reportCurrency: string): number | undefined {
   if (accounts.length === 0) return undefined;
   let total = 0;
   for (const accountData of accounts) {
-    const accountTotal = accountData.account?.balance?.total;
-    const amount = toNumber(accountTotal?.amount);
-    const currency = accountTotal?.currency;
-    if (amount === null || typeof currency !== "string") return undefined;
-
-    const value = convertCurrency(amount, currency, reportCurrency);
+    const value = accountTotal(accountData, reportCurrency);
     if (value === null) return undefined;
     total += value;
   }
@@ -170,7 +186,8 @@ export function buildReport(accounts: AccountData[], options: { currency?: Repor
   if (converted) result.fxAsOf = FX.asOf;
 
   const failedAccounts = accounts.filter((accountData) => !accountData.positions.ok).map(accountName);
-  const netWorth = result.total + cash;
+  const holdingsNotShared = readHoldingsNotShared(accounts, result.currency);
+  const netWorth = result.total + cash + sumOf(holdingsNotShared, (account) => account.value ?? 0);
   const brokerageTotal = readBrokerageTotal(accounts, result.currency);
   // Missing data already has its own warning, and would make the totals differ anyway.
   const isComplete =
@@ -178,7 +195,8 @@ export function buildReport(accounts: AccountData[], options: { currency?: Repor
     skipped.length === 0 &&
     cashNotLoaded.length === 0 &&
     cashUnconverted.length === 0 &&
-    result.unconverted.length === 0;
+    result.unconverted.length === 0 &&
+    holdingsNotShared.every((account) => account.value !== null);
 
   return {
     result,
@@ -189,6 +207,7 @@ export function buildReport(accounts: AccountData[], options: { currency?: Repor
     cash,
     cashNotLoaded,
     cashUnconverted,
+    holdingsNotShared,
     netWorth,
     brokerageTotal,
     recentActivity: recentActivity(
