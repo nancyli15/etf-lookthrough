@@ -49,6 +49,24 @@ What's inside each ETF comes from the fund providers' holdings files, not from S
 - **On Vercel,** the build downloads the real file from a private repo, using a read-only token in `FUND_DATA_TOKEN`. If the download fails, the build fails, so the live site never shows sample data.
 - **To refresh it,** download each fund's holdings file by hand, run `python3 scripts/build_funds.py <folder>`, and upload the new `data/fund-data.ts` to the private repo.
 
+### Testing a fund the app can't open
+
+SnapTrade's Sandbox holdings are fixed, so no Sandbox account holds a fund the app doesn't recognise. To see that case with real API responses, hide a fund the Sandbox does hold, locally only:
+
+1. Commit or stash your work first.
+2. In `data/funds.ts`, after `FUNDS`, add `delete FUNDS.SPY; delete FUNDS.FXAIX;`.
+3. Run `npm run dev` (restart it if it's already running) and sign in with the Sandbox account that holds SPY (Individual) and FXAIX (IRA).
+4. Undo with `git checkout data/funds.ts`, and check `git status` is clean. Never commit the edit.
+
+Checked on 2026-11-08 with Individual and IRA ticked:
+
+| Where | Expected |
+|---|---|
+| Net worth card | "Funds we can't look inside yet: US$30,698.35" (SPY $8,373.75 + FXAIX $22,324.60). "Crypto and other" stays US$28,555.00, crypto only |
+| Under the headline | "45.1% of your holdings is in funds we can't open yet (SPY and FXAIX), so company totals are likely understated." 30,698.35 ÷ 68,125.85 holdings |
+| Company table | Only the 5 stocks bought directly, 13.0% of holdings |
+| An account with no unknown funds (Apple and Microsoft only) | No new row, no warning |
+
 ## Deploy (Vercel)
 
 1. Import the GitHub repo in Vercel.
@@ -116,3 +134,5 @@ Notes for SnapTrade, written as I hit them:
 - Balance history (beta): the reference documents `/accounts/{id}/balanceHistory` only with `userId` and `userSecret`, not OAuth. It does work with an OAuth Bearer token (tested 2026-11-05), so saying so in the reference would save apps a test.
 - Balance history (beta): the schema says `date` is a date, but the example shows a full timestamp (`2026-01-01T00:00:00.000Z`), so the app accepts both. `total_value` is a string, like positions.
 - Hidden accounts: accounts marked "Hidden" in SnapTrade make `/accounts` return `200` and `[]`, exactly like having no brokerage shared at all, while `/authorizations` shows the connection as active. Nothing in either response says the accounts are hidden, so it took a while to find. A field or note saying "N accounts hidden" would make this obvious.
+- Sandbox holdings are fixed per scenario, so there's no way to hold a particular security. I couldn't test end to end what happens with a fund my app doesn't recognise, only in unit tests with made-up data. A way to choose the Sandbox's holdings, or a scenario with a few less common ETFs and a mutual fund, would let apps test the paths that depend on what's held.
+- Sandbox scenarios test a connection failing when it's made (invalid credentials, locked, rate limited), but not states that appear later, which apps also have to handle: a connection that becomes disabled after working, an account with `holdings_unavailable: true`, accounts marked hidden, or holdings that haven't synced for a while. I handled all four but could only unit-test them.

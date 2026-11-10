@@ -23,9 +23,12 @@ export type HoldingsResult = {
   skipped: string[]; // Positions we couldn't value, so the UI can say the total is incomplete.
 };
 
+// SnapTrade's kinds for a fund: these get opened up into companies.
+export const FUND_KINDS = new Set(["etf", "mutualfund"]);
+
 // Stocks count as direct exposure and funds get opened up. Anything else, like
 // crypto or options, has no companies inside it to find.
-const LOOK_THROUGH_KINDS = new Set(["stock", "etf", "mutualfund"]);
+const LOOK_THROUGH_KINDS = new Set(["stock", ...FUND_KINDS]);
 
 // /positions/all returns units and price as strings ("5", "180.5"), so convert first.
 // Number("") is 0 in JavaScript, so blanks are caught here: a missing price is not $0.

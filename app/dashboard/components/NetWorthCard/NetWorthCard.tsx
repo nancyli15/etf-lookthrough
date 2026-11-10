@@ -1,7 +1,7 @@
 // The summary card: total net worth, split into stocks you bought, funds, crypto
 // and cash, with a note when the total is incomplete or differs from SnapTrade's.
 import { FX } from "@/data/fx";
-import { formatDate, formatDateTime, listOf, sumOf, syncedText } from "@/lib/display/format/format";
+import { formatDate, formatDateTime, fundsWeCantOpen, listOf, sumOf, syncedText } from "@/lib/display/format/format";
 import type { Report } from "@/lib/analysis/report/report";
 import InfoPopover from "../InfoPopover/InfoPopover";
 import "./NetWorthCard.css";
@@ -30,8 +30,12 @@ export default function NetWorthCard({ report, money, title, includes }: Props) 
 
   const directTotal = sumOf(result.directHoldings, (holding) => holding.value);
   const fundsTotal = sumOf(result.funds, (fund) => fund.value);
+  // Funds we have no holdings file for, like VFV: their own row, so a portfolio of
+  // only VFV isn't labelled "Crypto and other".
+  const fundsNotOpened = fundsWeCantOpen(result);
+  const fundsNotOpenedTotal = sumOf(fundsNotOpened, (holding) => holding.value);
   // Crypto and anything else with no companies inside, in one row.
-  const notLookedTotal = sumOf(result.notLookedThrough, (holding) => holding.value);
+  const notLookedTotal = sumOf(result.notLookedThrough, (holding) => holding.value) - fundsNotOpenedTotal;
   const unopened = sumOf(result.insideUnopenedFunds, (fund) => fund.value);
   // The part of your funds that isn't companies: cash, futures and currency lines, plus funds we can't open.
   const cashInsideFunds = result.nonCompanyInFunds + unopened;
@@ -85,6 +89,19 @@ export default function NetWorthCard({ report, money, title, includes }: Props) 
                 )}
               </td>
               <td className="num">{money(fundsTotal)}</td>
+            </tr>
+          )}
+          {fundsNotOpened.length > 0 && (
+            <tr>
+              <td>
+                Funds we can't look inside yet{" "}
+                <InfoPopover label="About funds we can't look inside yet">
+                  {listOf(fundsNotOpened.map((fund) => fund.symbol))} {fundsNotOpened.length === 1 ? "is" : "are"} in your net
+                  worth, but not in the companies below: we don't have {fundsNotOpened.length === 1 ? "its" : "their"} list of
+                  holdings yet.
+                </InfoPopover>
+              </td>
+              <td className="num">{money(fundsNotOpenedTotal)}</td>
             </tr>
           )}
           {notLookedTotal !== 0 && (

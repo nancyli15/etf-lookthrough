@@ -1,6 +1,7 @@
 // Small helpers the screen uses. They don't import the fund data, so browser code
 // can use them without downloading every fund's holdings.
 import type { LookThroughResult } from "../../analysis/lookthrough/lookthrough";
+import { FUND_KINDS } from "../../portfolio/holdings/holdings";
 
 // Always "US$" or "CA$", never a bare "$". Browsers write their own country's
 // currency as "$", so in Canada CA$ showed as "$" and US$ as "US$", and switching
@@ -29,11 +30,23 @@ export function formatMoney(value: number, currency: string, options: MoneyOptio
 // total could be noticeably understated, so the screen says so up front.
 const UNOPENED_WARNING_ABOVE = 0.05;
 
+// Every fund we can't open, in one list: ones you hold yourself (like VFV) and ones
+// inside your funds (like IEFA inside XEF). Both hide companies the same way.
+export function unopenedFunds(result: LookThroughResult): { symbols: string[]; value: number } {
+  const all = [...fundsWeCantOpen(result), ...result.insideUnopenedFunds];
+  return { symbols: [...new Set(all.map((fund) => fund.symbol))], value: sumOf(all, (fund) => fund.value) };
+}
+
 // True when enough of the portfolio sits in funds we can't open that company totals
 // are noticeably understated.
 export function muchIsInUnopenedFunds(result: LookThroughResult): boolean {
-  const unopened = sumOf(result.insideUnopenedFunds, (fund) => fund.value);
-  return result.total > 0 && unopened / result.total > UNOPENED_WARNING_ABOVE;
+  return result.total > 0 && unopenedFunds(result).value / result.total > UNOPENED_WARNING_ABOVE;
+}
+
+// Funds you hold that we have no holdings file for, like VFV. They're in the total
+// but not in any company, so the screen names them apart from crypto.
+export function fundsWeCantOpen(result: LookThroughResult): LookThroughResult["notLookedThrough"] {
+  return result.notLookedThrough.filter((holding) => FUND_KINDS.has(holding.kind));
 }
 
 // Adds up one number from each row: sumOf(funds, (fund) => fund.value).

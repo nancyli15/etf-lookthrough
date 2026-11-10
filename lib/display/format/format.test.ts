@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { formatMoney, percentText, syncedText } from "./format";
+import { formatMoney, fundsWeCantOpen, percentText, syncedText } from "./format";
+import type { LookThroughResult } from "../../analysis/lookthrough/lookthrough";
 
 describe("syncedText", () => {
   const now = new Date("2026-11-07T15:00:00Z");
@@ -43,5 +44,16 @@ describe("percentText", () => {
     expect(percentText(69.46 / 200000)).toBe("<0.1%");
     expect(percentText(0)).toBe("0.0%");
     expect(percentText(0.473)).toBe("47.3%");
+  });
+});
+
+describe("fundsWeCantOpen", () => {
+  it("picks out funds with no holdings file, not crypto or options", () => {
+    const notLookedThrough = [
+      { symbol: "VFV", name: "Vanguard S&P 500", kind: "etf", value: 900, reason: "We don't have this fund's contents yet" },
+      { symbol: "BTC", name: "Bitcoin", kind: "crypto", value: 100, reason: "Crypto has no companies inside" },
+    ];
+    const result = { notLookedThrough } as LookThroughResult;
+    expect(fundsWeCantOpen(result).map((fund) => fund.symbol)).toEqual(["VFV"]);
   });
 });

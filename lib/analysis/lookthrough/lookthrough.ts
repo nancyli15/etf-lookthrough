@@ -8,7 +8,7 @@ import type { Fund } from "../../../data/fund-types";
 import { COMPANY_BY_SYMBOL, FUNDS, FUNDS_WITHOUT_DATA } from "../../../data/funds";
 import { FX } from "../../../data/fx";
 import { convertCurrency } from "../../portfolio/currency/currency";
-import type { Holding } from "../../portfolio/holdings/holdings";
+import { FUND_KINDS, type Holding } from "../../portfolio/holdings/holdings";
 import { companyKey, cleanTicker } from "./identity";
 import { flatten, type Flattened } from "./flatten";
 import { fundOverlap } from "./overlap";
@@ -74,8 +74,6 @@ type Options = {
   fx?: typeof FX;
   currency?: string; // Report in this currency. Without it, the holdings decide.
 };
-
-const FUND_KINDS = new Set(["etf", "mutualfund"]);
 
 // For sort(): biggest value first.
 const largestValueFirst = (first: { value: number }, second: { value: number }) => second.value - first.value;

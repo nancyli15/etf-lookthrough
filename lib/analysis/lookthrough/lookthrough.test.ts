@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { Fund, FundHolding } from "../../../data/fund-types";
 import { FUND_DATA_IS_SAMPLE, FUNDS } from "../../../data/funds";
 import type { Holding } from "../../portfolio/holdings/holdings";
-import { muchIsInUnopenedFunds } from "../../display/format/format";
+import { muchIsInUnopenedFunds, unopenedFunds } from "../../display/format/format";
 import { lookThrough } from "./lookthrough";
 
 function holding(symbol: string, kind: string, value: number, extra: Partial<Holding> = {}): Holding {
@@ -242,6 +242,18 @@ describe("funds we can't open", () => {
       fundsWithoutData: new Set(["HIDDEN"]),
     });
     expect(muchIsInUnopenedFunds(small)).toBe(false); // $500 of $21,000 is 2.4%.
+  });
+
+  it("counts a fund you hold yourself with no file, like VFV, toward the same warning", () => {
+    const funds = { F: fund("F", [stock("AAPL", 1)]) };
+    // $600 of $1,000 is in VFV, which we have no file for.
+    const big = lookThrough([holding("F", "etf", 400), holding("VFV", "etf", 600)], { funds });
+    expect(unopenedFunds(big)).toEqual({ symbols: ["VFV"], value: 600 });
+    expect(muchIsInUnopenedFunds(big)).toBe(true);
+
+    // $40 of $10,040 is 0.4%: too small to call the totals understated.
+    const small = lookThrough([holding("F", "etf", 10000), holding("VFV", "etf", 40)], { funds });
+    expect(muchIsInUnopenedFunds(small)).toBe(false);
   });
 });
 

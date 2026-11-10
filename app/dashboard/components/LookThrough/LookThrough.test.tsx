@@ -84,7 +84,14 @@ describe("LookThrough screen", () => {
     expect(html).not.toContain("This total is incomplete");
   });
 
-  it("shows a money market fund inside cash, and splits crypto from other holdings", () => {
+  it("warns under the headline when much of your money is in a fund we can't open", () => {
+    const html = render([ok([position("AAPL", "stock", 400), position("ZZZZ", "etf", 600)])]);
+    // ZZZZ is $600 of $1,000 in holdings.
+    expect(html).toMatch(/60\.0% of your holdings is in funds we can(&#x27;|')t open yet \(ZZZZ\)/);
+    expect(html).toContain("likely understated");
+  });
+
+  it("shows a money market fund inside cash, and splits crypto from funds we can't open", () => {
     const html = render([
       {
         positions: {
@@ -104,8 +111,12 @@ describe("LookThrough screen", () => {
     // In the ⓘ next to "Cash", not a line under it.
     expect(html).toContain('aria-label="About the cash in your accounts"');
     expect(html).toContain("Includes US$200.00 in SPAXX, a money market fund.");
-    // Crypto and a fund we can't open share one row of the summary.
-    expect(html).toContain("Crypto and other");
+    // A fund we can't open gets its own row, apart from crypto.
+    expect(html).toMatch(/Funds we can(&#x27;|')t look inside yet/);
+    expect(html).toContain("ZZZZ is in your net worth");
+    expect(html).toContain("<td>Crypto and other</td>");
+    expect(html).toContain("US$50.00"); // ZZZZ
+    expect(html).toContain("US$100.00"); // BTC
     expect(html).toContain("$450.00"); // 100 + 50 + 300, with SPAXX inside the cash.
     expect(html).not.toContain("Not looked through</td>");
     expect(html).not.toContain("<td>SPAXX");
